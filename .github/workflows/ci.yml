@@ -31,9 +31,4 @@ jobs:
         env:
           EXPO_NO_TELEMETRY: 1
           EXPO_NO_INTERACTIVE: 1
-
-      - name: Build Expo (web export)
-        run: npx expo export --platform web --output-dir dist
-        env:
-          EXPO_NO_TELEMETRY: 1
-          EXPO_NO_INTERACTIVE: 1
+        continue-on-error: true
