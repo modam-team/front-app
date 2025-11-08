@@ -2,15 +2,27 @@
 
 # dependencies
 node_modules/
+package-lock.json
+pnpm-lock.yaml
 
 # Expo
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# Native build outputs
+/android
+/ios
+/build
+.gradle/
+.idea/
+
+# Kotlin / Java / Android Studio
 .kotlin/
+*.iml
+local.properties
 *.orig.*
 *.jks
 *.p8
@@ -18,24 +30,45 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Metro
+# Xcode
+*.xcworkspace
+*.xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# Metro bundler
 .metro-health-check*
 
-# debug
+# Logs & Debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
 
-# macOS
+# macOS / Windows
 .DS_Store
+Thumbs.db
 *.pem
 
-# local env files
+# Environment files
+.env
 .env*.local
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
+# VSCode / Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# EAS / CI build artifacts
+*.tar.gz
+*.apk
+*.aab
+*.ipa
+*.dmg
+
+# Misc
+coverage/
