@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import colors from '../theme/colors';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import colors from "../theme/legacyColors";
 
 export default function StreakBanner({ days = 4 }) {
   return (
@@ -11,6 +11,11 @@ export default function StreakBanner({ days = 4 }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { backgroundColor: colors.muted, padding: 12, marginHorizontal: 16, borderRadius: 8 },
-  text: { fontWeight: '600', color: colors.text },
+  wrap: {
+    backgroundColor: colors.muted,
+    padding: 12,
+    marginHorizontal: 16,
+    borderRadius: 8,
+  },
+  text: { fontWeight: "600", color: colors.text },
 });
