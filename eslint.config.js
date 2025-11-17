@@ -16,6 +16,7 @@ export default defineConfig([
     "android",
     "ios",
     ".expo",
+    "babel.config.js",
   ]),
 
   {
