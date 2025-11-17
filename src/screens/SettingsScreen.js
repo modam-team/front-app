@@ -15,4 +15,7 @@ const styles = StyleSheet.create({
   wrap: { flex: 1, padding: 16, backgroundColor: "#fff" },
   title: { fontSize: 20, fontWeight: "800", color: "#111827" },
   sub: { marginTop: 8, color: "#6b7280" },
+  wrap: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  title: { fontSize: 20, fontWeight: "800", color: "#111827" },
+  sub: { marginTop: 8, color: "#6b7280" },
 });

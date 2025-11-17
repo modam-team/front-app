@@ -51,6 +51,14 @@ export default function BottomTabs({ navigation }) {
           component={HomeScreen}
         />
         <Tab.Screen
+          name="책장"
+          component={BookshelfScreen}
+        />
+        <Tab.Screen
+          name="홈"
+          component={HomeScreen}
+        />
+        <Tab.Screen
           name="리포트"
           component={ReportScreen}
         />
