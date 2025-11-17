@@ -26,6 +26,8 @@
   },
   "private": true,
   "devDependencies": {
-    "babel-preset-expo": "^54.0.6"
+    "@trivago/prettier-plugin-sort-imports": "^6.0.0",
+    "babel-preset-expo": "^54.0.6",
+    "prettier": "^3.6.2"
   }
 }

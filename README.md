@@ -35,3 +35,4 @@ front-app/
 │   ├── theme/             # 색상, 폰트 등 공통 스타일
 │   └── assets/            # 이미지, 폰트 등 정적 리소스
 └── package.json
+```

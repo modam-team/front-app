@@ -1,6 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
 import colors from "../theme/legacyColors";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 export default function StreakBanner({ days = 4 }) {
   return (

@@ -1,0 +1,51 @@
+# 🔒 기본적으로 포맷이 필요 없는 폴더
+node_modules
+build
+dist
+coverage
+
+# 🔐 Expo / React Native 빌드 폴더
+android/
+ios/
+.expo/
+.expo-shared/
+
+# ⚙️ 환경 설정 / 잠금 파일
+*.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# 💾 번들 결과물
+*.bundle
+*.map
+
+# 🖼️ 에셋 파일
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.mp4
+*.ttf
+*.otf
+assets/
+
+# 📝 환경 변수
+.env
+.env.*
+.env.local
+
+# 🧪 테스트 산출물
+coverage/
+jest-cache/
+jest-resolve-cache/
+
+# 🧹 기타
+.DS_Store
+.vscode/
+.idea/
+
+# 🔧 프로젝트 빌드 아웃풋
+build/
+out/

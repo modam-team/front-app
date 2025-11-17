@@ -1,9 +1,9 @@
 // src/screens/HomeScreen.js
-import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import colors from "../theme/legacyColors";
 import ChallengeCard from "../components/ChallengeCard";
 import MonthView from "../components/MonthView";
+import colors from "../theme/legacyColors";
+import React, { useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 export default function HomeScreen() {
   const [month, setMonth] = useState(10);
@@ -27,7 +27,12 @@ export default function HomeScreen() {
 
       <View style={styles.section}>
         <Text style={styles.h2}>2025년 10월</Text>
-        <MonthView year={year} month={month} onPrev={prev} onNext={next} />
+        <MonthView
+          year={year}
+          month={month}
+          onPrev={prev}
+          onNext={next}
+        />
       </View>
     </View>
   );
