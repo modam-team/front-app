@@ -1,23 +1,33 @@
-import js from "@eslint/js";
-import eslintConfigPrettier from "eslint-config-prettier";
-import reactPlugin from "eslint-plugin-react";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
-import { defineConfig, globalIgnores } from "eslint/config";
-import globals from "globals";
+const js = require("@eslint/js");
+const eslintConfigPrettier = require("eslint-config-prettier");
+const reactPlugin = require("eslint-plugin-react");
+const reactHooks = require("eslint-plugin-react-hooks");
+const reactRefresh = require("eslint-plugin-react-refresh");
+const globals = require("globals");
 
-export default defineConfig([
-  // 전역 ignore
-  globalIgnores([
-    "node_modules",
-    "dist",
-    "build",
-    "coverage",
-    "android",
-    "ios",
-    ".expo",
-    "babel.config.js",
-  ]),
+module.exports = [
+  {
+    settings: {
+      react: {
+        version: "19.1.0",
+      },
+    },
+
+    ignores: [
+      "node_modules",
+      "dist",
+      "build",
+      "coverage",
+      "android",
+      "ios",
+      ".expo",
+      ".expo-shared",
+    ],
+  },
+
+  js.configs.recommended,
+  reactPlugin.configs.flat.recommended,
+  eslintConfigPrettier,
 
   {
     files: ["**/*.{js,jsx}"],
@@ -30,29 +40,12 @@ export default defineConfig([
         ...globals.es2021,
         __DEV__: "readonly",
       },
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
     },
 
     plugins: {
       react: reactPlugin,
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
-    },
-
-    extends: [
-      js.configs.recommended,
-      reactPlugin.configs.flat.recommended,
-      eslintConfigPrettier,
-    ],
-
-    settings: {
-      react: {
-        version: "detect",
-      },
     },
 
     rules: {
@@ -76,4 +69,15 @@ export default defineConfig([
       "no-unused-vars": "off",
     },
   },
-]);
+
+  {
+    files: ["babel.config.js"],
+    languageOptions: {
+      globals: {
+        module: "readonly",
+        require: "readonly",
+      },
+    },
+    rules: {},
+  },
+];
