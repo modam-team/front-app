@@ -25,6 +25,12 @@ jobs:
         env:
           CI: true
 
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Prettier check
+        run: npm run format:check
+
       # Expo 설정 점검
       - name: Run Expo doctor
         run: npx expo-doctor

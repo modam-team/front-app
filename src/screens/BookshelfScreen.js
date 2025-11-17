@@ -1,6 +1,5 @@
 import TabSegment from "../components/TabSegment";
 // ✅ 중괄호 X
-import colors from "../theme/colors";
 import React, { useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
