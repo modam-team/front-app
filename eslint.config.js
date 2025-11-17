@@ -69,6 +69,10 @@ export default defineConfig([
 
       // react-refresh 기본 권장 규칙 직접 추가
       "react-refresh/only-export-components": "warn",
+
+      // 안 쓰는 변수 경고 임시로 꺼둠
+      // (개발 끝나면 다시 킬거니까 최대한 안 쓰게 하세요 !!)
+      "no-unused-vars": "off",
     },
   },
 ]);
