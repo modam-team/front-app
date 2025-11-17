@@ -1,7 +1,8 @@
 import TabSegment from "../components/TabSegment";
-// ✅ 중괄호 X
 import React, { useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
+
+// ✅ 중괄호 X
 
 const tabs = [
   { label: "읽기 전", value: "before" },
@@ -23,7 +24,7 @@ export default function BookshelfScreen() {
         tabs={tabs}
         value={tab}
         onChange={setTab}
-      />{" "}
+      />
       {/* ✅ */}
       <FlatList
         contentContainerStyle={{ padding: 16, gap: 12 }}
