@@ -1,12 +1,13 @@
-import React, { useState } from "react";
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native"; // ✅ StyleSheet 포함!
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import PlusOverlay from "../components/PlusOverlay";
 import BookshelfScreen from "../screens/BookshelfScreen";
 import HomeScreen from "../screens/HomeScreen";
 import ReportScreen from "../screens/ReportScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import colors from "../theme/legacyColors";
-import PlusOverlay from "../components/PlusOverlay";
+// ✅ StyleSheet 포함!
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const Tab = createBottomTabNavigator();
 
@@ -53,15 +54,27 @@ export default function BottomTabs() {
           tabBarLabelStyle: { fontSize: 11 },
         }}
       >
-        <Tab.Screen name="책장" component={BookshelfScreen} />
-        <Tab.Screen name="홈" component={HomeScreen} />
+        <Tab.Screen
+          name="책장"
+          component={BookshelfScreen}
+        />
+        <Tab.Screen
+          name="홈"
+          component={HomeScreen}
+        />
         <Tab.Screen
           name="작성"
           component={EmptyScreen}
           options={{ tabBarButton: () => <PlusButton />, headerShown: false }}
         />
-        <Tab.Screen name="리포트" component={ReportScreen} />
-        <Tab.Screen name="설정" component={SettingsScreen} />
+        <Tab.Screen
+          name="리포트"
+          component={ReportScreen}
+        />
+        <Tab.Screen
+          name="설정"
+          component={SettingsScreen}
+        />
       </Tab.Navigator>
 
       {/* 가운데 + 오버레이 */}

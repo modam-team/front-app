@@ -1,6 +1,7 @@
-import React from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native"; // ✅ 여기도 StyleSheet 포함!
+// ✅ 여기도 StyleSheet 포함!
 import colors from "../theme/legacyColors";
+import React from "react";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function PlusOverlay({ visible, onClose, onSelect }) {
   return (
@@ -16,7 +17,10 @@ export default function PlusOverlay({ visible, onClose, onSelect }) {
         onPress={onClose}
       >
         {/* 캡션 */}
-        <View style={styles.captionWrap} pointerEvents="none">
+        <View
+          style={styles.captionWrap}
+          pointerEvents="none"
+        >
           <Text style={styles.caption}>책을 읽을 장소를 선택해주세요</Text>
         </View>
 

@@ -1,7 +1,7 @@
 // src/screens/SettingsScreen.js
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import colors from '../theme/colors';
+import colors from "../theme/colors";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 export default function SettingsScreen() {
   return (
@@ -13,7 +13,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: 16, backgroundColor: '#fff' },
-  title: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  sub: { marginTop: 8, color: '#6b7280' },
+  wrap: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  title: { fontSize: 20, fontWeight: "800", color: "#111827" },
+  sub: { marginTop: 8, color: "#6b7280" },
 });
