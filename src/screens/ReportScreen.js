@@ -1,18 +1,77 @@
-// src/screens/ReportScreen.js
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { fetchMonthlyReport } from "@apis/reportApi";
+import Summary from "@components/report/Summary";
+import { colors } from "@theme/colors";
+import { radius } from "@theme/radius";
+import { shadow } from "@theme/shadow";
+import { spacing } from "@theme/spacing";
+import { typography } from "@theme/typography";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 export default function ReportScreen() {
+  // 현재 날짜 기준 기본 연도랑 월 설정
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+
+  // 일단 임시 더미 데이터에서 받아온 리포트 데이터
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // 연도나 월을 변경하면 자동으로 리포트 재조회하도록
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await fetchMonthlyReport({ year, month });
+        setData(res);
+      } catch (e) {
+        // 에러 UI 나중에 추가할 거면 여기다가 추가하기 !!
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [year, month]);
+
+  if (loading || !data) {
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator
+          size="large"
+          color={colors.primary[500]}
+        />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.title}>리포트</Text>
-      <Text style={styles.sub}>월별/주별 독서 통계를 여기에 표시</Text>
-    </View>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
+      <Summary summary={data.summary} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: 16, backgroundColor: "#fff" },
-  title: { fontSize: 20, fontWeight: "800", color: "#111827" },
-  sub: { marginTop: 8, color: "#6b7280" },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.DEFAULT,
+  },
+  content: {
+    padding: spacing.l,
+  },
+  loadingWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.background.DEFAULT,
+  },
 });
