@@ -6,9 +6,26 @@ import { typography } from "@theme/typography";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+function splitToTwoLines(text, maxLen = 20) {
+  const words = text.split(" ");
+  let line1 = "";
+  let line2 = "";
+
+  for (const w of words) {
+    if ((line1 + " " + w).trim().length <= maxLen) {
+      line1 += (line1 ? " " : "") + w;
+    } else {
+      line2 += (line2 ? " " : "") + w;
+    }
+  }
+
+  return [line1, line2];
+}
+
 export default function Summary({ summary }) {
   // userName은 나중에 실제 유저 이름으로 교체 예정 !
   const { year, month, title, description, userName = "모담" } = summary;
+  const [line1, line2] = splitToTwoLines(description);
 
   return (
     <View style={styles.wrap}>
@@ -31,7 +48,11 @@ export default function Summary({ summary }) {
           <Text style={styles.characterLabel}>캐릭터</Text>
         </View>
 
-        <Text style={styles.personaDesc}>{description}</Text>
+        <Text style={styles.personaDesc}>
+          {line1}
+          {"\n"}
+          {line2}
+        </Text>
       </View>
     </View>
   );
