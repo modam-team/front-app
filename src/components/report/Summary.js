@@ -1,0 +1,126 @@
+import { colors } from "@theme/colors";
+import { radius } from "@theme/radius";
+import { shadow } from "@theme/shadow";
+import { spacing } from "@theme/spacing";
+import { typography } from "@theme/typography";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+
+function splitToTwoLines(text, maxLen = 20) {
+  const words = text.split(" ");
+  let line1 = "";
+  let line2 = "";
+
+  for (const w of words) {
+    if ((line1 + " " + w).trim().length <= maxLen) {
+      line1 += (line1 ? " " : "") + w;
+    } else {
+      line2 += (line2 ? " " : "") + w;
+    }
+  }
+
+  return [line1, line2];
+}
+
+export default function Summary({ summary }) {
+  // userName은 나중에 실제 유저 이름으로 교체 예정 !
+  const { year, month, title, description, userName = "모담" } = summary;
+  const [line1, line2] = splitToTwoLines(description);
+
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.header}>
+        <Text style={styles.headerLine1}>
+          {userName} 님의 <Text style={styles.headerMonth}>{month}월</Text>
+        </Text>
+        <Text style={styles.headerLine2}>
+          <Text style={styles.sectionTitle}>독서 기록</Text> 결과예요
+        </Text>
+      </View>
+
+      {/* 카드 */}
+      <View style={styles.card}>
+        <Text style={styles.personaTitle}>{title}</Text>
+        <Text style={styles.personaSub}>모담 회원 중 3% 유형이에요</Text>
+
+        {/* 캐릭터 이미지 자리 (지금은 placeholder 박스) */}
+        <View style={styles.characterBox}>
+          <Text style={styles.characterLabel}>캐릭터</Text>
+        </View>
+
+        <Text style={styles.personaDesc}>
+          {line1}
+          {"\n"}
+          {line2}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  // 전체 섹션 래퍼
+  wrap: {
+    marginBottom: spacing.sectionGap,
+  },
+
+  // 각 섹션의 타이틀은 bold로 설정 (ex. 독서 기록, 독서 통계, 취향 분석 요 부분)
+  sectionTitle: {
+    fontWeight: "700",
+  },
+
+  // 헤더 영역
+  header: {
+    marginBottom: spacing.m,
+  },
+  headerLine1: {
+    ...typography["heading-1-medium"],
+    color: colors.mono[950],
+    marginBottom: 2,
+  },
+  headerMonth: {
+    fontWeight: "700",
+    color: colors.primary[500],
+  },
+  headerLine2: {
+    ...typography["heading-1-medium"],
+    color: colors.mono[950],
+  },
+
+  // 카드
+  card: {
+    padding: spacing.l,
+    borderRadius: radius[500],
+    backgroundColor: colors.mono[150],
+    ...shadow[0],
+  },
+  personaTitle: {
+    fontSize: 36,
+    fontWeight: "600",
+    color: colors.mono[950],
+  },
+  personaSub: {
+    ...typography["body-1-regular"],
+    color: colors.mono[700],
+    marginBottom: spacing.m,
+  },
+
+  // 임시 캐릭터 이미지 부분
+  characterBox: {
+    height: 250,
+    borderRadius: radius[400],
+    backgroundColor: colors.mono[0],
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.m,
+  },
+  characterLabel: {
+    ...typography["body-1-bold"],
+    color: colors.mono[950],
+  },
+
+  personaDesc: {
+    ...typography["heading-3-medium"],
+    color: colors.mono[950],
+  },
+});
