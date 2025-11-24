@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 
-const BAR_MAX_HEIGHT = 160;
+const BAR_MAX_HEIGHT = 230;
 const MONTH_COUNT = 12;
 
 export default function MonthlyStats({
@@ -23,6 +23,8 @@ export default function MonthlyStats({
   onChangeYear,
   onChangeMonth,
   monthlyStatus,
+  animateKey,
+  resetKey,
 }) {
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -53,20 +55,27 @@ export default function MonthlyStats({
     Array.from({ length: MONTH_COUNT }, () => new Animated.Value(0)),
   ).current;
 
-  // 연 / 월 / 데이터가 바뀔 때마다 아래에서 위로 올라오도록
+  // resetKey가 바뀔 때마다 그래프를 0으로 리셋 하기
   useEffect(() => {
+    if (resetKey == null) return; // 처음 마운트 시에는 그냥 통과
+    barAnim.forEach((v) => v.setValue(0));
+  }, [resetKey, barAnim]);
+
+  // animateKey가 바뀔 때마다 아래에서 위로 올라오도록
+  useEffect(() => {
+    if (!animateKey) return; // 0, undefined일 때는 무시
+
     const animations = barAnim.map((value, index) =>
       Animated.timing(value, {
         toValue: 1,
-        duration: 500,
+        duration: 1000,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: false, // height 애니메이션이라 false
-        delay: index * 50, // 살짝씩 시차를 줘서 순서대로 올라오는 느낌
+        useNativeDriver: false,
       }),
     );
 
-    Animated.stagger(40, animations).start();
-  }, [year, month, monthData, barAnim]);
+    Animated.parallel(animations).start();
+  }, [animateKey, barAnim, monthData]);
 
   return (
     <View style={styles.wrap}>
@@ -107,16 +116,16 @@ export default function MonthlyStats({
               outputRange: [0, targetHeight],
             });
 
+            const labelBottom = Animated.add(
+              animatedHeight,
+              new Animated.Value(spacing.s),
+            );
+
             return (
               <View
                 key={item.month}
                 style={styles.barWrapper}
               >
-                {/* 막대 위 숫자 */}
-                <Text style={styles.barValue}>
-                  {item.count > 0 ? item.count : ""}
-                </Text>
-
                 {/* 막대 영역 */}
                 <View style={styles.barOuter}>
                   <Animated.View
@@ -130,6 +139,21 @@ export default function MonthlyStats({
                     />
                   </Animated.View>
                 </View>
+
+                {/* 막대 위 숫자 */}
+                {item.count > 0 && (
+                  <Animated.Text
+                    style={[
+                      styles.barValue,
+                      {
+                        position: "absolute",
+                        bottom: labelBottom,
+                      },
+                    ]}
+                  >
+                    {item.count}
+                  </Animated.Text>
+                )}
               </View>
             );
           })}
@@ -216,13 +240,15 @@ const styles = StyleSheet.create({
   },
   barWrapper: {
     width: 23,
+    height: BAR_MAX_HEIGHT,
     alignItems: "center",
+    position: "relative",
   },
   barValue: {
     ...typography["detail-regular"],
     color: colors.mono[950],
-    marginBottom: spacing.s,
   },
+
   barOuter: {
     height: BAR_MAX_HEIGHT,
     justifyContent: "flex-end",
