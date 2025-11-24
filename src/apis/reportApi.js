@@ -39,6 +39,10 @@ export async function fetchMonthlyReport({ year, month }) {
       { word: "판타지", weight: 4 },
       { word: "에세이", weight: 2 },
       { word: "명작", weight: 3 },
+      { word: "에세이", weight: 1 },
+      { word: "에세이", weight: 1 },
+      { word: "에세이", weight: 1 },
+      { word: "에세이", weight: 1 },
     ],
 
     // 장르 취향 분석
