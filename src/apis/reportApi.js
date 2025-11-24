@@ -28,7 +28,7 @@ export async function fetchMonthlyReport({ year, month }) {
       { month: 9, count: 7 },
       { month: 10, count: 9 },
       { month: 11, count: 6 },
-      { month: 12, count: 3 },
+      // 12월은 아직 안 온 것처럼 테스트 할 수 있게 !
     ],
 
     // 리뷰 키워드 분석
