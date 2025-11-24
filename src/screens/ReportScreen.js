@@ -49,6 +49,9 @@ export default function ReportScreen() {
       try {
         const res = await fetchMonthlyReport({ year, month });
         setData(res);
+
+        setStatsResetKey((k) => k + 1);
+        setAnimatedThisFocus(false);
       } catch (e) {
         // 에러 UI 나중에 추가할 거면 여기다가 추가하기 !!
       } finally {
