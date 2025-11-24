@@ -12,6 +12,7 @@ export async function fetchMonthlyReport({ year, month }) {
       title: "피곤한 탐험가",
       description:
         "피곤한 탐험가형은 주로 이동시간에 판타지를 읽는 사람이에요.",
+      percent: 3,
     },
 
     // 연간 독서 통계
@@ -27,7 +28,7 @@ export async function fetchMonthlyReport({ year, month }) {
       { month: 9, count: 7 },
       { month: 10, count: 9 },
       { month: 11, count: 6 },
-      { month: 12, count: 3 },
+      // 12월은 아직 안 온 것처럼 테스트 할 수 있게 !
     ],
 
     // 리뷰 키워드 분석
@@ -106,6 +107,7 @@ export async function fetchMonthlyReport({ year, month }) {
       month: raw.month,
       title: raw.persona.title,
       description: raw.persona.description,
+      percent: raw.persona.percent,
     },
 
     //  연간 독서 통계

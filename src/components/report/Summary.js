@@ -3,6 +3,7 @@ import { radius } from "@theme/radius";
 import { shadow } from "@theme/shadow";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -24,7 +25,14 @@ function splitToTwoLines(text, maxLen = 20) {
 
 export default function Summary({ summary }) {
   // userName은 나중에 실제 유저 이름으로 교체 예정 !
-  const { year, month, title, description, userName = "모담" } = summary;
+  const {
+    year,
+    month,
+    title,
+    description,
+    percent,
+    userName = "모담",
+  } = summary;
   const [line1, line2] = splitToTwoLines(description);
 
   return (
@@ -39,9 +47,17 @@ export default function Summary({ summary }) {
       </View>
 
       {/* 카드 */}
-      <View style={styles.card}>
+      <LinearGradient
+        colors={[colors.primary[50], colors.primary[200]]}
+        locations={[0.19, 0.87]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.card}
+      >
         <Text style={styles.personaTitle}>{title}</Text>
-        <Text style={styles.personaSub}>모담 회원 중 3% 유형이에요</Text>
+        <Text style={styles.personaSub}>
+          모담 회원 중 {percent}% 유형이에요
+        </Text>
 
         {/* 캐릭터 이미지 자리 (지금은 placeholder 박스) */}
         <View style={styles.characterBox}>
@@ -53,7 +69,7 @@ export default function Summary({ summary }) {
           {"\n"}
           {line2}
         </Text>
-      </View>
+      </LinearGradient>
     </View>
   );
 }
@@ -89,9 +105,9 @@ const styles = StyleSheet.create({
 
   // 카드
   card: {
+    height: 450,
     padding: spacing.l,
     borderRadius: radius[500],
-    backgroundColor: colors.mono[150],
     ...shadow[0],
   },
   personaTitle: {
