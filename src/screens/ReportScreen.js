@@ -1,4 +1,5 @@
 import { fetchMonthlyReport } from "@apis/reportApi";
+import MonthlyStats from "@components/report/MonthlyStats";
 import Summary from "@components/report/Summary";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
@@ -56,6 +57,13 @@ export default function ReportScreen() {
       contentContainerStyle={styles.content}
     >
       <Summary summary={data.summary} />
+      <MonthlyStats
+        year={year}
+        month={month}
+        monthlyStatus={data.monthlyStatus}
+        onChangeYear={setYear}
+        onChangeMonth={setMonth}
+      />
     </ScrollView>
   );
 }
