@@ -160,6 +160,8 @@ export default function KeywordReviewCard({
     offsetsRef.current.forEach((value, i) => {
       const target = positions[i];
 
+      if (!target) return;
+
       Animated.timing(value, {
         toValue: { x: target.x, y: target.y },
         duration: ANIMATION_DURATION,
