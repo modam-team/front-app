@@ -1,8 +1,12 @@
 import { fetchMonthlyReport } from "@apis/reportApi";
 import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
 import KeywordReviewCard from "@components/report/KeywordReviewCard";
+import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
+import KeywordReviewCard from "@components/report/KeywordReviewCard";
 import MonthlyStats from "@components/report/MonthlyStats";
 import Summary from "@components/report/Summary";
+import YearMonthPicker from "@components/report/YearMonthPicker";
+import { MaterialIcons } from "@expo/vector-icons";
 import YearMonthPicker from "@components/report/YearMonthPicker";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
@@ -15,12 +19,19 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Animated,
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableOpacity,
   View,
 } from "react-native";
+
+const CARD_WIDTH = 300;
+const CARD_SPACING = 16;
+const SNAP_INTERVAL = CARD_WIDTH + CARD_SPACING;
 
 const CARD_WIDTH = 300;
 const CARD_SPACING = 16;
@@ -32,8 +43,14 @@ export default function ReportScreen() {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
 
   // 리포트 데이터
+  // 리포트 데이터
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // 연도랑 월 선택 관리
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const openPicker = () => setPickerVisible(true);
+  const closePicker = () => setPickerVisible(false);
 
   // 연도랑 월 선택 관리
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -55,6 +72,13 @@ export default function ReportScreen() {
   });
 
   // 세로 스크롤 애니메이션 트리거 키
+  // 취향 분석(페이저) 섹션 레이아웃
+  const [preferenceLayout, setPreferenceLayout] = useState({
+    y: 0,
+    height: 0,
+  });
+
+  // 세로 스크롤 애니메이션 트리거 키
   const [statsAnimateKey, setStatsAnimateKey] = useState(0);
   const [statsResetKey, setStatsResetKey] = useState(0);
 
@@ -62,7 +86,18 @@ export default function ReportScreen() {
   const [keywordAnimateKey, setKeywordAnimateKey] = useState(0);
   const [genreAnimateKey, setGenreAnimateKey] = useState(0);
 
+  // 취향 섹션 안의 개별 카드 애니메이션 키
+  const [keywordAnimateKey, setKeywordAnimateKey] = useState(0);
+  const [genreAnimateKey, setGenreAnimateKey] = useState(0);
+
   // 이번 포커스 사이클에서 이미 애니메이션 돌렸는지 플래그
+  const [statsAnimatedThisFocus, setStatsAnimatedThisFocus] = useState(false);
+  const [preferenceAnimatedThisFocus, setPreferenceAnimatedThisFocus] =
+    useState(false);
+
+  // 페이저 현재 페이지 (0: 키워드, 1: 장르)
+  const [activePreferencePage, setActivePreferencePage] = useState(0);
+  const preferencePagerRef = useRef(null);
   const [statsAnimatedThisFocus, setStatsAnimatedThisFocus] = useState(false);
   const [preferenceAnimatedThisFocus, setPreferenceAnimatedThisFocus] =
     useState(false);
@@ -80,7 +115,14 @@ export default function ReportScreen() {
         setData(res);
 
         // 통계랑 취향 섹션 모두 다시 애니메이션 가능하도록 리셋
+        // 통계랑 취향 섹션 모두 다시 애니메이션 가능하도록 리셋
         setStatsResetKey((k) => k + 1);
+        setStatsAnimatedThisFocus(false);
+        setPreferenceAnimatedThisFocus(false);
+
+        // 페이지 안 카드 키들도 초기화
+        setKeywordAnimateKey((k) => k + 1);
+        setGenreAnimateKey((k) => k + 1);
         setStatsAnimatedThisFocus(false);
         setPreferenceAnimatedThisFocus(false);
 
@@ -101,8 +143,14 @@ export default function ReportScreen() {
     if (isFocused) {
       setStatsAnimatedThisFocus(false);
       setPreferenceAnimatedThisFocus(false);
+      setStatsAnimatedThisFocus(false);
+      setPreferenceAnimatedThisFocus(false);
 
       setStatsResetKey((k) => k + 1);
+
+      // 현재 보고있는 페이지에서 다시 애니메이션 돌릴 수 있게
+      setKeywordAnimateKey((k) => k + 1);
+      setGenreAnimateKey((k) => k + 1);
 
       // 현재 보고있는 페이지에서 다시 애니메이션 돌릴 수 있게
       setKeywordAnimateKey((k) => k + 1);
@@ -134,6 +182,17 @@ export default function ReportScreen() {
     const sectionTop = section.y;
     const sectionBottom = sectionTop + section.height;
     if (!section.height) return false;
+  // 취향(페이저) 섹션 위치 저장
+  const handlePreferenceLayout = (e) => {
+    const { y, height } = e.nativeEvent.layout;
+    setPreferenceLayout({ y, height });
+  };
+
+  // 특정 섹션이 화면에 50% 이상 보이는지 계산하는 헬퍼
+  const isSectionVisible = (section, scrollY, screenHeight) => {
+    const sectionTop = section.y;
+    const sectionBottom = sectionTop + section.height;
+    if (!section.height) return false;
 
     const scrollTop = scrollY;
     const scrollBottom = scrollY + screenHeight;
@@ -142,6 +201,7 @@ export default function ReportScreen() {
     const visibleBottom = Math.min(scrollBottom, sectionBottom);
     const visibleHeight = visibleBottom - visibleTop;
 
+    if (visibleHeight <= 0) return false;
     if (visibleHeight <= 0) return false;
 
     const visibleRatio = visibleHeight / section.height;
@@ -153,7 +213,54 @@ export default function ReportScreen() {
     const { contentOffset, layoutMeasurement } = e.nativeEvent;
     const scrollY = contentOffset.y;
     const screenHeight = layoutMeasurement.height;
+    const visibleRatio = visibleHeight / section.height;
+    return visibleRatio >= 0.5;
+  };
 
+  // 세로 스크롤할 때 섹션들이 화면에 보이는지 체크
+  const handleScroll = (e) => {
+    const { contentOffset, layoutMeasurement } = e.nativeEvent;
+    const scrollY = contentOffset.y;
+    const screenHeight = layoutMeasurement.height;
+
+    // 월별 통계 섹션
+    const statsVisible = isSectionVisible(statsLayout, scrollY, screenHeight);
+    if (statsVisible && !statsAnimatedThisFocus) {
+      setStatsAnimateKey((k) => k + 1);
+      setStatsAnimatedThisFocus(true);
+    }
+
+    // 취향(페이저) 섹션
+    const prefVisible = isSectionVisible(
+      preferenceLayout,
+      scrollY,
+      screenHeight,
+    );
+    if (prefVisible && !preferenceAnimatedThisFocus) {
+      // 현재 활성 페이지 카드만 애니메이션
+      if (activePreferencePage === 0) {
+        setKeywordAnimateKey((k) => k + 1);
+      } else {
+        setGenreAnimateKey((k) => k + 1);
+      }
+      setPreferenceAnimatedThisFocus(true);
+    }
+  };
+
+  // 가로 페이저 스크롤 끝났을 때 페이지 계산
+  const handlePreferencePageScrollEnd = (e) => {
+    const { contentOffset } = e.nativeEvent;
+    const pageIndex = Math.round(contentOffset.x / SNAP_INTERVAL);
+
+    if (pageIndex !== activePreferencePage) {
+      setActivePreferencePage(pageIndex);
+
+      // 페이지 전환 시, 해당 페이지 카드 애니메이션 재시작
+      if (pageIndex === 0) {
+        setKeywordAnimateKey((k) => k + 1);
+      } else {
+        setGenreAnimateKey((k) => k + 1);
+      }
     // 월별 통계 섹션
     const statsVisible = isSectionVisible(statsLayout, scrollY, screenHeight);
     if (statsVisible && !statsAnimatedThisFocus) {
@@ -328,6 +435,40 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: colors.background.DEFAULT,
+  },
+
+  header: {
+    marginBottom: spacing.m,
+  },
+  titleBlock: {
+    flexShrink: 1,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  sectionTitle: {
+    ...typography["heading-1-medium"],
+    color: colors.mono[950],
+    fontWeight: "600",
+  },
+  monthButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 12,
+  },
+  monthText: {
+    ...typography["heading-1-medium"],
+    color: colors.primary[500],
+    fontWeight: "600",
+  },
+  dropdownIcon: {
+    fontSize: 12,
+    color: colors.primary[500],
+  },
+  caption: {
+    ...typography["body-1-regular"],
+    color: colors.mono[950],
   },
 
   header: {
