@@ -148,12 +148,12 @@ export default function KeywordReviewCard({
     const centerX = containerSize.width / 2;
     const centerY = containerSize.height / 2;
 
-    // 시작점은 컨테이너 중앙 근처
+    // 시작점을 컨테이너 내부 랜덤 위치로
     offsetsRef.current.forEach((value) => {
-      value.setValue({
-        x: centerX + (Math.random() - 0.5) * 10,
-        y: centerY + (Math.random() - 0.5) * 10,
-      });
+      const startX = Math.random() * containerSize.width;
+      const startY = Math.random() * containerSize.height;
+
+      value.setValue({ x: startX, y: startY });
     });
 
     // 각 단어를 자기 자리로 부드럽게 이동
