@@ -173,7 +173,7 @@ export default function KeywordReviewCard({
   return (
     <View style={styles.card}>
       <Text style={styles.title}>키워드 리뷰</Text>
-      <Text style={styles.subtitle}>나의 별점을 기준으로 작성된 표에요</Text>
+      <Text style={styles.subtitle}>나의 별점을 기준으로 작성된 표예요</Text>
 
       <View
         style={styles.cloudContainer}
@@ -237,11 +237,12 @@ export default function KeywordReviewCard({
 
 const styles = StyleSheet.create({
   card: {
+    width: 300,
     height: 350,
-    marginTop: spacing.l,
     padding: spacing.l,
     borderRadius: radius[500],
     backgroundColor: colors.mono[100],
+    alignSelf: "center",
   },
   title: {
     fontSize: 28,
@@ -257,6 +258,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 12,
     paddingHorizontal: 4,
+    width: 300,
+    alignSelf: "center",
+    position: "relative",
   },
   keywordAbsolute: {
     position: "absolute",
