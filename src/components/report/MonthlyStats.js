@@ -1,10 +1,9 @@
-import YearMonthPicker from "./YearMonthPicker";
 import { MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   Animated,
   Easing,
@@ -25,12 +24,8 @@ export default function MonthlyStats({
   monthlyStatus,
   animateKey,
   resetKey,
+  onOpenPicker,
 }) {
-  const [pickerVisible, setPickerVisible] = useState(false);
-
-  const openPicker = () => setPickerVisible(true);
-  const closePicker = () => setPickerVisible(false);
-
   const monthData = useMemo(() => {
     const map = new Map();
     (monthlyStatus || []).forEach((m) => map.set(m.month, m.count));
@@ -87,7 +82,7 @@ export default function MonthlyStats({
             <Text style={styles.sectionTitle}>독서 통계</Text>
             <TouchableOpacity
               style={styles.yearButton}
-              onPress={openPicker}
+              onPress={onOpenPicker}
               activeOpacity={0.7}
             >
               <Text style={styles.yearText}>{year}년</Text>
@@ -174,16 +169,6 @@ export default function MonthlyStats({
           ))}
         </View>
       </View>
-
-      {/* 연 / 월 선택 모달 */}
-      <YearMonthPicker
-        visible={pickerVisible}
-        onClose={closePicker}
-        selectedYear={year}
-        selectedMonth={month}
-        onSelectYear={onChangeYear}
-        onSelectMonth={onChangeMonth}
-      />
     </View>
   );
 }
