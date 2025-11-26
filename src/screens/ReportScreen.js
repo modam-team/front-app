@@ -71,6 +71,12 @@ export default function ReportScreen() {
   const [activePreferencePage, setActivePreferencePage] = useState(0);
   const preferencePagerRef = useRef(null);
 
+  // 시간 관련 애니메이션 키들
+  const [timeLayout, setTimeLayout] = useState({ y: 0, height: 0 });
+  const [timeAnimateKey, setTimeAnimateKey] = useState(0);
+  const [timeResetKey, setTimeResetKey] = useState(0);
+  const [timeAnimatedThisFocus, setTimeAnimatedThisFocus] = useState(false);
+
   // 연도나 월을 변경하면 자동으로 리포트 재조회하도록
   useEffect(() => {
     const load = async () => {
@@ -83,6 +89,9 @@ export default function ReportScreen() {
         setStatsResetKey((k) => k + 1);
         setStatsAnimatedThisFocus(false);
         setPreferenceAnimatedThisFocus(false);
+
+        setTimeResetKey((k) => k + 1);
+        setTimeAnimatedThisFocus(false);
 
         // 페이지 안 카드 키들도 초기화
         setKeywordAnimateKey((k) => k + 1);
@@ -101,8 +110,10 @@ export default function ReportScreen() {
     if (isFocused) {
       setStatsAnimatedThisFocus(false);
       setPreferenceAnimatedThisFocus(false);
+      setTimeAnimatedThisFocus(false);
 
       setStatsResetKey((k) => k + 1);
+      setTimeResetKey((k) => k + 1);
 
       // 현재 보고있는 페이지에서 다시 애니메이션 돌릴 수 있게
       setKeywordAnimateKey((k) => k + 1);
@@ -127,6 +138,11 @@ export default function ReportScreen() {
   const handlePreferenceLayout = (e) => {
     const { y, height } = e.nativeEvent.layout;
     setPreferenceLayout({ y, height });
+  };
+
+  const handleTimeLayout = (e) => {
+    const { y, height } = e.nativeEvent.layout;
+    setTimeLayout({ y, height });
   };
 
   // 특정 섹션이 화면에 50% 이상 보이는지 계산하는 헬퍼
@@ -176,6 +192,13 @@ export default function ReportScreen() {
       }
       setPreferenceAnimatedThisFocus(true);
     }
+
+    // TimeHabits 섹션
+    const timeVisible = isSectionVisible(timeLayout, scrollY, screenHeight);
+    if (timeVisible && !timeAnimatedThisFocus) {
+      setTimeAnimateKey((k) => k + 1);
+      setTimeAnimatedThisFocus(true);
+    }
   };
 
   // 가로 페이저 스크롤 끝났을 때 페이지 계산
@@ -216,7 +239,6 @@ export default function ReportScreen() {
         scrollEventThrottle={16}
       >
         <Summary summary={data.summary} />
-
         {/* 월별 통계 섹션 */}
         <View onLayout={handleStatsLayout}>
           <MonthlyStats
@@ -230,11 +252,9 @@ export default function ReportScreen() {
             onOpenPicker={openPicker}
           />
         </View>
-
         {/* 취향 분석 스와이프 페이저 섹션 */}
         <View onLayout={handlePreferenceLayout}>
           {/* 섹션 헤더*/}
-          {/* 섹션 헤더 */}
           <View style={styles.header}>
             <View style={styles.titleBlock}>
               {/* 제목 + 연도 드롭다운 */}
@@ -296,7 +316,14 @@ export default function ReportScreen() {
           </Animated.ScrollView>
         </View>
 
-        <TimeHabits readingCountsByWeekday={data.readingCountsByWeekday} />
+        {/* 습관 분석 섹션 */}
+        <View onLayout={handleTimeLayout}>
+          <TimeHabits
+            readingCountsByWeekday={data.readingCountsByWeekday}
+            animateKey={timeAnimateKey}
+            resetKey={timeResetKey}
+          />
+        </View>
       </ScrollView>
 
       {/* 공통 YearMonthPicker */}

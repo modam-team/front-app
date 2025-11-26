@@ -6,6 +6,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+
 const MIN_SEGMENT_PERCENT = 5;
 const MAX_DAY_WIDTH = 90;
 const BAR_HEIGHT = 24;
@@ -74,7 +76,7 @@ export default function TimeHabits({
         {/* 세로선 */}
         <View style={styles.verticalDivider} />
 
-        {weekdayWithTotal.map((item) => {
+        {weekdayWithTotal.map((item, index) => {
           const { morning, afternoon, evening } = item.slots;
           const total = item.total;
           const max = maxTotal || 1;
@@ -83,7 +85,7 @@ export default function TimeHabits({
           let afternoonWidth;
           let eveningWidth;
 
-          // ---- total = 0일 경우 ----
+          // total = 0일 경우
           if (total === 0) {
             const baseDayWidth = 40;
             const seg = MIN_SEGMENT_PERCENT;
@@ -95,7 +97,7 @@ export default function TimeHabits({
             afternoonWidth = morningWidth + seg * scale;
             eveningWidth = morningWidth + seg * scale + seg * scale;
           } else {
-            // ---- 전체 요일 길이 ----
+            // 전체 요일 길이
             const baseDayWidth = (total / max) * MAX_DAY_WIDTH;
 
             // 실제 기여분
@@ -103,7 +105,7 @@ export default function TimeHabits({
             const afternoonPart = (afternoon / total) * baseDayWidth;
             const eveningPart = (evening / total) * baseDayWidth;
 
-            // 최소 5% 보장
+            // 최소 보장
             const mLen =
               morning === 0
                 ? MIN_SEGMENT_PERCENT
@@ -138,6 +140,25 @@ export default function TimeHabits({
           const afternoonWidthStr = `${clamp(afternoonWidth)}%`;
           const eveningWidthStr = `${clamp(eveningWidth)}%`;
 
+          const progress = barAnim[index];
+          const animatedMorningWidth = progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: ["0%", morningWidthStr],
+          });
+          const animatedAfternoonWidth = progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: ["0%", afternoonWidthStr],
+          });
+          const animatedEveningWidth = progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: ["0%", eveningWidthStr],
+          });
+
+          const animatedCountLeft = progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: ["0%", eveningWidthStr],
+          });
+
           return (
             <View
               key={item.weekday}
@@ -149,7 +170,7 @@ export default function TimeHabits({
               <View style={styles.barWrapper}>
                 <View style={styles.barBackground}>
                   {/* Evening */}
-                  <LinearGradient
+                  <AnimatedLinearGradient
                     colors={[
                       colors.primary[500],
                       colors.primary[500],
@@ -158,11 +179,11 @@ export default function TimeHabits({
                     locations={[0, 0.69, 1]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={[styles.segment, { width: eveningWidthStr }]}
+                    style={[styles.segment, { width: animatedEveningWidth }]}
                   />
 
                   {/* Afternoon */}
-                  <LinearGradient
+                  <AnimatedLinearGradient
                     colors={[
                       colors.primary[200],
                       colors.primary[200],
@@ -171,22 +192,24 @@ export default function TimeHabits({
                     locations={[0, 0.44, 1]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={[styles.segment, { width: afternoonWidthStr }]}
+                    style={[styles.segment, { width: animatedAfternoonWidth }]}
                   />
+
                   {/* Morning */}
-                  <LinearGradient
+                  <AnimatedLinearGradient
                     colors={[colors.primary[0], colors.primary[150]]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={[styles.segment, { width: morningWidthStr }]}
+                    style={[styles.segment, { width: animatedMorningWidth }]}
                   />
 
-                  <View
+                  {/* 총합 라벨도 끝점 따라가게 */}
+                  <Animated.View
                     pointerEvents="none"
-                    style={[styles.countLabel, { left: eveningWidthStr }]}
+                    style={[styles.countLabel, { left: animatedCountLeft }]}
                   >
                     <Text style={styles.countText}>{item.total}</Text>
-                  </View>
+                  </Animated.View>
                 </View>
               </View>
             </View>
