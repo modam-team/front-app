@@ -1,3 +1,4 @@
+import TimeHabits from "../components/report/TimeHabits";
 import { fetchMonthlyReport } from "@apis/reportApi";
 import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
 import KeywordReviewCard from "@components/report/KeywordReviewCard";
@@ -294,6 +295,8 @@ export default function ReportScreen() {
             </View>
           </Animated.ScrollView>
         </View>
+
+        <TimeHabits readingCountsByWeekday={data.readingCountsByWeekday} />
       </ScrollView>
 
       {/* 공통 YearMonthPicker */}
