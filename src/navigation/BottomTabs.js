@@ -4,10 +4,11 @@ import HomeScreen from "../screens/HomeScreen";
 import ReportScreen from "../screens/ReportScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import colors from "../theme/legacyColors";
-// ✅ StyleSheet 포함!
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+// ✅ StyleSheet 포함!
 
 const Tab = createBottomTabNavigator();
 
@@ -15,7 +16,7 @@ function EmptyScreen() {
   return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
 }
 
-export default function BottomTabs() {
+export default function BottomTabs({ navigation }) {
   const [showPlus, setShowPlus] = useState(false);
 
   const onSelect = (label) => {
@@ -35,6 +36,24 @@ export default function BottomTabs() {
 
   return (
     <>
+      {/* DEV 버튼: 화면 오른쪽 상단 */}
+      {__DEV__ && (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("DevPlayground")}
+          style={{
+            position: "absolute",
+            top: 50,
+            right: 20,
+            zIndex: 999,
+            backgroundColor: "rgba(0,0,0,0.1)",
+            padding: 6,
+            borderRadius: 6,
+          }}
+        >
+          <Text>DEV</Text>
+        </TouchableOpacity>
+      )}
+
       <Tab.Navigator
         screenOptions={{
           headerTitleAlign: "left",
