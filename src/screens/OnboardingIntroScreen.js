@@ -59,14 +59,17 @@ const styles = StyleSheet.create({
     ...typography["heading-1-medium"],
     textAlign: "center",
     marginBottom: 45,
+    color: colors.mono[1000],
   },
   text: {
     ...typography["heading-4-medium"],
     textAlign: "left",
+    color: colors.mono[1000],
   },
   book: {
     marginTop: 35,
     alignSelf: "flex-end",
     ...typography["body-2-regular"],
+    color: colors.mono[1000],
   },
 });
