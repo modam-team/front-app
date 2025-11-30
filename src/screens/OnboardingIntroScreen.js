@@ -2,7 +2,7 @@ import { ONBOARDING_QUOTES } from "@constants/onboardingQuotes";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import { splitToLines } from "@utils/text";
+import { splitToLines } from "@utils/textSplit";
 import React, { useEffect, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
