@@ -5,10 +5,22 @@ import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function DevPlaygroundScreen() {
   const [SelectedChip, setSelectedChip] = useState(false);
+
+  // progress bar 테스트용 현재 스텝 state
+  const [step, setStep] = useState(1);
+
+  const goPrev = () => setStep((prev) => Math.max(1, prev - 1));
+  const goNext = () => setStep((prev) => Math.min(3, prev + 1));
 
   return (
     <ScrollView style={styles.container}>
@@ -34,24 +46,33 @@ export default function DevPlaygroundScreen() {
 
       {/* SECTION: ProgressBar 컴포넌트 */}
       <Text style={styles.label}>ProgressBar Component</Text>
-      <View style={styles.progressSection}>
-        <Text style={styles.subLabel}>Step 1</Text>
-        <ProgressBar
-          currentStep={1}
-          totalSteps={3}
-        />
 
-        <Text style={styles.subLabel}>Step 2</Text>
-        <ProgressBar
-          currentStep={2}
-          totalSteps={3}
-        />
+      {/* 현재 step 표시 */}
+      <Text style={styles.subLabel}>현재 Step: {step}</Text>
 
-        <Text style={styles.subLabel}>Step 3</Text>
-        <ProgressBar
-          currentStep={3}
-          totalSteps={3}
-        />
+      {/* 애니메이션 되는 ProgressBar */}
+      <ProgressBar
+        currentStep={step}
+        totalSteps={3}
+      />
+
+      {/* Step 변경 버튼 */}
+      <View style={styles.stepButtons}>
+        <TouchableOpacity
+          style={[styles.stepButton, styles.stepButtonOutline]}
+          onPress={goPrev}
+        >
+          <Text style={styles.stepButtonText}>이전</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.stepButton, styles.stepButtonFilled]}
+          onPress={goNext}
+        >
+          <Text style={[styles.stepButtonText, { color: colors.mono[0] }]}>
+            다음
+          </Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -66,24 +87,43 @@ const styles = StyleSheet.create({
     ...typography["heading-1-medium"],
   },
   label: {
-    marginTop: 20,
+    marginVertical: 20,
     ...typography["body-1-bold"],
   },
 
   row: {
-    marginTop: 20,
     flexDirection: "row",
     gap: spacing.buttonX,
     flexWrap: "wrap",
   },
 
-  progressSection: {
-    marginTop: 16,
-    gap: 12,
-  },
   subLabel: {
     ...typography["detail-regular"],
     color: colors.mono[1000],
-    marginTop: 8,
+    marginVertical: spacing.s,
+  },
+
+  stepButtons: {
+    marginTop: spacing.m,
+    flexDirection: "row",
+    gap: spacing.m,
+  },
+  stepButton: {
+    flex: 1,
+    paddingVertical: spacing.s,
+    borderRadius: radius[500],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepButtonOutline: {
+    borderWidth: 1,
+    borderColor: colors.mono[300],
+  },
+  stepButtonFilled: {
+    backgroundColor: colors.primary[500],
+  },
+  stepButtonText: {
+    ...typography["detail-regular"],
+    color: colors.mono[900],
   },
 });

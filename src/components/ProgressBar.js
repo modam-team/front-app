@@ -2,13 +2,12 @@ import { radius } from "../theme/radius";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 
 const BAR_HEIGHT = 6; // 진행 바 높이
 const BASE_WIDTH = 360; // 진행바 전체 가로 길이
 const DOT_SIZE = 4; // 점 크기
-const DOT_MARGIN_TOP = 4; // 진행바랑 점 사이의 간격
 
 // 진행 단계 별 진행 바 채워지는 가로 길이
 const STEP_WIDTHS = {
@@ -30,6 +29,19 @@ export default function ProgressBar({ currentStep = 1, totalSteps = 3 }) {
   // 1부터 totalSteps까지의 숫자 배열 생성
   const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
 
+  // 진행바 애니메이션에서 사용할 값
+  const animatedWidth = useRef(new Animated.Value(0)).current;
+
+  // activeWidth가 바뀔 때마다 애니메이션 실행하기
+  useEffect(() => {
+    Animated.timing(animatedWidth, {
+      toValue: activeWidth,
+      duration: 400,
+      easing: Easing.out(Easing.poly(4)),
+      useNativeDriver: false,
+    }).start();
+  }, [activeWidth, animatedWidth]);
+
   return (
     <View style={styles.wrap}>
       <View
@@ -45,7 +57,7 @@ export default function ProgressBar({ currentStep = 1, totalSteps = 3 }) {
         <View style={styles.track} />
 
         {/* 진행된 초록색 라인 */}
-        <View style={[styles.activeTrack, { width: activeWidth }]} />
+        <Animated.View style={[styles.activeTrack, { width: animatedWidth }]} />
       </View>
 
       {/* 점 + 라벨 */}
@@ -103,8 +115,9 @@ const styles = StyleSheet.create({
     borderRadius: radius[100],
     backgroundColor: colors.primary[500],
   },
+
   stepsRow: {
-    marginTop: DOT_MARGIN_TOP,
+    marginTop: spacing.xs,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
