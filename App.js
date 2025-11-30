@@ -1,21 +1,19 @@
-// App.js
 import BottomTabs from "./src/navigation/BottomTabs";
 import AddEntryScreen from "./src/screens/AddEntryScreen";
 import OnboardingIntroScreen from "./src/screens/OnboardingIntroScreen";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DevPlaygroundScreen from "@screens/DevPlaygroundScreen";
+import { colors } from "@theme/colors";
 import React from "react";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
-
-// ← 중괄호 X, 정확한 경로
 
 const Stack = createNativeStackNavigator();
 
 const navTheme = {
   ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, background: "#fff" },
+  colors: { ...DefaultTheme.colors, background: colors.background.DEFAULT },
 };
 
 export default function App() {
