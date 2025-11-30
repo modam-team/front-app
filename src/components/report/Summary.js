@@ -3,25 +3,10 @@ import { radius } from "@theme/radius";
 import { shadow } from "@theme/shadow";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
+import { splitToLines } from "@utils/textSplit";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-
-function splitToTwoLines(text, maxLen = 20) {
-  const words = text.split(" ");
-  let line1 = "";
-  let line2 = "";
-
-  for (const w of words) {
-    if ((line1 + " " + w).trim().length <= maxLen) {
-      line1 += (line1 ? " " : "") + w;
-    } else {
-      line2 += (line2 ? " " : "") + w;
-    }
-  }
-
-  return [line1, line2];
-}
 
 export default function Summary({ summary }) {
   // userName은 나중에 실제 유저 이름으로 교체 예정 !
@@ -33,7 +18,8 @@ export default function Summary({ summary }) {
     percent,
     userName = "모담",
   } = summary;
-  const [line1, line2] = splitToTwoLines(description);
+
+  const lines = splitToLines(description, 20);
 
   return (
     <View style={styles.wrap}>
@@ -65,9 +51,12 @@ export default function Summary({ summary }) {
         </View>
 
         <Text style={styles.personaDesc}>
-          {line1}
-          {"\n"}
-          {line2}
+          {lines.map((line, i) => (
+            <Text key={i}>
+              {line}
+              {i !== lines.length - 1 && "\n"}
+            </Text>
+          ))}
         </Text>
       </LinearGradient>
     </View>
