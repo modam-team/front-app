@@ -30,6 +30,24 @@ export default function BottomTabs({ navigation }) {
         </TouchableOpacity>
       )}
 
+      {/* DEV 버튼: 화면 오른쪽 상단 */}
+      {__DEV__ && (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("DevPlayground")}
+          style={{
+            position: "absolute",
+            top: 50,
+            right: 20,
+            zIndex: 999,
+            backgroundColor: "rgba(0,0,0,0.1)",
+            padding: 6,
+            borderRadius: 6,
+          }}
+        >
+          <Text>DEV</Text>
+        </TouchableOpacity>
+      )}
+
       <Tab.Navigator
         screenOptions={{
           headerTitleAlign: "left",
