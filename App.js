@@ -17,6 +17,7 @@ const Stack = createNativeStackNavigator();
 const navTheme = {
   ...DefaultTheme,
   colors: { ...DefaultTheme.colors, background: colors.background.DEFAULT },
+  colors: { ...DefaultTheme.colors, background: colors.background.DEFAULT },
 };
 
 export default function App() {
