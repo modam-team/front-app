@@ -1,4 +1,5 @@
 import Chip from "@components/Chip";
+import ProgressBar from "@components/ProgressBar";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
@@ -30,6 +31,28 @@ export default function DevPlaygroundScreen() {
           onPress={() => {}}
         />
       </View>
+
+      {/* SECTION: ProgressBar 컴포넌트 */}
+      <Text style={styles.label}>ProgressBar Component</Text>
+      <View style={styles.progressSection}>
+        <Text style={styles.subLabel}>Step 1</Text>
+        <ProgressBar
+          currentStep={1}
+          totalSteps={3}
+        />
+
+        <Text style={styles.subLabel}>Step 2</Text>
+        <ProgressBar
+          currentStep={2}
+          totalSteps={3}
+        />
+
+        <Text style={styles.subLabel}>Step 3</Text>
+        <ProgressBar
+          currentStep={3}
+          totalSteps={3}
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -46,10 +69,21 @@ const styles = StyleSheet.create({
     marginTop: 20,
     ...typography["body-1-bold"],
   },
+
   row: {
     marginTop: 20,
     flexDirection: "row",
     gap: spacing.buttonX,
     flexWrap: "wrap",
+  },
+
+  progressSection: {
+    marginTop: 16,
+    gap: 12,
+  },
+  subLabel: {
+    ...typography["detail-regular"],
+    color: colors.mono[1000],
+    marginTop: 8,
   },
 });
