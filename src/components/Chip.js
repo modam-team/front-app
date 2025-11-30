@@ -23,12 +23,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   SelectedChip: {
-    backgroundColor: colors.mono[0],
-    borderColor: colors.mono[400],
-  },
-  DefaultChip: {
     backgroundColor: colors.primary[0],
     borderColor: colors.primary[500],
+  },
+  DefaultChip: {
+    backgroundColor: colors.mono[0],
+    borderColor: colors.mono[400],
   },
   label: {
     ...typography["body-1-regular"],
