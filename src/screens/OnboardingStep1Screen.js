@@ -1,3 +1,4 @@
+import AppHeader from "@components/AppHeader";
 import OnboardingButton from "@components/OnboardingButton";
 import ProgressBar from "@components/ProgressBar";
 import { useOnboardingStore } from "@store/onboardingStore";
@@ -53,6 +54,9 @@ export default function OnvoardingStep1Screen({ navigation, route }) {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <View>
+            {/* 헤더 */}
+            <AppHeader title="독서 습관 기록" />
+
             {/* 상단 진행바 */}
             <ProgressBar
               currentStep={1}
@@ -66,6 +70,7 @@ export default function OnvoardingStep1Screen({ navigation, route }) {
               </Text>
             </View>
 
+            {/* 목표 권수 숫자 입력 */}
             <View style={styles.num}>
               <View style={styles.row}>
                 <TextInput
