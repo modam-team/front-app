@@ -1,3 +1,54 @@
+/**
+ * 사용 방법
+ *
+ *===================================
+ *
+ * 기본
+ *
+ * <TextField
+ *   label="닉네임"
+ *   placeholder="닉네임을 입력하세요"
+ *   value={nickname}
+ *   onChangeText={setNickname}
+ * />
+ *
+ * -----------------------------------
+ *
+ * 글자 수 카운터 표시하고 싶을 때
+ *
+ * <TextField
+ *   label="예시"
+ *   placeholder="최대 50자"
+ *   showCount
+ *   maxLength={50}
+ *   value={value}
+ *   onChangeText={setValue}
+ * />
+ *
+ * -----------------------------------
+ *
+ * 도움말을 제공하고 싶을 때
+ *
+ * <TextField
+ *   label="아이디"
+ *   placeholder="아이디를 입력하세요"
+ *   helperText="아이디는 두 글자 이상이어야 합니다."
+ *   value={id}
+ *   onChangeText={setId}
+ * />
+ *
+ *===================================
+ * Props 목록
+ *
+ * label?: string  ->  인풋 위에 표시될 라벨 텍스트
+ * placeholder?: string  ->  입력 전 보여줄 placeholder
+ * helperText?: string  ->  입력창 아래 왼쪽에 표시될 도움말 문구
+ * showCount?: boolean ->  글자 수 카운트 표시 여부 (기본은 false !)
+ * maxLength?: number  ->  최대 글자 수
+ * value: string  ->  현재 입력값
+ * onChangeText: (text: string) => void  ->  입력 변경 핸들러
+ *
+ */
 import { radius } from "../theme/radius";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
