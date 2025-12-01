@@ -1,4 +1,5 @@
 import Chip from "@components/Chip";
+import OnboardingButton from "@components/OnboardingButton";
 import ProgressBar from "@components/ProgressBar";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
@@ -73,6 +74,34 @@ export default function DevPlaygroundScreen() {
             다음
           </Text>
         </TouchableOpacity>
+      </View>
+
+      {/* SECTION: OnboardingButton */}
+      <Text style={styles.label}>OnboardingButton Component</Text>
+      <View style={{ gap: spacing.s }}>
+        <OnboardingButton
+          label="다음 (Active)"
+          disabled={false}
+          onPress={() => {}}
+        />
+
+        <OnboardingButton
+          label="다음 (Disabled)"
+          disabled={true}
+          onPress={() => {}}
+        />
+
+        <OnboardingButton
+          label="독서 시작하기 (Active)"
+          disabled={false}
+          onPress={() => {}}
+        />
+
+        <OnboardingButton
+          label="독서 시작하기 (Disabled)"
+          disabled={true}
+          onPress={() => {}}
+        />
       </View>
     </ScrollView>
   );
