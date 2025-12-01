@@ -77,7 +77,7 @@ export default function OnboardingLoginScreen({ navigation }) {
         const { userId } = loginResult;
 
         setShowWebView(false);
-        navigation.replace("OnboardingStep1", { userId });
+        navigation.replace("OnboardingFlow", { userId });
       } catch (err) {
         console.error("카카오 로그인 실패:", err);
         setShowWebView(false);

@@ -3,10 +3,9 @@ import AddEntryScreen from "./src/screens/AddEntryScreen";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DevPlaygroundScreen from "@screens/DevPlaygroundScreen";
+import OnboardingFlowScreen from "@screens/OnboardingFlowScreen";
 import OnboardingIntroScreen from "@screens/OnboardingIntroScreen";
 import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
-import OnboardingStep1Screen from "@screens/OnboardingStep1Screen";
-import OnboardingStep2Screen from "@screens/OnboardingStep2Screen";
 import { colors } from "@theme/colors";
 import React from "react";
 import "react-native-gesture-handler";
@@ -35,13 +34,8 @@ export default function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="OnboardingStep1"
-          component={OnboardingStep1Screen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="OnboardingStep2"
-          component={OnboardingStep2Screen}
+          name="OnboardingFlow"
+          component={OnboardingFlowScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
