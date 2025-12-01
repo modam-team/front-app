@@ -1,8 +1,9 @@
-import { completeOnboarding } from "../apis/userApi";
+import { completeOnboarding } from "@apis/userApi";
 import AppHeader from "@components/AppHeader";
 import Chip from "@components/Chip";
 import OnboardingButton from "@components/OnboardingButton";
 import ProgressBar from "@components/ProgressBar";
+import TextField from "@components/TextField";
 import { GENRES } from "@constants/genres";
 import { useOnboardingStore } from "@store/onboardingStore";
 import { colors } from "@theme/colors";
@@ -205,13 +206,11 @@ export default function OnboardingFlowScreen({ navigation, route }) {
 
                 {/* 닉네임 입력 칸 */}
                 <View style={styles.nicknameField}>
-                  <Text style={styles.fieldLabel}>닉네임</Text>
-                  <TextInput
+                  <TextField
+                    label="닉네임"
+                    placeholder="닉네임을 입력해 주세요."
                     value={nicknameInput}
                     onChangeText={setNicknameInput}
-                    placeholder="닉네임을 입력해 주세요."
-                    placeholderTextColor={colors.mono[600]}
-                    style={styles.nicknameInput}
                   />
                 </View>
               </View>
