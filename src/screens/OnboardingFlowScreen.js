@@ -1,3 +1,4 @@
+import { completeOnboarding } from "../apis/userApi";
 import AppHeader from "@components/AppHeader";
 import Chip from "@components/Chip";
 import OnboardingButton from "@components/OnboardingButton";
@@ -21,8 +22,11 @@ import {
   View,
 } from "react-native";
 
-export default function OnboardingFlowScreen({ navigation }) {
+export default function OnboardingFlowScreen({ navigation, route }) {
   const [step, setStep] = useState(1);
+
+  // 백엔드에서 api 변경하면 다시 연결하기
+  // onst userId = route?.params?.userId;
 
   // step 1에서 쓸 상태
   const [goalText, setGoalText] = useState("");
@@ -30,6 +34,7 @@ export default function OnboardingFlowScreen({ navigation }) {
   const isValidGoal = goalNumber > 0;
 
   // zustand setter
+  const goalScore = useOnboardingStore((s) => s.goalScore);
   const setGoalScore = useOnboardingStore((s) => s.setGoalScore);
 
   const handleChangeText = (text) => {
@@ -38,7 +43,8 @@ export default function OnboardingFlowScreen({ navigation }) {
   };
 
   // step 2에서 쓸 상태
-  const { categories, setCategories } = useOnboardingStore();
+  const categories = useOnboardingStore((s) => s.categories);
+  const setCategories = useOnboardingStore((s) => s.setCategories);
 
   const isSelected = (item) => categories.includes(item);
 
@@ -56,6 +62,13 @@ export default function OnboardingFlowScreen({ navigation }) {
   // 아무것도 안 고르면 못 넘어가도록
   const isValidCategory = categories.length > 0;
 
+  // step 3에서 쓸 상태
+  const nickname = useOnboardingStore((s) => s.nickname);
+  const setNickname = useOnboardingStore((s) => s.setNickname);
+
+  const [nicknameInput, setNicknameInput] = useState(nickname || "");
+  const isValidNickname = nicknameInput.trim().length > 0;
+
   // 이전 버튼
   const handlePrev = () => {
     if (step === 1) {
@@ -65,7 +78,7 @@ export default function OnboardingFlowScreen({ navigation }) {
   };
 
   // 다음 버튼
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
       if (!isValidGoal) return;
       setGoalScore(goalNumber);
@@ -74,7 +87,25 @@ export default function OnboardingFlowScreen({ navigation }) {
       if (!isValidCategory) return;
       setStep(3);
     } else if (step === 3) {
-      // 나중에 step 3에 해당하는 거 추가할 예정 !
+      if (!isValidNickname) return;
+
+      const trimmedNickname = nicknameInput.trim();
+      setNickname(trimmedNickname);
+
+      // 백엔드가 api 변경하면 다시 연결하기
+      /*
+      try {
+        await completeOnboarding(userId, {
+          nickname: trimmedNickname,
+          goalScore,
+          categories: categories.join(","),
+        });
+
+        navigation.replace("Root", { userId });
+      } catch (e) {
+        console.error("온보딩 실패:", e.response?.status, e.response?.data);
+      }
+        */
 
       navigation.replace("Root");
     }
@@ -107,11 +138,14 @@ export default function OnboardingFlowScreen({ navigation }) {
 
             {/* 가운데 내용: step별로 분기 */}
             {step === 1 && (
-              <View style={styles.content}>
-                <Text style={styles.title}>목표 권수는 몇권인가요?</Text>
-                <Text style={styles.subtitle}>
-                  이번 달, 당신에게 딱 맞는 속도를 찾아보세요.
-                </Text>
+              <View>
+                {/* step 1 제목 */}
+                <View style={styles.content}>
+                  <Text style={styles.title}>목표 권수는 몇권인가요?</Text>
+                  <Text style={styles.subtitle}>
+                    이번 달, 당신에게 딱 맞는 속도를 찾아보세요.
+                  </Text>
+                </View>
 
                 {/* 목표 권수 숫자 입력 */}
                 <View style={styles.num}>
@@ -131,11 +165,18 @@ export default function OnboardingFlowScreen({ navigation }) {
               </View>
             )}
 
+            {/* 선호 장르 선택 */}
             {step === 2 && (
-              <View style={styles.content}>
-                <Text style={styles.title}>선호하는 장르가 무엇인가요?</Text>
-                <Text style={styles.subtitle}>3개까지 선택할 수 있습니다.</Text>
+              <View>
+                {/* step 2 제목 */}
+                <View style={styles.content}>
+                  <Text style={styles.title}>선호하는 장르가 무엇인가요?</Text>
+                  <Text style={styles.subtitle}>
+                    3개까지 선택할 수 있습니다.
+                  </Text>
+                </View>
 
+                {/* 장르 칩들 */}
                 <View style={styles.chipContainer}>
                   {GENRES.map((g) => (
                     <Chip
@@ -145,6 +186,31 @@ export default function OnboardingFlowScreen({ navigation }) {
                       onPress={() => toggleCategory(g)}
                     />
                   ))}
+                </View>
+              </View>
+            )}
+
+            {/* 닉네임 정하기 - 나중에 닉네임 중복 체크 버튼 추가하고 api 연결할 예정 ! */}
+            {step === 3 && (
+              <View>
+                {/* step 3 제목 */}
+                <View style={styles.content}>
+                  <Text style={styles.title}>닉네임을 입력해주세요.</Text>
+                  <Text style={styles.subtitle}>
+                    이 앱에서 당신의 독서 기록을 담을 이름이에요.
+                  </Text>
+                </View>
+
+                {/* 닉네임 입력 칸 */}
+                <View style={styles.nicknameField}>
+                  <Text style={styles.fieldLabel}>닉네임</Text>
+                  <TextInput
+                    value={nicknameInput}
+                    onChangeText={setNicknameInput}
+                    placeholder="닉네임을 입력해 주세요."
+                    placeholderTextColor={colors.mono[600]}
+                    style={styles.nicknameInput}
+                  />
                 </View>
               </View>
             )}
@@ -213,6 +279,24 @@ const styles = StyleSheet.create({
     padding: spacing.layoutMargin,
     gap: 12,
     rowGap: 20, // 칩들 위아래 줄 사이 간격
+  },
+
+  //step 3
+  nicknameField: {
+    padding: spacing.layoutMargin,
+  },
+  fieldLabel: {
+    ...typography["body-1-regular"],
+    color: colors.mono[1000],
+    marginBottom: spacing.s,
+  },
+  nicknameInput: {
+    borderWidth: 1,
+    borderColor: colors.primary[300],
+    borderRadius: 4,
+    padding: 10,
+    ...typography["body-1-regular"],
+    color: colors.mono[1000],
   },
 
   // 버튼
