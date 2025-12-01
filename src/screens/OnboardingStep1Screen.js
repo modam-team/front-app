@@ -1,5 +1,6 @@
-import OnboardingButton from "../components/OnboardingButton";
+import OnboardingButton from "@components/OnboardingButton";
 import ProgressBar from "@components/ProgressBar";
+import { useOnboardingStore } from "@store/onboardingStore";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
@@ -22,6 +23,9 @@ export default function OnvoardingStep1Screen({ navigation, route }) {
   const goalNumber = Number(goalText) || 0;
   const isValid = goalNumber > 0;
 
+  // zustand setter
+  const setGoalScore = useOnboardingStore((s) => s.setGoalScore);
+
   const handleChangeText = (text) => {
     const onlyNumber = text.replace(/[^0-9]/g, "");
     setGoalText(onlyNumber);
@@ -29,6 +33,9 @@ export default function OnvoardingStep1Screen({ navigation, route }) {
 
   const handleNext = () => {
     if (!isValid) return;
+
+    // 상태 저장
+    setGoalScore(goalNumber);
 
     navigation.navigate("Root");
   };
@@ -70,7 +77,6 @@ export default function OnvoardingStep1Screen({ navigation, route }) {
                   placeholderTextColor={colors.mono[200]}
                   style={styles.input}
                 />
-
                 <Text style={styles.unit}>권</Text>
               </View>
             </View>
