@@ -50,11 +50,20 @@
  *
  */
 import { radius } from "../theme/radius";
+import { MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+const INPUT_HEIGHT = 35;
 
 export default function TextField({
   label,
@@ -87,10 +96,26 @@ export default function TextField({
           placeholder={placeholder}
           maxLength={maxLength}
           placeholderTextColor={colors.mono[500]}
+          underlineColorAndroid="transparent"
           style={styles.input}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
         />
+
+        {/* 지우기 아이콘 */}
+        {(focused || isFilled) && value.length > 0 && (
+          <TouchableOpacity
+            onPress={() => onChangeText("")}
+            style={styles.deleteButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <MaterialIcons
+              name="close"
+              size={16}
+              color={colors.mono[500]}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Helper Text + Count */}
@@ -120,14 +145,26 @@ const styles = StyleSheet.create({
     color: colors.mono[700],
   },
   inputContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
     borderRadius: radius[200],
-    padding: spacing.s,
+    paddingHorizontal: spacing.s,
+    height: INPUT_HEIGHT,
     backgroundColor: colors.mono[0],
+    gap: spacing.s,
+  },
+  deleteButton: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   input: {
+    flex: 1,
     ...typography["body-2-regular"],
     color: colors.mono[900],
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
   bottomRow: {
     marginTop: spacing.xs,
