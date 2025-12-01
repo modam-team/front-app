@@ -39,6 +39,7 @@ module.exports = [
         ...globals.browser,
         ...globals.es2021,
         __DEV__: "readonly",
+        process: "readonly",
       },
     },
 

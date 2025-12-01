@@ -18,7 +18,7 @@ export default function OnboardingIntroScreen({ navigation }) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.replace("Root");
+      navigation.replace("OnboardingLogin");
     }, 3000);
 
     return () => clearTimeout(timer);
