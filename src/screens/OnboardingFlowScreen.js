@@ -112,7 +112,9 @@ export default function OnboardingFlowScreen({ navigation, route }) {
   };
 
   const isNextDisabled =
-    (step === 1 && !isValidGoal) || (step === 2 && !isValidCategory);
+    (step === 1 && !isValidGoal) ||
+    (step === 2 && !isValidCategory) ||
+    (step === 3 && !isValidNickname);
 
   return (
     <SafeAreaView
