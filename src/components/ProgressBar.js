@@ -91,6 +91,7 @@ export default function ProgressBar({ currentStep = 1, totalSteps = 3 }) {
 const styles = StyleSheet.create({
   wrap: {
     width: "100%",
+    padding: spacing.layoutMargin,
   },
   barContainer: {
     width: "100%",
