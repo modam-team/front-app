@@ -73,11 +73,27 @@ export default function OnboardingLoginScreen({ navigation }) {
         }
 
         const loginResult = await kakaoLogin(code);
-
+        /*
         const { userId } = loginResult;
 
         setShowWebView(false);
-        navigation.replace("OnboardingFlow", { userId });
+
+        // 온보딩 여부 조회
+        const status = await fetchOnboardingStatus(userId);
+        const completed = status.onboardingCompleted;
+
+        if (completed) {
+          // 이미 온보딩한 유저는 바로 메인으로
+          navigation.replace("Root", { userId });
+        } else {
+          // 아직 안 한 유저는 Flow로 이동하면서 userId 넘겨주기
+          navigation.replace("OnboardingFlow", { userId });
+        }
+          */
+
+        // 나중에 백엔드 api 수정되면 다시 주석 해제할 예정
+        setShowWebView(false);
+        navigation.replace("OnboardingFlow"); // 일단은 로그인 성공하면 그냥 무조건 온보딩 플로우로 넘어가도록
       } catch (err) {
         console.error("카카오 로그인 실패:", err);
         setShowWebView(false);

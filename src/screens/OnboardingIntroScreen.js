@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background.DEFAULT,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: 58, // 나중에 디자인 고정되면 맞춰서 바꾸기
   },
   content: {
     flex: 1,
