@@ -7,7 +7,6 @@ import DevPlaygroundScreen from "@screens/DevPlaygroundScreen";
 import OnboardingFlowScreen from "@screens/OnboardingFlowScreen";
 import OnboardingIntroScreen from "@screens/OnboardingIntroScreen";
 import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
-import OnboardingStep1Screen from "@screens/OnboardingStep1Screen";
 import { colors } from "@theme/colors";
 import React from "react";
 import "react-native-gesture-handler";
