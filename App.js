@@ -6,6 +6,7 @@ import DevPlaygroundScreen from "@screens/DevPlaygroundScreen";
 import OnboardingIntroScreen from "@screens/OnboardingIntroScreen";
 import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
 import OnboardingStep1Screen from "@screens/OnboardingStep1Screen";
+import OnboardingStep2Screen from "@screens/OnboardingStep2Screen";
 import { colors } from "@theme/colors";
 import React from "react";
 import "react-native-gesture-handler";
@@ -36,6 +37,11 @@ export default function App() {
         <Stack.Screen
           name="OnboardingStep1"
           component={OnboardingStep1Screen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="OnboardingStep2"
+          component={OnboardingStep2Screen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

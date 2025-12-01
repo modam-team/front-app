@@ -38,7 +38,7 @@ export default function OnvoardingStep1Screen({ navigation, route }) {
     // 상태 저장
     setGoalScore(goalNumber);
 
-    navigation.navigate("Root");
+    navigation.navigate("OnboardingStep2");
   };
 
   return (
