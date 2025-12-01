@@ -1,12 +1,16 @@
 import Chip from "@components/Chip";
 import OnboardingButton from "@components/OnboardingButton";
 import ProgressBar from "@components/ProgressBar";
+import TextField from "@components/TextField";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,96 +24,142 @@ export default function DevPlaygroundScreen() {
   // progress bar 테스트용 현재 스텝 state
   const [step, setStep] = useState(1);
 
+  // TextField 테스트용 state
+  const [textDefault, setTextDefault] = useState("");
+  const [textFocused, setTextFocused] = useState("내용 입력중");
+  const [textFilled, setTextFilled] = useState("내용 입력");
+
   const goPrev = () => setStep((prev) => Math.max(1, prev - 1));
   const goNext = () => setStep((prev) => Math.min(3, prev + 1));
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.sectionTitle}>
-        Dev Playground{"\n"}(이것저것 테스트해보세용)
-      </Text>
-
-      {/* SECTION: Chip 컴포넌트 */}
-      <Text style={styles.label}>Chip Component</Text>
-      <View style={styles.row}>
-        <Chip
-          label="Chip - default"
-          selected={false}
-          onPress={() => {}}
-        />
-
-        <Chip
-          label="Chip - active"
-          selected={true}
-          onPress={() => {}}
-        />
-      </View>
-
-      {/* SECTION: ProgressBar 컴포넌트 */}
-      <Text style={styles.label}>ProgressBar Component</Text>
-
-      {/* 현재 step 표시 */}
-      <Text style={styles.subLabel}>현재 Step: {step}</Text>
-
-      {/* 애니메이션 되는 ProgressBar */}
-      <ProgressBar
-        currentStep={step}
-        totalSteps={3}
-      />
-
-      {/* Step 변경 버튼 */}
-      <View style={styles.stepButtons}>
-        <TouchableOpacity
-          style={[styles.stepButton, styles.stepButtonOutline]}
-          onPress={goPrev}
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background.DEFAULT }}
+    >
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 45 : 0}
+      >
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={{
+            padding: spacing.layoutMargin,
+            paddingBottom: spacing.layoutMargin * 4,
+          }}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.stepButtonText}>이전</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.stepButton, styles.stepButtonFilled]}
-          onPress={goNext}
-        >
-          <Text style={[styles.stepButtonText, { color: colors.mono[0] }]}>
-            다음
+          <Text style={styles.sectionTitle}>
+            Dev Playground{"\n"}(이것저것 테스트해보세용)
           </Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* SECTION: OnboardingButton */}
-      <Text style={styles.label}>OnboardingButton Component</Text>
-      <View style={{ gap: spacing.s }}>
-        <OnboardingButton
-          label="다음 (Active)"
-          disabled={false}
-          onPress={() => {}}
-        />
+          {/* SECTION: Chip 컴포넌트 */}
+          <Text style={styles.label}>Chip Component</Text>
+          <View style={styles.row}>
+            <Chip
+              label="Chip - default"
+              selected={false}
+              onPress={() => {}}
+            />
 
-        <OnboardingButton
-          label="다음 (Disabled)"
-          disabled={true}
-          onPress={() => {}}
-        />
+            <Chip
+              label="Chip - active"
+              selected={true}
+              onPress={() => {}}
+            />
+          </View>
 
-        <OnboardingButton
-          label="독서 시작하기 (Active)"
-          disabled={false}
-          onPress={() => {}}
-        />
+          {/* SECTION: ProgressBar 컴포넌트 */}
+          <Text style={styles.label}>ProgressBar Component</Text>
 
-        <OnboardingButton
-          label="독서 시작하기 (Disabled)"
-          disabled={true}
-          onPress={() => {}}
-        />
-      </View>
-    </ScrollView>
+          {/* 현재 step 표시 */}
+          <Text style={styles.subLabel}>현재 Step: {step}</Text>
+
+          {/* 애니메이션 되는 ProgressBar */}
+          <ProgressBar
+            currentStep={step}
+            totalSteps={3}
+          />
+
+          {/* Step 변경 버튼 */}
+          <View style={styles.stepButtons}>
+            <TouchableOpacity
+              style={[styles.stepButton, styles.stepButtonOutline]}
+              onPress={goPrev}
+            >
+              <Text style={styles.stepButtonText}>이전</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.stepButton, styles.stepButtonFilled]}
+              onPress={goNext}
+            >
+              <Text style={[styles.stepButtonText, { color: colors.mono[0] }]}>
+                다음
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* SECTION: OnboardingButton */}
+          <Text style={styles.label}>OnboardingButton Component</Text>
+          <View style={{ gap: spacing.s }}>
+            <OnboardingButton
+              label="다음 (Active)"
+              disabled={false}
+              onPress={() => {}}
+            />
+
+            <OnboardingButton
+              label="다음 (Disabled)"
+              disabled={true}
+              onPress={() => {}}
+            />
+
+            <OnboardingButton
+              label="독서 시작하기 (Active)"
+              disabled={false}
+              onPress={() => {}}
+            />
+
+            <OnboardingButton
+              label="독서 시작하기 (Disabled)"
+              disabled={true}
+              onPress={() => {}}
+            />
+          </View>
+
+          {/* SECTION: TextField 컴포넌트 */}
+          <Text style={styles.label}>TextField Component</Text>
+
+          <View style={{ gap: spacing.m }}>
+            {/* helper o + count o + default */}
+            <TextField
+              label="라벨"
+              placeholder="플레이스 홀더"
+              helperText="도움말 메세지"
+              showCount
+              maxLength={50}
+              value={textDefault}
+              onChangeText={setTextDefault}
+            />
+
+            {/* helper x + count x + filled */}
+            <TextField
+              label="라벨"
+              placeholder="플레이스 홀더"
+              value={textFilled}
+              onChangeText={setTextFilled}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.layoutMargin,
+    flex: 1,
     backgroundColor: colors.background.DEFAULT,
   },
   sectionTitle: {
