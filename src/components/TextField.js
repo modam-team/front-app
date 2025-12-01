@@ -49,9 +49,9 @@
  * onChangeText: (text: string) => void  ->  입력 변경 핸들러
  *
  */
-import { radius } from "../theme/radius";
-import { MaterialIcons } from "@expo/vector-icons";
+import DeleteIcon from "@assets/icons/typcn_delete.svg";
 import { colors } from "@theme/colors";
+import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { useState } from "react";
@@ -109,10 +109,9 @@ export default function TextField({
             style={styles.deleteButton}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <MaterialIcons
-              name="close"
-              size={16}
-              color={colors.mono[500]}
+            <DeleteIcon
+              width={16}
+              height={16}
             />
           </TouchableOpacity>
         )}
