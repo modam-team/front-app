@@ -1,4 +1,4 @@
-export const generes = [
+export const GENRES = [
   "라이프스타일/취미",
   "경제/경영",
   "소설/문학",
