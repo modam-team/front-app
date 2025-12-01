@@ -1,9 +1,10 @@
 import BottomTabs from "./src/navigation/BottomTabs";
 import AddEntryScreen from "./src/screens/AddEntryScreen";
-import OnboardingIntroScreen from "./src/screens/OnboardingIntroScreen";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DevPlaygroundScreen from "@screens/DevPlaygroundScreen";
+import OnboardingIntroScreen from "@screens/OnboardingIntroScreen";
+import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
 import { colors } from "@theme/colors";
 import React from "react";
 import "react-native-gesture-handler";
@@ -24,6 +25,11 @@ export default function App() {
         <Stack.Screen
           name="OnboardingIntro"
           component={OnboardingIntroScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="OnboardingLogin"
+          component={OnboardingLoginScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
