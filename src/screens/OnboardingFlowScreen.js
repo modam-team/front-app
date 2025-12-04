@@ -26,9 +26,6 @@ import {
 export default function OnboardingFlowScreen({ navigation, route }) {
   const [step, setStep] = useState(1);
 
-  // 백엔드에서 api 변경하면 다시 연결하기
-  // onst userId = route?.params?.userId;
-
   // step 1에서 쓸 상태
   const [goalText, setGoalText] = useState("");
   const goalNumber = Number(goalText) || 0;
@@ -93,22 +90,17 @@ export default function OnboardingFlowScreen({ navigation, route }) {
       const trimmedNickname = nicknameInput.trim();
       setNickname(trimmedNickname);
 
-      // 백엔드가 api 변경하면 다시 연결하기
-      /*
       try {
-        await completeOnboarding(userId, {
+        await completeOnboarding({
           nickname: trimmedNickname,
           goalScore,
           categories: categories.join(","),
         });
 
-        navigation.replace("Root", { userId });
+        navigation.replace("Root");
       } catch (e) {
         console.error("온보딩 실패:", e.response?.status, e.response?.data);
       }
-        */
-
-      navigation.replace("Root");
     }
   };
 

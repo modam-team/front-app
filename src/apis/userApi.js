@@ -1,31 +1,16 @@
-import axios from "axios";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
-
-const client = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 5000,
-});
+import { client } from "@apis/clientApi";
 
 // 온보딩 완료 여부 조회
-export async function fetchOnboardingStatus(userId) {
-  const res = await client.get("/api/user/onboarding/status", {
-    headers: {
-      "X-User-Id": userId,
-    },
-  });
+export async function fetchOnboardingStatus() {
+  const res = await client.get("/api/user/onboarding/status");
 
   // { onboardingCompleted: true } 형태
   return res.data;
 }
 
 // 유저 프로필 조회
-export async function fetchUserProfile(userId) {
-  const res = await client.get("/api/user/profile", {
-    headers: {
-      "X-User-Id": userId,
-    },
-  });
+export async function fetchUserProfile() {
+  const res = await client.get("/api/user/profile");
 
   // { userId, name, nickname, goalScore, preferredCategories, onboardingCompleted } 형태
   return res.data;
@@ -42,12 +27,8 @@ export async function checkNicknameAvailable(nickname) {
 }
 
 // 온보딩 완료 저장
-export async function completeOnboarding(userId, payload) {
-  const res = await client.post("/api/user/onboarding/complete", payload, {
-    headers: {
-      "X-User-Id": userId,
-    },
-  });
+export async function completeOnboarding(payload) {
+  const res = await client.post("/api/user/onboarding/complete", payload);
 
   // 200 OK만 응답으로 옴
   return res.data;

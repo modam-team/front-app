@@ -1,11 +1,5 @@
-import axios from "axios";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
-
-const client = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 5000,
-});
+import { saveToken } from "../utils/secureStore";
+import { client } from "@apis/clientApi";
 
 // 카카오 인증코드로 JWT 발급 요청
 export async function kakaoLogin(code) {
@@ -20,6 +14,15 @@ export async function kakaoLogin(code) {
       console.error("로그인 실패 응답:", data);
       throw new Error(data.error?.message);
     }
+
+    const { accessToken, refreshToken, expiresIn } = data.responseDto;
+
+    // 토큰 및 유저 정보 저장
+    await Promise.all([
+      saveToken("accessToken", accessToken),
+      saveToken("refreshToken", refreshToken ?? ""),
+      saveToken("expiresIn", String(expiresIn ?? "")),
+    ]);
 
     return data.responseDto;
   } catch (e) {
