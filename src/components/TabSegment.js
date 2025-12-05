@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, Pressable, Text, StyleSheet } from 'react-native';
 import colors from '../theme/colors';
 
 export default function TabSegment({ tabs, value, onChange }) {
@@ -8,10 +8,17 @@ export default function TabSegment({ tabs, value, onChange }) {
       {tabs.map((t) => {
         const active = value === t.value;
         return (
-          <TouchableOpacity key={t.value} onPress={() => onChange(t.value)} style={styles.tab}>
+          <Pressable
+            key={t.value}
+            onPress={() => onChange(t.value)}
+            style={({ pressed }) => [
+              styles.tab,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
             <Text style={[styles.label, active && styles.active]}>{t.label}</Text>
             {active && <View style={styles.underline} />}
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>
@@ -19,9 +26,26 @@ export default function TabSegment({ tabs, value, onChange }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', paddingHorizontal: 16, gap: 16 },
-  tab: { paddingVertical: 10 },
-  label: { color: '#6b7280', fontSize: 14 },
-  active: { color: '#111827', fontWeight: '600' },
-  underline: { height: 2, backgroundColor: '#111827', marginTop: 6, borderRadius: 2 },
+  row: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 0,
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  label: { color: colors.tabLabel, fontSize: 15, fontWeight: '700', letterSpacing: -0.2 },
+  active: { color: colors.accent },
+  underline: {
+    height: 2,
+    backgroundColor: colors.accent,
+    marginTop: 8,
+    width: '80%',
+    borderRadius: 999,
+  },
 });

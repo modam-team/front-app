@@ -1,92 +1,154 @@
-import React, { useState } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'; // ✅ StyleSheet 포함!
+import React from 'react';
+import { View, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BookshelfScreen from '../screens/BookshelfScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ReportScreen from '../screens/ReportScreen';
-import SettingsScreen from '../screens/SettingsScreen';
 import colors from '../theme/colors';
-import PlusOverlay from '../components/PlusOverlay';
-
+import { useNavigation } from '@react-navigation/native';
+import { useBooks } from '../context/BooksContext';
 
 const Tab = createBottomTabNavigator();
 
-function EmptyScreen() {
-  return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+function TabIcon({ type, focused }) {
+  const tint = focused ? colors.accent : colors.tabInactive;
+
+  if (type === 'book') {
+    return (
+      <View style={styles.iconWrap}>
+        <View style={[styles.bookCover, { borderColor: tint }]} />
+        <View style={[styles.bookLine, { backgroundColor: tint }]} />
+      </View>
+    );
+  }
+  if (type === 'home') {
+    return (
+      <View style={styles.iconWrap}>
+        <View style={[styles.homeRoof, { borderBottomColor: tint }]} />
+        <View style={[styles.homeBody, { borderColor: tint }]} />
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.iconWrap, styles.bars]}>
+      {[6, 10, 14].map((h) => (
+        <View key={h} style={[styles.bar, { height: h, backgroundColor: tint }]} />
+      ))}
+    </View>
+  );
 }
 
 export default function BottomTabs() {
-  const [showPlus, setShowPlus] = useState(false);
+  const { addBook, setLastShelf } = useBooks();
+  const navigation = useNavigation();
 
-  const onSelect = (label) => {
-    // TODO: label 기준으로 AddEntryScreen으로 이동/상태 저장 등 원하는 액션
-    setShowPlus(false);
+  const handleSelectBook = (book, shelf = 'before') => {
+    setLastShelf(shelf);
+    addBook(book, { shelf });
+    Alert.alert('책이 추가되었습니다', `${book?.title || '제목 없음'} (${shelf})`);
   };
 
-  const PlusButton = () => (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      style={styles.fab}
-      onPress={() => setShowPlus(true)}
-    >
-      <Text style={styles.fabPlus}>＋</Text>
-    </TouchableOpacity>
-  );
-
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <Tab.Navigator
         screenOptions={{
-          headerTitleAlign: 'left',
-          headerTitleStyle: { fontSize: 20, fontWeight: '800', color: colors.text },
-          tabBarStyle: {
-            height: 64,
-            paddingBottom: 10,
-            borderTopColor: colors.border,
-            borderTopWidth: 1,
-            backgroundColor: '#f5f5f5',
-          },
-          tabBarActiveTintColor: colors.text,
-          tabBarLabelStyle: { fontSize: 11 },
+          headerShown: false,
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.tabInactive,
+          tabBarLabelStyle: styles.tabLabel,
+          tabBarStyle: styles.tabBar,
         }}
       >
-        <Tab.Screen name="책장" component={BookshelfScreen} />
-        <Tab.Screen name="홈" component={HomeScreen} />
         <Tab.Screen
-          name="작성"
-          component={EmptyScreen}
-          options={{ tabBarButton: () => <PlusButton />, headerShown: false }}
+          name="책장"
+          component={BookshelfScreen}
+          options={{
+            tabBarIcon: ({ focused }) => <TabIcon type="book" focused={focused} />,
+          }}
         />
-        <Tab.Screen name="리포트" component={ReportScreen} />
-        <Tab.Screen name="설정" component={SettingsScreen} />
+        <Tab.Screen
+          name="홈"
+          component={HomeScreen}
+          options={{
+            tabBarIcon: ({ focused }) => <TabIcon type="home" focused={focused} />,
+          }}
+        />
+        <Tab.Screen
+          name="리포트"
+          component={ReportScreen}
+          options={{
+            tabBarIcon: ({ focused }) => <TabIcon type="report" focused={focused} />,
+          }}
+        />
       </Tab.Navigator>
 
-      {/* 가운데 + 오버레이 */}
-      <PlusOverlay
-        visible={showPlus}
-        onClose={() => setShowPlus(false)}
-        onSelect={onSelect}
-      />
-    </>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={styles.fab}
+        onPress={() => navigation.navigate('BookSelect', { onPick: handleSelectBook })}
+      >
+        <Text style={styles.fabPlus}>＋</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fab: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  tabBar: {
     backgroundColor: '#ffffff',
+    borderTopColor: colors.border,
+    height: 76,
+    paddingTop: 10,
+  },
+  tabLabel: { fontSize: 12, fontWeight: '700', paddingBottom: 6 },
+  iconWrap: { alignItems: 'center', justifyContent: 'center', height: 22 },
+  bookCover: {
+    width: 20,
+    height: 16,
+    borderRadius: 3,
+    borderWidth: 2,
+    backgroundColor: 'transparent',
+  },
+  bookLine: {
+    width: 12,
+    height: 2,
+    borderRadius: 999,
+    marginTop: 2,
+  },
+  homeRoof: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 12,
+    borderRightWidth: 12,
+    borderBottomWidth: 10,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    marginBottom: -2,
+  },
+  homeBody: {
+    width: 20,
+    height: 12,
+    borderWidth: 2,
+    borderTopWidth: 0,
+    borderRadius: 2,
+  },
+  bars: { flexDirection: 'row', width: 26, justifyContent: 'space-between' },
+  bar: { width: 4, borderRadius: 1 },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    bottom: 90,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#111',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -22, // 살짝 떠보이게
-    borderWidth: 1,
-    borderColor: colors.border,
     shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
-  fabPlus: { fontSize: 30, lineHeight: 30, color: colors.text },
+  fabPlus: { fontSize: 28, lineHeight: 32, color: '#fff' },
 });
