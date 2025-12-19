@@ -6,6 +6,7 @@ export async function kakaoLogin(code) {
   try {
     const res = await client.post("/api/v1/auth/kakao/login", null, {
       params: { code },
+      skipAuth: true,
     });
 
     const data = res.data;

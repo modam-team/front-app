@@ -1,9 +1,12 @@
 import { colors } from "@theme/colors";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
+  Image,
+  Modal,
   PanResponder,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -12,6 +15,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { deleteBookFromBookcase, fetchBookcase } from "@apis/bookcaseApi";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -21,14 +26,187 @@ const tabs = [
   { label: "완독한", value: "after" },
 ];
 
-export default function BookshelfScreen() {
+const placeholder = require("../../assets/icon.png");
+
+// 간단 캐시: 화면 재마운트 시에도 이전에 추가한 책 유지
+let bookshelfCache = {
+  before: [],
+  reading: [],
+  after: [],
+};
+
+// 상태별 목록을 단일화: 동일 id는 마지막 상태 기준으로 하나만 유지
+const normalizeBooks = (sources = []) => {
+  const byId = new Map();
+  sources.flat().forEach((book) => {
+    if (!book?.id) return;
+    const status = (book.status || "before").toLowerCase();
+    byId.set(book.id, { ...book, status });
+  });
+
+  const score = (b) => {
+    const t =
+      b.enrollAt ||
+      b.startedAt ||
+      b.finishedAt ||
+      b.createdAt ||
+      b.updatedAt ||
+      b.createdDate ||
+      null;
+    const ts = t ? new Date(t).getTime() : 0;
+    return isNaN(ts) ? 0 : ts;
+  };
+
+  const result = { before: [], reading: [], after: [] };
+  byId.forEach((book) => {
+    const key = book.status === "reading" ? "reading" : book.status === "after" ? "after" : "before";
+    result[key].push(book);
+  });
+
+  // 최신순: 날짜 내림차순, 없으면 id desc
+  Object.keys(result).forEach((k) => {
+    result[k].sort((a, b) => {
+      const sa = score(a);
+      const sb = score(b);
+      if (sa !== sb) return sb - sa;
+      return (b.id || 0) - (a.id || 0);
+    });
+  });
+  return result;
+};
+
+export default function BookshelfScreen({ route, navigation: navProp }) {
   const [tab, setTab] = useState("before");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("latest"); // latest | rating
+  const [showSortSheet, setShowSortSheet] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const wiggle = useRef(new Animated.Value(0)).current;
+  const wiggleLoop = useRef(null);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [books, setBooks] = useState({
+    before: [],
+    reading: [],
+    after: [],
+  });
   const screenWidth = Dimensions.get("window").width;
   const translateX = useRef(new Animated.Value(0)).current;
 
   const tabOrder = useMemo(() => tabs.map((t) => t.value), []);
   const currentIndex = tabOrder.indexOf(tab);
+  const tabBooks = useMemo(() => {
+    const list = books[tab] || [];
+    const q = search.trim().toLowerCase();
+    const filtered = q ? list.filter((b) => (b.title || "").toLowerCase().includes(q)) : list;
+    if (sortBy === "rating") {
+      return [...filtered].sort((a, b) => (b.rate || 0) - (a.rate || 0));
+    }
+    return filtered;
+  }, [books, tab, search, sortBy]);
+  const navigation = navProp || useNavigation();
+
+  const setBooksAndCache = (updater) => {
+    setBooks((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      bookshelfCache = next;
+      return next;
+    });
+  };
+
+  // 캐시된 책 불러오기
+  useEffect(() => {
+    setBooks(bookshelfCache);
+  }, []);
+
+  // 단일 업데이트 반영 (상태 이동)
+  useEffect(() => {
+    const updated = route?.params?.updatedBook;
+    if (!updated?.id) return;
+    const status = (updated.status || "before").toLowerCase();
+    setBooksAndCache((prev) => {
+      const cleaned = {
+        before: (prev.before || []).filter((b) => b.id !== updated.id),
+        reading: (prev.reading || []).filter((b) => b.id !== updated.id),
+        after: (prev.after || []).filter((b) => b.id !== updated.id),
+      };
+      const targetKey =
+        status === "reading" ? "reading" : status === "after" ? "after" : "before";
+      cleaned[targetKey] = [{ ...updated, status: targetKey }, ...cleaned[targetKey]];
+      return cleaned;
+    });
+  }, [route?.params?.updatedBook]);
+
+  const loadBookcase = useCallback(async () => {
+    try {
+      const data = await fetchBookcase();
+      if (!data) return;
+      const mapBook = (b) => ({
+        id: b.bookId,
+        title: b.title,
+        author: b.author || b.publisher || "",
+        coverUri: b.cover || null,
+        status: (b.status || "").toLowerCase() || "before",
+        rate: typeof b.userRate === "number" ? b.userRate : b.rate || 0,
+      });
+      const serverState = {
+        before: (data.before || []).map(mapBook),
+        reading: (data.reading || []).map(mapBook),
+        after: (data.after || []).map(mapBook),
+      };
+
+      // 서버 + 로컬 캐시를 통합하고 상태별로 단일화
+      const normalized = normalizeBooks([
+        serverState.before,
+        serverState.reading,
+        serverState.after,
+        bookshelfCache.before,
+        bookshelfCache.reading,
+        bookshelfCache.after,
+      ]);
+
+      setBooksAndCache(normalized);
+    } catch (e) {
+      console.error(
+        "책장 불러오기 실패:",
+        e.response?.status,
+        e.response?.data || e.message,
+      );
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadBookcase();
+      if (route?.params?.focusTab) {
+        const nextTab = route.params.focusTab;
+        if (tabs.find((t) => t.value === nextTab)) {
+          setTab(nextTab);
+        }
+      }
+    }, [loadBookcase, route?.params?.refreshKey, route?.params?.focusTab]),
+  );
+
+  // 새로 추가된 책을 책장에 반영
+  useEffect(() => {
+    const addedList =
+      route?.params?.addedBooks ||
+      (route?.params?.addedBook ? [route?.params?.addedBook] : []);
+
+    if (!addedList.length) return;
+
+    setBooksAndCache((prev) => {
+      const next = { ...prev };
+      addedList.forEach((added) => {
+        const status = added.status || "before";
+        const list = next[status] || [];
+        const exists = list.some((b) => b.id === added.id);
+        if (!exists) {
+          next[status] = [added, ...list];
+        }
+      });
+      return next;
+    });
+  }, [route?.params?.addedBook, route?.params?.addedBooks]);
 
   const switchTab = (nextIndex) => {
     if (nextIndex < 0 || nextIndex >= tabOrder.length) return;
@@ -64,6 +242,50 @@ export default function BookshelfScreen() {
       },
     });
   }, [currentIndex, switchTab]);
+
+  const chunkBooks = (arr, size) => {
+    const res = [];
+    for (let i = 0; i < arr.length; i += size) {
+      res.push(arr.slice(i, i + size));
+    }
+    return res;
+  };
+
+  useEffect(() => {
+    if (deleteTargetId) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(wiggle, { toValue: 1, duration: 100, useNativeDriver: true }),
+          Animated.timing(wiggle, { toValue: -1, duration: 100, useNativeDriver: true }),
+          Animated.timing(wiggle, { toValue: 0, duration: 100, useNativeDriver: true }),
+        ]),
+      );
+      wiggleLoop.current = loop;
+      loop.start();
+    } else {
+      if (wiggleLoop.current) {
+        wiggleLoop.current.stop();
+      }
+      wiggle.setValue(0);
+    }
+  }, [deleteTargetId, wiggle]);
+
+  const handleDeleteBook = async (book) => {
+    if (!book?.id) return;
+    try {
+      await deleteBookFromBookcase(book.id);
+      setBooksAndCache((prev) => ({
+        before: (prev.before || []).filter((b) => b.id !== book.id),
+        reading: (prev.reading || []).filter((b) => b.id !== book.id),
+        after: (prev.after || []).filter((b) => b.id !== book.id),
+      }));
+    } catch (e) {
+      console.error("책 삭제 실패:", e.response?.status, e.response?.data || e.message);
+    } finally {
+      setDeleteTargetId(null);
+      setConfirmTarget(null);
+    }
+  };
 
   return (
     <SafeAreaView
@@ -114,15 +336,28 @@ export default function BookshelfScreen() {
       </View>
 
       {/* 정렬 */}
-      <View style={styles.bodyArea}>
-        <View style={styles.sortRow}>
+      <View
+        style={styles.bodyArea}
+        onStartShouldSetResponder={() => {
+          if (deleteTargetId) {
+            setDeleteTargetId(null);
+            return true;
+          }
+          return false;
+        }}
+      >
+        <TouchableOpacity
+          style={styles.sortRow}
+          activeOpacity={0.8}
+          onPress={() => setShowSortSheet(true)}
+        >
           <Ionicons
             name="funnel-outline"
             size={14}
             color="#191919"
           />
-          <Text style={styles.sortText}>최신순</Text>
-        </View>
+          <Text style={styles.sortText}>{sortBy === "rating" ? "별점 높은순" : "최신순"}</Text>
+        </TouchableOpacity>
 
         <View style={styles.swipeContainer}>
           <Animated.View
@@ -141,60 +376,214 @@ export default function BookshelfScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                {/* 상단 여백 (책 자리) */}
-                <View style={styles.topSpacer} />
-
-                {/* 상단 선반 */}
-                <View style={styles.shelfArea}>
-                  <View style={styles.shelfGroup}>
-                    <View style={styles.shelfBar}>
-                      <LinearGradient
-                        colors={["#FFFFFF", "#878787"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[styles.hole, styles.holeLeft]}
-                      />
-                      <LinearGradient
-                        colors={["#FFFFFF", "#878787"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[styles.hole, styles.holeRight]}
-                      />
+                {/* 선반 + 책 배치 */}
+                {Array.from({
+                  length: Math.max(3, Math.ceil(Math.max(tabBooks.length, 1) / 3)),
+                }).map((_, rowIdx) => {
+                  const chunked = chunkBooks(tabBooks, 3);
+                  const row = chunked[rowIdx] || [];
+                  return (
+                    <View
+                      key={`${tab}-${rowIdx}`}
+                      style={styles.shelfArea}
+                    >
+                      <View style={[styles.shelfGroup, styles.shelfSpacing]}>
+                        <View style={styles.bookRow}>
+                          {Array.from({ length: 3 }).map((_, i) => {
+                            const book = row[i];
+                            return (
+                              <View
+                                key={book ? book.id : `placeholder-${i}`}
+                                style={styles.bookSlot}
+                              >
+                                {book ? (
+                                  <View style={styles.bookWrap}>
+                                    <TouchableOpacity
+                                      activeOpacity={0.9}
+                                      onLongPress={() => setDeleteTargetId(book.id)}
+                                      onPress={() => {
+                                        if (deleteTargetId) {
+                                          if (deleteTargetId === book.id) {
+                                            setDeleteTargetId(null);
+                                          } else {
+                                            setDeleteTargetId(null);
+                                          }
+                                          return;
+                                        }
+                                        navigation.navigate("BookDetail", { book });
+                                      }}
+                                    >
+                                      <Animated.View
+                                        style={[
+                                          styles.bookWrap,
+                                          deleteTargetId === book.id && {
+                                            transform: [
+                                              {
+                                                rotate: wiggle.interpolate({
+                                                  inputRange: [-1, 0, 1],
+                                                  outputRange: ["-2deg", "0deg", "2deg"],
+                                                }),
+                                              },
+                                            ],
+                                          },
+                                        ]}
+                                      >
+                                        <Image
+                                          source={
+                                            book.coverUri ? { uri: book.coverUri } : placeholder
+                                          }
+                                          style={styles.bookCover}
+                                          resizeMode="cover"
+                                        />
+                                        {deleteTargetId === book.id && (
+                                          <TouchableOpacity
+                                            style={styles.deleteBadge}
+                                            onPress={() => setConfirmTarget(book)}
+                                          >
+                                            <Ionicons
+                                              name="close"
+                                              size={16}
+                                              color="#fff"
+                                            />
+                                          </TouchableOpacity>
+                                        )}
+                                      </Animated.View>
+                                    </TouchableOpacity>
+                                  </View>
+                                ) : (
+                                  <View style={styles.bookPlaceholder} />
+                                )}
+                              </View>
+                            );
+                          })}
+                        </View>
+                        <View style={styles.shelfBar}>
+                          <LinearGradient
+                            colors={["#FFFFFF", "#878787"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[styles.hole, styles.holeLeft]}
+                          />
+                          <LinearGradient
+                            colors={["#FFFFFF", "#878787"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[styles.hole, styles.holeRight]}
+                          />
+                        </View>
+                      </View>
                     </View>
-                  </View>
-                </View>
-
-                {/* 빈 상태 문구 */}
-                <View style={styles.emptyWrap}>
-                  <Text style={styles.emptyText}>
-                    추가된 책이 없습니다.{"\n"}책을 추가한 후 독서를 시작해보세요.
-                  </Text>
-                </View>
-
-                {/* 하단 선반 */}
-                <View style={[styles.shelfArea, styles.bottomShelfArea]}>
-                  <View style={[styles.shelfGroup, styles.shelfSpacing]}>
-                    <View style={styles.shelfBar}>
-                      <LinearGradient
-                        colors={["#FFFFFF", "#878787"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[styles.hole, styles.holeLeft]}
-                      />
-                      <LinearGradient
-                        colors={["#FFFFFF", "#878787"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[styles.hole, styles.holeRight]}
-                      />
-                    </View>
-                  </View>
-                </View>
-              </ScrollView>
+                  );
+                })}
+             </ScrollView>
             ))}
           </Animated.View>
         </View>
       </View>
+
+      {/* 정렬 모달 */}
+      {showSortSheet && (
+        <View style={styles.sortOverlay}>
+          <TouchableOpacity
+            style={styles.sortDim}
+            activeOpacity={1}
+            onPress={() => setShowSortSheet(false)}
+          />
+          <View style={styles.sortSheet}>
+            <View style={styles.sortHandleWrap}>
+              <View style={styles.sortHandle} />
+            </View>
+            <Text style={styles.sortSheetTitle}>정렬</Text>
+            <TouchableOpacity
+              style={styles.sortOptionRow}
+              activeOpacity={0.85}
+              onPress={() => {
+                setSortBy("latest");
+                setShowSortSheet(false);
+              }}
+            >
+              <View style={styles.sortOptionLeft}>
+                <Ionicons
+                  name="time-outline"
+                  size={18}
+                  color="#191919"
+                />
+                <Text style={styles.sortOptionLabel}>최신순</Text>
+              </View>
+              {sortBy === "latest" && (
+                <Ionicons
+                  name="checkmark"
+                  size={18}
+                  color="#426B1F"
+                />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.sortOptionRow}
+              activeOpacity={0.85}
+              onPress={() => {
+                setSortBy("rating");
+                setShowSortSheet(false);
+              }}
+            >
+              <View style={styles.sortOptionLeft}>
+                <Ionicons
+                  name="star-outline"
+                  size={18}
+                  color="#191919"
+                />
+                <Text style={styles.sortOptionLabel}>별점 높은순</Text>
+              </View>
+              {sortBy === "rating" && (
+                <Ionicons
+                  name="checkmark"
+                  size={18}
+                  color="#426B1F"
+                />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.sortCloseRow}
+              onPress={() => setShowSortSheet(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sortCloseText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      <Modal
+        visible={!!confirmTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmTarget(null)}
+      >
+        <View style={styles.confirmOverlay}>
+          <Pressable style={styles.confirmDim} onPress={() => setConfirmTarget(null)} />
+          <View style={styles.confirmBox}>
+            <Text style={styles.confirmTitle}>삭제하시겠어요?</Text>
+            <Text style={styles.confirmDesc}>책장에서 이 책을 삭제합니다.</Text>
+            <View style={styles.confirmRow}>
+              <TouchableOpacity
+                style={[styles.confirmBtn, styles.confirmCancel]}
+                onPress={() => setConfirmTarget(null)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.confirmCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmBtn, styles.confirmDelete]}
+                onPress={() => handleDeleteBook(confirmTarget)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.confirmDeleteText}>삭제</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -282,44 +671,43 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     backgroundColor: "#E9E9E9",
-    paddingBottom: 160,
-  },
-  topSpacer: {
-    height: 140,
-    width: "90%",
-    alignSelf: "center",
-    marginBottom: -24,
+    paddingBottom: 140,
   },
   shelfArea: {
     backgroundColor: "#E9E9E9",
     paddingTop: 16,
     alignItems: "center",
     paddingHorizontal: 16,
+    marginBottom: 12,
   },
   shelfGroup: {
     width: "100%",
     alignItems: "center",
-    marginBottom: 22,
+    marginBottom: 24,
+    position: "relative",
   },
   shelfSpacing: {
-    marginTop: 40,
+    marginTop: 8,
   },
   bottomShelfArea: {
     paddingTop: 0,
     marginTop: 12,
   },
   shelfBar: {
-    width: 374,
+    position: "absolute",
+    bottom: -6,
+    left: 0,
+    right: 0,
     height: 45,
-    borderRadius: 5,
+    borderRadius: 6,
     backgroundColor: "rgba(66, 107, 31, 0.6)",
     shadowColor: "#000",
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 4,
-    elevation: 4,
-    position: "relative",
+    shadowRadius: 6,
+    elevation: 6,
     alignSelf: "center",
+    zIndex: 3,
   },
   hole: {
     position: "absolute",
@@ -332,8 +720,55 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  holeLeft: { left: 6, top: 27 },
-  holeRight: { right: 6, top: 27 },
+  holeLeft: { left: 4, top: 28 },
+  holeRight: { right: 4, top: 28 },
+  bookRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginBottom: 12,
+    zIndex: 2,
+    width: "100%",
+    paddingHorizontal: 14,
+  },
+  bookSlot: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 6,
+    paddingBottom: 0,
+  },
+  bookWrap: { position: "relative" },
+  bookCover: {
+    width: 104,
+    height: 156,
+    borderRadius: 3,
+    backgroundColor: "#E0E0E0",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 1,
+    transform: [{ translateY: 6 }],
+  },
+  bookPlaceholder: {
+    width: 108,
+    height: 162,
+    borderRadius: 3,
+    backgroundColor: "transparent",
+  },
+  deleteBadge: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#d9534f",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 3,
+  },
   emptyWrap: {
     marginTop: 40,
     paddingHorizontal: 24,
@@ -359,5 +794,119 @@ const styles = StyleSheet.create({
   bodyArea: {
     flex: 1,
     backgroundColor: "#E9E9E9",
+  },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  confirmDim: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  confirmBox: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  confirmTitle: { fontSize: 18, fontWeight: "700", color: "#191919", textAlign: "center" },
+  confirmDesc: {
+    fontSize: 14,
+    color: "#5c5c5c",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  confirmRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 18,
+    gap: 10,
+  },
+  confirmBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmCancel: {
+    backgroundColor: "#f1f1f1",
+  },
+  confirmDelete: {
+    backgroundColor: "#d9534f",
+  },
+  confirmCancelText: { color: "#191919", fontWeight: "600", fontSize: 15 },
+  confirmDeleteText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  sortOverlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: "flex-end",
+    zIndex: 20,
+  },
+  sortDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.7)",
+  },
+  sortSheet: {
+    backgroundColor: "#F8F8F8",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  sortHandleWrap: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sortHandle: {
+    width: 42,
+    height: 5,
+    borderRadius: 100,
+    backgroundColor: "#CCCCCC",
+  },
+  sortSheetTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#191919",
+    marginBottom: 12,
+  },
+  sortOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#DDDDDD",
+  },
+  sortOptionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  sortOptionLabel: {
+    fontSize: 16,
+    color: "#191919",
+    fontWeight: "500",
+  },
+  sortCloseRow: {
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  sortCloseText: {
+    fontSize: 16,
+    color: "#888888",
+    fontWeight: "600",
   },
 });

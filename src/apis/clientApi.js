@@ -10,6 +10,11 @@ export const client = axios.create({
 
 // 모든 요청에 대해서 Authorization 헤더를 자동으로 추가하도록
 client.interceptors.request.use(async (config) => {
+  // 로그인/회원가입 등 인증이 필요 없는 요청에는 skipAuth 플래그로 건너뛴다.
+  if (config.skipAuth) {
+    return config;
+  }
+
   try {
     const token = await getToken("accessToken");
 

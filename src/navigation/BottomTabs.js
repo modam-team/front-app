@@ -61,40 +61,43 @@ export default function BottomTabs({ navigation }) {
 
 function CustomTabBar({ state, descriptors, navigation }) {
   const activeColor = "#426B1F";
+  const currentRouteName = state.routes[state.index]?.name;
   return (
     <View style={{ backgroundColor: "transparent" }}>
-      <View
-        style={{
-          position: "absolute",
-          right: 24,
-          bottom: 96,
-          zIndex: 10,
-        }}
-      >
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate("AddEntry")}
+      {currentRouteName === "책장" && (
+        <View
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 16,
-            backgroundColor: activeColor,
-            alignItems: "center",
-            justifyContent: "center",
-            shadowColor: "#000",
-            shadowOpacity: 0.25,
-            shadowOffset: { width: 0, height: 4 },
-            shadowRadius: 8,
-            elevation: 6,
+            position: "absolute",
+            right: 24,
+            bottom: 96,
+            zIndex: 10,
           }}
         >
-          <Ionicons
-            name="add"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate("AddEntry")}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 16,
+              backgroundColor: activeColor,
+              alignItems: "center",
+              justifyContent: "center",
+              shadowColor: "#000",
+              shadowOpacity: 0.25,
+              shadowOffset: { width: 0, height: 4 },
+              shadowRadius: 8,
+              elevation: 6,
+            }}
+          >
+            <Ionicons
+              name="add"
+              size={24}
+              color="#fff"
+            />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View
         style={{

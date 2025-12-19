@@ -1,5 +1,6 @@
 import BottomTabs from "./src/navigation/BottomTabs";
 import AddEntryScreen from "./src/screens/AddEntryScreen";
+import BookDetailScreen from "./src/screens/BookDetailScreen";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DevPlaygroundScreen from "@screens/DevPlaygroundScreen";
@@ -46,6 +47,11 @@ export default function App() {
         <Stack.Screen
           name="AddEntry"
           component={AddEntryScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="BookDetail"
+          component={BookDetailScreen}
           options={{ headerShown: false }}
         />
         {/* 테스트용 화면*/}

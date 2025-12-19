@@ -53,3 +53,40 @@ export async function searchBooks(query) {
   const json = await res.json();
   return json?.responseDto ?? [];
 }
+
+// 미수록 책 관리자 요청
+export async function requestBookRegistration({
+  title,
+  author,
+  publisher,
+  category,
+}) {
+  const token = await getToken("accessToken");
+  const headers = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const body = {
+    title,
+    author,
+    publisher,
+    category,
+  };
+
+  const res = await fetch(`${API_BASE_URL}/request`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.success === false) {
+    const err = new Error("책 요청 실패");
+    err.response = json;
+    err.status = res.status;
+    throw err;
+  }
+
+  return json?.responseDto ?? json;
+}
