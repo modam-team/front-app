@@ -1,23 +1,23 @@
 // src/screens/AddEntryScreen.js
+import placeholder from "../../assets/icon.png";
 import { requestBookRegistration, searchBooks } from "@apis/bookApi";
+import { addBookToBookcase } from "@apis/bookcaseApi";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
   Modal,
+  Pressable,
   SafeAreaView,
   ScrollView,
-  Pressable,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  StyleSheet,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { addBookToBookcase } from "@apis/bookcaseApi";
 
-const placeholder = require("../../assets/icon.png");
 const bestsellers = [
   {
     id: 1,
@@ -185,29 +185,29 @@ export default function AddEntryScreen({ navigation }) {
 
   const handleAddToShelf = async () => {
     if (!selectedBook) return;
-    const bookId =
-      selectedBook.bookId || selectedBook.id || selectedBook.isbn;
+    const bookId = selectedBook.bookId || selectedBook.id || selectedBook.isbn;
 
     const bookIdNum = Number(bookId);
     const hasValidId = !!bookId && !Number.isNaN(bookIdNum);
 
     const coverUri = getCoverUri(selectedBook);
-    const finalTitle =
-      localAddOnly
-        ? manualTitle.trim() || "제목 없음"
-        : selectedBook.title || selectedBook.name || "제목 없음";
-    const finalAuthor =
-      localAddOnly
-        ? manualAuthor.trim() || "작가 미상"
-        : selectedBook.author ||
-          selectedBook.authors?.join(", ") ||
-          selectedBook.publisher ||
-          "작가 미상";
+    const finalTitle = localAddOnly
+      ? manualTitle.trim() || "제목 없음"
+      : selectedBook.title || selectedBook.name || "제목 없음";
+    const finalAuthor = localAddOnly
+      ? manualAuthor.trim() || "작가 미상"
+      : selectedBook.author ||
+        selectedBook.authors?.join(", ") ||
+        selectedBook.publisher ||
+        "작가 미상";
     const finalPublisher = localAddOnly
       ? manualPublisher.trim()
       : selectedBook.publisher || "";
     const finalCategory = localAddOnly
-      ? manualCategory || selectedBook.category || selectedBook.categoryName || "기타"
+      ? manualCategory ||
+        selectedBook.category ||
+        selectedBook.categoryName ||
+        "기타"
       : selectedBook.categoryName || selectedBook.category || "기타";
 
     const newBook = {
@@ -237,7 +237,10 @@ export default function AddEntryScreen({ navigation }) {
       ).getTime();
 
       if (parsedStart > parsedEnd) {
-        Alert.alert("날짜 순서를 확인해주세요", "시작일이 완독일보다 늦을 수 없습니다.");
+        Alert.alert(
+          "날짜 순서를 확인해주세요",
+          "시작일이 완독일보다 늦을 수 없습니다.",
+        );
         return;
       }
       newBook.readStartAt = parsedStart;
@@ -312,30 +315,39 @@ export default function AddEntryScreen({ navigation }) {
       >
         <View style={styles.listItem}>
           {coverUri ? (
-            <Image source={{ uri: coverUri }} style={styles.cover} />
+            <Image
+              source={{ uri: coverUri }}
+              style={styles.cover}
+            />
           ) : (
-            <Image source={placeholder} style={styles.cover} />
+            <Image
+              source={placeholder}
+              style={styles.cover}
+            />
           )}
           <View style={styles.itemTextWrap}>
             <View style={styles.tag}>
               <Text style={styles.tagText}>
                 {item.categoryName || item.category || "기타"}
-               </Text>
-             </View>
-             <View style={styles.titleBlock}>
-               <Text style={styles.title} numberOfLines={1}>
-                 {item.title || item.name || "제목 없음"}
-               </Text>
-               <View style={styles.metaRow}>
-                 <Text style={styles.author}>
-                   {item.author ||
-                     item.authors?.join(", ") ||
-                     item.publisher ||
-                     "작가 미상"}
-                 </Text>
-               </View>
-             </View>
-           </View>
+              </Text>
+            </View>
+            <View style={styles.titleBlock}>
+              <Text
+                style={styles.title}
+                numberOfLines={1}
+              >
+                {item.title || item.name || "제목 없음"}
+              </Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.author}>
+                  {item.author ||
+                    item.authors?.join(", ") ||
+                    item.publisher ||
+                    "작가 미상"}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -403,7 +415,8 @@ export default function AddEntryScreen({ navigation }) {
   }, [daysInMonth, tempDay]);
 
   const openDateModal = (type) => {
-    const base = type === "start" ? startDate || new Date() : endDate || new Date();
+    const base =
+      type === "start" ? startDate || new Date() : endDate || new Date();
     setDateTarget(type);
     setTempYear(base.getFullYear());
     setTempMonth(base.getMonth() + 1);
@@ -438,10 +451,18 @@ export default function AddEntryScreen({ navigation }) {
         {/* 검색바 */}
         <View style={styles.searchRow}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={22} color="#000" />
+            <Ionicons
+              name="chevron-back"
+              size={22}
+              color="#000"
+            />
           </TouchableOpacity>
           <View style={styles.searchField}>
-            <Ionicons name="search-outline" size={22} color="#B1B1B1" />
+            <Ionicons
+              name="search-outline"
+              size={22}
+              color="#B1B1B1"
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="검색어를 입력하세요"
@@ -469,7 +490,11 @@ export default function AddEntryScreen({ navigation }) {
           {!loading && !hasResults && !error && (
             <>
               <View style={styles.emptyState}>
-                <Image source={placeholder} style={styles.emptyImage} resizeMode="contain" />
+                <Image
+                  source={placeholder}
+                  style={styles.emptyImage}
+                  resizeMode="contain"
+                />
                 <Text style={styles.emptyTitle}>등록된 책이 없습니다.</Text>
                 <Text style={styles.emptyDesc}>
                   직접 추가해서 독서를 시작해보세요.
@@ -493,7 +518,9 @@ export default function AddEntryScreen({ navigation }) {
         animationType="slide"
         onRequestClose={closeDetail}
       >
-        <SafeAreaView style={localAddOnly ? styles.manualSafe : styles.detailSafe}>
+        <SafeAreaView
+          style={localAddOnly ? styles.manualSafe : styles.detailSafe}
+        >
           {localAddOnly ? (
             <>
               <ScrollView
@@ -501,8 +528,15 @@ export default function AddEntryScreen({ navigation }) {
                 showsVerticalScrollIndicator={false}
               >
                 <View style={styles.manualHeaderRow}>
-                  <TouchableOpacity onPress={closeDetail} style={styles.manualBackBtn}>
-                    <Ionicons name="chevron-back" size={22} color="#000" />
+                  <TouchableOpacity
+                    onPress={closeDetail}
+                    style={styles.manualBackBtn}
+                  >
+                    <Ionicons
+                      name="chevron-back"
+                      size={22}
+                      color="#000"
+                    />
                   </TouchableOpacity>
                   <Text style={styles.manualHeaderTitle}>직접 책 요청하기</Text>
                 </View>
@@ -553,7 +587,11 @@ export default function AddEntryScreen({ navigation }) {
                     <Text style={styles.manualSelectText}>
                       {manualCategory || "장르 분류"}
                     </Text>
-                    <Ionicons name="chevron-down-outline" size={14} color="#666" />
+                    <Ionicons
+                      name="chevron-down-outline"
+                      size={14}
+                      color="#666"
+                    />
                   </TouchableOpacity>
                   {showCategoryMenu && (
                     <>
@@ -576,7 +614,8 @@ export default function AddEntryScreen({ navigation }) {
                               <Text
                                 style={[
                                   styles.manualMenuText,
-                                  manualCategory === c && styles.manualMenuTextActive,
+                                  manualCategory === c &&
+                                    styles.manualMenuTextActive,
                                 ]}
                               >
                                 {c}
@@ -616,7 +655,11 @@ export default function AddEntryScreen({ navigation }) {
                     style={styles.backBtn}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="chevron-back" size={24} color="#000" />
+                    <Ionicons
+                      name="chevron-back"
+                      size={24}
+                      color="#000"
+                    />
                   </TouchableOpacity>
                 </View>
 
@@ -683,7 +726,8 @@ export default function AddEntryScreen({ navigation }) {
                                     key={opt.value}
                                     style={[
                                       styles.statusMenuItem,
-                                      opt.value === status && styles.statusMenuItemActive,
+                                      opt.value === status &&
+                                        styles.statusMenuItemActive,
                                     ]}
                                     onPress={() => {
                                       setStatus(opt.value);
@@ -694,7 +738,8 @@ export default function AddEntryScreen({ navigation }) {
                                     <Text
                                       style={[
                                         styles.statusMenuText,
-                                        opt.value === status && styles.statusMenuTextActive,
+                                        opt.value === status &&
+                                          styles.statusMenuTextActive,
                                       ]}
                                     >
                                       {opt.label}
@@ -709,7 +754,9 @@ export default function AddEntryScreen({ navigation }) {
 
                       <View style={styles.detailTitleBlock}>
                         <Text style={styles.detailBookTitle}>
-                          {selectedBook.title || selectedBook.name || "제목 없음"}
+                          {selectedBook.title ||
+                            selectedBook.name ||
+                            "제목 없음"}
                         </Text>
                         <Text style={styles.detailAuthor}>
                           {selectedBook.author ||
@@ -774,16 +821,21 @@ export default function AddEntryScreen({ navigation }) {
 
                 <View style={styles.reviewList}>
                   {[1, 2, 3].map((i) => (
-                    <View key={i} style={styles.reviewCard}>
+                    <View
+                      key={i}
+                      style={styles.reviewCard}
+                    >
                       <View style={styles.avatar} />
                       <View style={styles.reviewBody}>
                         <View style={styles.reviewTop}>
                           <Text style={styles.reviewNickname}>닉네임입력</Text>
-                          <View style={styles.reviewStars}>{renderStars()}</View>
+                          <View style={styles.reviewStars}>
+                            {renderStars()}
+                          </View>
                         </View>
                         <Text style={styles.reviewText}>
-                          어떻게 이런 생각을 이렇게 멋진 스토리로 풀어낼 수 있는가...그의
-                          문체 하나 하나가 경의롭다.
+                          어떻게 이런 생각을 이렇게 멋진 스토리로 풀어낼 수
+                          있는가...그의 문체 하나 하나가 경의롭다.
                         </Text>
                       </View>
                     </View>

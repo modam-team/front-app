@@ -1,30 +1,35 @@
-import { colors } from "@theme/colors";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import placeholder from "../../assets/icon.png";
 import {
-  Image,
-  Modal,
+  createReview,
+  fetchBookcase,
+  updateBookcaseState,
+} from "@apis/bookcaseApi";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@theme/colors";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
   Alert,
+  Animated,
+  Image,
+  LayoutAnimation,
+  Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Platform,
   UIManager,
-  LayoutAnimation,
-  Animated,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import Svg, { Path, Defs, ClipPath, Rect } from "react-native-svg";
-import {
-  updateBookcaseState,
-  createReview,
-  fetchBookcase,
-} from "@apis/bookcaseApi";
-
-const placeholder = require("../../assets/icon.png");
+import Svg, { ClipPath, Defs, Path, Rect } from "react-native-svg";
 
 const StarIcon = ({ size = 28, color = "#426B1F", variant = "full" }) => {
   const width = size;
@@ -38,17 +43,39 @@ const StarIcon = ({ size = 28, color = "#426B1F", variant = "full" }) => {
     "M10.4436 3.69495C12.0444 -1.23178 19.0144 -1.23178 20.6152 3.69495C21.3311 5.89826 23.3843 7.39 25.701 7.39C30.8813 7.39 33.0351 14.0189 28.8442 17.0638C26.97 18.4255 26.1857 20.8392 26.9016 23.0425C28.5024 27.9692 22.8635 32.0661 18.6726 29.0212C16.7984 27.6595 14.2605 27.6595 12.3862 29.0212C8.19529 32.0661 2.55644 27.9692 4.15723 23.0425C4.87313 20.8392 4.08887 18.4255 2.21463 17.0638C-1.9763 14.0189 0.177549 7.39 5.35782 7.39C7.67451 7.39 9.72772 5.89826 10.4436 3.69495Z";
 
   return (
-    <Svg width={width} height={height} viewBox="0 0 32 31" fill="none">
-      <Path d={basePath} fill="#D9D9D9" />
-      {variant === "full" && <Path d={basePath} fill={color} />}
+    <Svg
+      width={width}
+      height={height}
+      viewBox="0 0 32 31"
+      fill="none"
+    >
+      <Path
+        d={basePath}
+        fill="#D9D9D9"
+      />
+      {variant === "full" && (
+        <Path
+          d={basePath}
+          fill={color}
+        />
+      )}
       {variant === "half" && (
         <>
           <Defs>
             <ClipPath id={clipId}>
-              <Rect x="0" y="0" width={16} height={31} />
+              <Rect
+                x="0"
+                y="0"
+                width={16}
+                height={31}
+              />
             </ClipPath>
           </Defs>
-          <Path d={basePath} fill={color} clipPath={`url(#${clipId})`} />
+          <Path
+            d={basePath}
+            fill={color}
+            clipPath={`url(#${clipId})`}
+          />
         </>
       )}
     </Svg>
@@ -100,7 +127,14 @@ export default function BookDetailScreen({ navigation, route }) {
     }
   }, [status, isNoteBack, runFlip]);
   const tagCatalog = {
-    "감정 키워드": ["감동적인", "따뜻한", "여운이 남는", "웃긴", "위로가 되는", "희망적인"],
+    "감정 키워드": [
+      "감동적인",
+      "따뜻한",
+      "여운이 남는",
+      "웃긴",
+      "위로가 되는",
+      "희망적인",
+    ],
     "경험 키워드": ["스릴 있는", "무거운", "몰입감 있는", "도전적인", "설레는"],
     "문체 키워드": ["간결한", "유머러스한", "시적인", "직설적인", "현대적인"],
   };
@@ -156,7 +190,10 @@ export default function BookDetailScreen({ navigation, route }) {
       setLoading(true);
       let reviewCreated = false;
       // 1) 먼저 상태를 서버에 반영
-      const updateRes = await updateBookcaseState(book.id, status.toUpperCase());
+      const updateRes = await updateBookcaseState(
+        book.id,
+        status.toUpperCase(),
+      );
 
       // 1-1) 서버에서 실제 반영된 상태를 재확인 (완독 상태가 아니면 리뷰 생성 중단)
       let isAfterOnServer = false;
@@ -209,10 +246,9 @@ export default function BookDetailScreen({ navigation, route }) {
         ...book,
         status,
         userRate: isAfterOnServer ? rating : book.userRate,
-        totalReview:
-          isAfterOnServer
-            ? (book.totalReview || 0) + (reviewCreated ? 1 : 0)
-            : book.totalReview || 0,
+        totalReview: isAfterOnServer
+          ? (book.totalReview || 0) + (reviewCreated ? 1 : 0)
+          : book.totalReview || 0,
       };
 
       setCommittedStatus(isAfterOnServer ? "after" : status);
@@ -254,7 +290,11 @@ export default function BookDetailScreen({ navigation, route }) {
           style={styles.backBtn}
           activeOpacity={0.85}
         >
-          <Ionicons name="chevron-back" size={24} color="#000" />
+          <Ionicons
+            name="chevron-back"
+            size={24}
+            color="#000"
+          />
         </TouchableOpacity>
       </View>
 
@@ -287,7 +327,9 @@ export default function BookDetailScreen({ navigation, route }) {
             <View style={styles.info}>
               <View style={styles.topRow}>
                 <View style={styles.tag}>
-                  <Text style={styles.tagText}>{book.categoryName || "기타"}</Text>
+                  <Text style={styles.tagText}>
+                    {book.categoryName || "기타"}
+                  </Text>
                 </View>
                 <View style={{ position: "relative" }}>
                   <TouchableOpacity
@@ -296,7 +338,11 @@ export default function BookDetailScreen({ navigation, route }) {
                     activeOpacity={0.9}
                   >
                     <Text style={styles.statusText}>{statusLabel}</Text>
-                    <Ionicons name="chevron-down-outline" size={14} color="#333" />
+                    <Ionicons
+                      name="chevron-down-outline"
+                      size={14}
+                      color="#333"
+                    />
                   </TouchableOpacity>
                   {showStatusMenu && (
                     <>
@@ -311,7 +357,8 @@ export default function BookDetailScreen({ navigation, route }) {
                             key={opt.value}
                             style={[
                               styles.statusMenuItem,
-                              opt.value === status && styles.statusMenuItemActive,
+                              opt.value === status &&
+                                styles.statusMenuItemActive,
                             ]}
                             onPress={() => {
                               LayoutAnimation.configureNext(
@@ -333,7 +380,8 @@ export default function BookDetailScreen({ navigation, route }) {
                             <Text
                               style={[
                                 styles.statusMenuText,
-                                opt.value === status && styles.statusMenuTextActive,
+                                opt.value === status &&
+                                  styles.statusMenuTextActive,
                               ]}
                             >
                               {opt.label}
@@ -351,12 +399,14 @@ export default function BookDetailScreen({ navigation, route }) {
                 <Text style={styles.author}>
                   {book.author || book.publisher || "작가 미상"}
                 </Text>
-            </View>
+              </View>
 
-            <View style={styles.starsRow}>
+              <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map((i) => {
                   const displayRating =
-                    committedStatus === "after" ? book.userRate || rating : rating;
+                    committedStatus === "after"
+                      ? book.userRate || rating
+                      : rating;
                   const full = i;
                   const half = i - 0.5;
                   const isFull = displayRating >= full;
@@ -480,7 +530,8 @@ export default function BookDetailScreen({ navigation, route }) {
               <Text
                 style={[
                   styles.noteBtnText,
-                  isNoteBack && noteText.trim().length === 0 && { opacity: 0.5 },
+                  isNoteBack &&
+                    noteText.trim().length === 0 && { opacity: 0.5 },
                 ]}
               >
                 {isNoteBack ? "독서 노트 수정" : "독서 노트 보기"}
@@ -493,14 +544,20 @@ export default function BookDetailScreen({ navigation, route }) {
               onPress={submit}
               disabled={loading}
             >
-              <Text style={styles.ctaText}>{loading ? "저장 중..." : "수정 완료"}</Text>
+              <Text style={styles.ctaText}>
+                {loading ? "저장 중..." : "수정 완료"}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
       </ScrollView>
 
       {/* 리뷰 작성 모달 (완독한 선택 시) */}
-      <Modal visible={showReviewModal} animationType="fade" transparent>
+      <Modal
+        visible={showReviewModal}
+        animationType="fade"
+        transparent
+      >
         <View style={styles.reviewOverlay}>
           <View style={styles.reviewModalCard}>
             <View style={styles.reviewModalHeader}>
@@ -512,7 +569,11 @@ export default function BookDetailScreen({ navigation, route }) {
                   setPendingAfter(false);
                 }}
               >
-                <Ionicons name="chevron-back" size={22} color="#000" />
+                <Ionicons
+                  name="chevron-back"
+                  size={22}
+                  color="#000"
+                />
               </TouchableOpacity>
             </View>
             <View style={styles.reviewModalContent}>
@@ -553,77 +614,85 @@ export default function BookDetailScreen({ navigation, route }) {
                 })}
               </View>
 
-            <View style={styles.reviewModalTags}>
-              <Text style={styles.reviewModalTagTitle}>태그 선택</Text>
-              <TouchableOpacity
-                style={styles.reviewModalDropdown}
-                activeOpacity={0.9}
-                onPress={() => {
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setShowReviewTagDropdown((v) => !v);
-                }}
-              >
-                <Text style={styles.reviewModalDropdownText}>
-                  {selectedReviewTag || "키워드 카테고리"}
-                </Text>
-                <Ionicons
-                  name={showReviewTagDropdown ? "chevron-up-outline" : "chevron-down-outline"}
-                  size={20}
-                  color="#191919"
-                />
-              </TouchableOpacity>
-              {showReviewTagDropdown && (
-                <View style={styles.reviewModalTagList}>
-                  {reviewTagOptions.map((o) => (
-                    <TouchableOpacity
-                      key={o}
-                      style={styles.reviewModalTagLine}
-                      onPress={() => {
-                        LayoutAnimation.configureNext(
-                          LayoutAnimation.Presets.easeInEaseOut,
-                        );
-                        setSelectedReviewTag(o);
-                        setShowReviewTagDropdown(false);
-                        setSelectedTags([]);
-                      }}
-                      activeOpacity={0.9}
-                    >
-                      <Text style={styles.reviewModalTagLineText}>{o}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              {selectedReviewTag && (
-                <View style={styles.reviewModalChipWrap}>
-                  {(tagCatalog[selectedReviewTag] || []).map((tag) => {
-                    const active = selectedTags.includes(tag);
-                    const disabled = !active && selectedTags.length >= 3;
-                    return (
-                      <TouchableOpacity
-                        key={tag}
-                        style={[
-                          styles.reviewModalChip,
-                          active && styles.reviewModalChipActive,
-                          disabled && styles.reviewModalChipDisabled,
-                        ]}
-                        activeOpacity={0.85}
-                        onPress={() => !disabled || active ? toggleTag(tag) : null}
-                      >
-                        <Text
-                          style={[
-                            styles.reviewModalChipText,
-                            active && styles.reviewModalChipTextActive,
-                          ]}
-                        >
-                          {tag}
-                        </Text>
-                      </TouchableOpacity>
+              <View style={styles.reviewModalTags}>
+                <Text style={styles.reviewModalTagTitle}>태그 선택</Text>
+                <TouchableOpacity
+                  style={styles.reviewModalDropdown}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    LayoutAnimation.configureNext(
+                      LayoutAnimation.Presets.easeInEaseOut,
                     );
-                  })}
-                </View>
-              )}
-            </View>
+                    setShowReviewTagDropdown((v) => !v);
+                  }}
+                >
+                  <Text style={styles.reviewModalDropdownText}>
+                    {selectedReviewTag || "키워드 카테고리"}
+                  </Text>
+                  <Ionicons
+                    name={
+                      showReviewTagDropdown
+                        ? "chevron-up-outline"
+                        : "chevron-down-outline"
+                    }
+                    size={20}
+                    color="#191919"
+                  />
+                </TouchableOpacity>
+                {showReviewTagDropdown && (
+                  <View style={styles.reviewModalTagList}>
+                    {reviewTagOptions.map((o) => (
+                      <TouchableOpacity
+                        key={o}
+                        style={styles.reviewModalTagLine}
+                        onPress={() => {
+                          LayoutAnimation.configureNext(
+                            LayoutAnimation.Presets.easeInEaseOut,
+                          );
+                          setSelectedReviewTag(o);
+                          setShowReviewTagDropdown(false);
+                          setSelectedTags([]);
+                        }}
+                        activeOpacity={0.9}
+                      >
+                        <Text style={styles.reviewModalTagLineText}>{o}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {selectedReviewTag && (
+                  <View style={styles.reviewModalChipWrap}>
+                    {(tagCatalog[selectedReviewTag] || []).map((tag) => {
+                      const active = selectedTags.includes(tag);
+                      const disabled = !active && selectedTags.length >= 3;
+                      return (
+                        <TouchableOpacity
+                          key={tag}
+                          style={[
+                            styles.reviewModalChip,
+                            active && styles.reviewModalChipActive,
+                            disabled && styles.reviewModalChipDisabled,
+                          ]}
+                          activeOpacity={0.85}
+                          onPress={() =>
+                            !disabled || active ? toggleTag(tag) : null
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.reviewModalChipText,
+                              active && styles.reviewModalChipTextActive,
+                            ]}
+                          >
+                            {tag}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
             </View>
 
             <View style={styles.reviewModalCTAWrapper}>
@@ -631,7 +700,7 @@ export default function BookDetailScreen({ navigation, route }) {
                 style={styles.reviewModalCTA}
                 activeOpacity={0.9}
                 onPress={() => {
-                setReviewDone(true);
+                  setReviewDone(true);
                   setStatus("after");
                   setPendingAfter(false);
                   setShowReviewModal(false);
