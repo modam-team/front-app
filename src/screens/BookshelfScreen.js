@@ -1,5 +1,16 @@
+import placeholder from "../../assets/icon.png";
+import { deleteBookFromBookcase, fetchBookcase } from "@apis/bookcaseApi";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
   Dimensions,
@@ -15,18 +26,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { deleteBookFromBookcase, fetchBookcase } from "@apis/bookcaseApi";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 
 const tabs = [
   { label: "읽고 싶은", value: "before" },
   { label: "읽는 중인", value: "reading" },
   { label: "완독한", value: "after" },
 ];
-
-const placeholder = require("../../assets/icon.png");
 
 // 간단 캐시: 화면 재마운트 시에도 이전에 추가한 책 유지
 let bookshelfCache = {
@@ -59,7 +64,12 @@ const normalizeBooks = (sources = []) => {
 
   const result = { before: [], reading: [], after: [] };
   byId.forEach((book) => {
-    const key = book.status === "reading" ? "reading" : book.status === "after" ? "after" : "before";
+    const key =
+      book.status === "reading"
+        ? "reading"
+        : book.status === "after"
+          ? "after"
+          : "before";
     result[key].push(book);
   });
 
@@ -97,13 +107,16 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
   const tabBooks = useMemo(() => {
     const list = books[tab] || [];
     const q = search.trim().toLowerCase();
-    const filtered = q ? list.filter((b) => (b.title || "").toLowerCase().includes(q)) : list;
+    const filtered = q
+      ? list.filter((b) => (b.title || "").toLowerCase().includes(q))
+      : list;
     if (sortBy === "rating") {
       return [...filtered].sort((a, b) => (b.rate || 0) - (a.rate || 0));
     }
     return filtered;
   }, [books, tab, search, sortBy]);
-  const navigation = navProp || useNavigation();
+  const navigationFromHook = useNavigation();
+  const navigation = navProp ?? navigationFromHook;
 
   const setBooksAndCache = (updater) => {
     setBooks((prev) => {
@@ -130,8 +143,15 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
         after: (prev.after || []).filter((b) => b.id !== updated.id),
       };
       const targetKey =
-        status === "reading" ? "reading" : status === "after" ? "after" : "before";
-      cleaned[targetKey] = [{ ...updated, status: targetKey }, ...cleaned[targetKey]];
+        status === "reading"
+          ? "reading"
+          : status === "after"
+            ? "after"
+            : "before";
+      cleaned[targetKey] = [
+        { ...updated, status: targetKey },
+        ...cleaned[targetKey],
+      ];
       return cleaned;
     });
   }, [route?.params?.updatedBook]);
@@ -255,9 +275,21 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
     if (deleteTargetId) {
       const loop = Animated.loop(
         Animated.sequence([
-          Animated.timing(wiggle, { toValue: 1, duration: 100, useNativeDriver: true }),
-          Animated.timing(wiggle, { toValue: -1, duration: 100, useNativeDriver: true }),
-          Animated.timing(wiggle, { toValue: 0, duration: 100, useNativeDriver: true }),
+          Animated.timing(wiggle, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(wiggle, {
+            toValue: -1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(wiggle, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+          }),
         ]),
       );
       wiggleLoop.current = loop;
@@ -280,7 +312,11 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
         after: (prev.after || []).filter((b) => b.id !== book.id),
       }));
     } catch (e) {
-      console.error("책 삭제 실패:", e.response?.status, e.response?.data || e.message);
+      console.error(
+        "책 삭제 실패:",
+        e.response?.status,
+        e.response?.data || e.message,
+      );
     } finally {
       setDeleteTargetId(null);
       setConfirmTarget(null);
@@ -356,7 +392,9 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
             size={14}
             color="#191919"
           />
-          <Text style={styles.sortText}>{sortBy === "rating" ? "별점 높은순" : "최신순"}</Text>
+          <Text style={styles.sortText}>
+            {sortBy === "rating" ? "별점 높은순" : "최신순"}
+          </Text>
         </TouchableOpacity>
 
         <View style={styles.swipeContainer}>
@@ -378,7 +416,10 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
               >
                 {/* 선반 + 책 배치 */}
                 {Array.from({
-                  length: Math.max(3, Math.ceil(Math.max(tabBooks.length, 1) / 3)),
+                  length: Math.max(
+                    3,
+                    Math.ceil(Math.max(tabBooks.length, 1) / 3),
+                  ),
                 }).map((_, rowIdx) => {
                   const chunked = chunkBooks(tabBooks, 3);
                   const row = chunked[rowIdx] || [];
@@ -400,7 +441,9 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                                   <View style={styles.bookWrap}>
                                     <TouchableOpacity
                                       activeOpacity={0.9}
-                                      onLongPress={() => setDeleteTargetId(book.id)}
+                                      onLongPress={() =>
+                                        setDeleteTargetId(book.id)
+                                      }
                                       onPress={() => {
                                         if (deleteTargetId) {
                                           if (deleteTargetId === book.id) {
@@ -410,7 +453,9 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                                           }
                                           return;
                                         }
-                                        navigation.navigate("BookDetail", { book });
+                                        navigation.navigate("BookDetail", {
+                                          book,
+                                        });
                                       }}
                                     >
                                       <Animated.View
@@ -421,7 +466,11 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                                               {
                                                 rotate: wiggle.interpolate({
                                                   inputRange: [-1, 0, 1],
-                                                  outputRange: ["-2deg", "0deg", "2deg"],
+                                                  outputRange: [
+                                                    "-2deg",
+                                                    "0deg",
+                                                    "2deg",
+                                                  ],
                                                 }),
                                               },
                                             ],
@@ -430,7 +479,9 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                                       >
                                         <Image
                                           source={
-                                            book.coverUri ? { uri: book.coverUri } : placeholder
+                                            book.coverUri
+                                              ? { uri: book.coverUri }
+                                              : placeholder
                                           }
                                           style={styles.bookCover}
                                           resizeMode="cover"
@@ -438,7 +489,9 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                                         {deleteTargetId === book.id && (
                                           <TouchableOpacity
                                             style={styles.deleteBadge}
-                                            onPress={() => setConfirmTarget(book)}
+                                            onPress={() =>
+                                              setConfirmTarget(book)
+                                            }
                                           >
                                             <Ionicons
                                               name="close"
@@ -475,7 +528,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                     </View>
                   );
                 })}
-             </ScrollView>
+              </ScrollView>
             ))}
           </Animated.View>
         </View>
@@ -561,7 +614,10 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
         onRequestClose={() => setConfirmTarget(null)}
       >
         <View style={styles.confirmOverlay}>
-          <Pressable style={styles.confirmDim} onPress={() => setConfirmTarget(null)} />
+          <Pressable
+            style={styles.confirmDim}
+            onPress={() => setConfirmTarget(null)}
+          />
           <View style={styles.confirmBox}>
             <Text style={styles.confirmTitle}>삭제하시겠어요?</Text>
             <Text style={styles.confirmDesc}>책장에서 이 책을 삭제합니다.</Text>
@@ -817,7 +873,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  confirmTitle: { fontSize: 18, fontWeight: "700", color: "#191919", textAlign: "center" },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#191919",
+    textAlign: "center",
+  },
   confirmDesc: {
     fontSize: 14,
     color: "#5c5c5c",
