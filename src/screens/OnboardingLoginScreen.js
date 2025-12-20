@@ -134,7 +134,9 @@ export default function OnboardingLoginScreen({ navigation }) {
               style={styles.devBypassButton}
               onPress={() => navigation.replace("OnboardingFlow")}
             >
-              <Text style={styles.devBypassLabel}>개발용: 로그인 없이 진행</Text>
+              <Text style={styles.devBypassLabel}>
+                개발용: 로그인 없이 진행
+              </Text>
             </TouchableOpacity>
           )}
         </View>

@@ -22,7 +22,12 @@ export async function updateBookcaseState(bookId, state = "BEFORE") {
 }
 
 // 리뷰 생성
-export async function createReview({ bookId, rating, hashtag = [], comment = "" }) {
+export async function createReview({
+  bookId,
+  rating,
+  hashtag = [],
+  comment = "",
+}) {
   const payload = { bookId, rating, hashtag, comment };
   const res = await client.post("/api/review", payload);
   return res.data?.responseDto;
