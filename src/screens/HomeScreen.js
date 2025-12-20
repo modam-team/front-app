@@ -1,17 +1,17 @@
 // src/screens/HomeScreen.js
+import colors from "../theme/legacyColors";
 import React, { useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import colors from "../theme/legacyColors";
 
 const green = "#608540";
 const lightGreen = "#d7eec4";
@@ -26,7 +26,10 @@ function Rating({ value }) {
         const isFull = diff >= 0;
         const isHalf = diff >= -0.5 && diff < 0;
         return (
-          <View key={star} style={styles.starBox}>
+          <View
+            key={star}
+            style={styles.starBox}
+          >
             <Text
               style={[
                 styles.star,
@@ -56,7 +59,10 @@ function BookCard({ title, author, tags, rating }) {
         <Rating value={rating} />
         <View style={styles.tagRow}>
           {tags.map((tag) => (
-            <View key={tag} style={styles.tagPill}>
+            <View
+              key={tag}
+              style={styles.tagPill}
+            >
               <Text style={styles.tagText}>{tag}</Text>
             </View>
           ))}
@@ -98,25 +104,40 @@ function Calendar({ year, month, onPrev, onNext, onYearChange }) {
         </TouchableOpacity>
       </View>
       <View style={styles.monthRow}>
-        <TouchableOpacity onPress={onPrev} hitSlop={12}>
+        <TouchableOpacity
+          onPress={onPrev}
+          hitSlop={12}
+        >
           <Text style={styles.calNav}>{"<"}</Text>
         </TouchableOpacity>
         <Text style={styles.calTitle}>{`${month}월`}</Text>
-        <TouchableOpacity onPress={onNext} hitSlop={12}>
+        <TouchableOpacity
+          onPress={onNext}
+          hitSlop={12}
+        >
           <Text style={styles.calNav}>{">"}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.weekRow}>
         {["월", "화", "수", "목", "금", "토", "일"].map((w) => (
-          <Text key={w} style={styles.weekLabel}>
+          <Text
+            key={w}
+            style={styles.weekLabel}
+          >
             {w}
           </Text>
         ))}
       </View>
       {weeks.map((week, idx) => (
-        <View key={idx} style={styles.dayRow}>
+        <View
+          key={idx}
+          style={styles.dayRow}
+        >
           {week.map((day, dIdx) => (
-            <View key={dIdx} style={styles.dayCell}>
+            <View
+              key={dIdx}
+              style={styles.dayCell}
+            >
               {day ? (
                 <Text style={styles.dayText}>{day}</Text>
               ) : (
@@ -180,13 +201,13 @@ export default function HomeScreen() {
 
         <View style={styles.friendsStrip}>
           {friends.map((f, idx) => (
-            <View key={idx} style={styles.friendItem}>
+            <View
+              key={idx}
+              style={styles.friendItem}
+            >
               <View style={[styles.avatar, { backgroundColor: f.color }]} />
               <Text
-                style={[
-                  styles.avatarName,
-                  idx === 0 && styles.avatarNameBold,
-                ]}
+                style={[styles.avatarName, idx === 0 && styles.avatarNameBold]}
               >
                 {f.name}
               </Text>
@@ -228,11 +249,16 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <Text style={styles.sectionTitle}>00님께 추천하는 책이에요</Text>
-            <Text style={styles.sectionHint}>클릭하면 줄거리를 볼 수 있어요</Text>
+            <Text style={styles.sectionHint}>
+              클릭하면 줄거리를 볼 수 있어요
+            </Text>
           </View>
           <View style={styles.recList}>
             {recs.map((book, idx) => (
-              <BookCard key={idx} {...book} />
+              <BookCard
+                key={idx}
+                {...book}
+              />
             ))}
           </View>
         </View>
@@ -423,7 +449,12 @@ const styles = StyleSheet.create({
     width: 60,
     textAlign: "center",
   },
-  calNav: { fontSize: 24, color: colors.text, fontWeight: "500", paddingHorizontal: 4 },
+  calNav: {
+    fontSize: 24,
+    color: colors.text,
+    fontWeight: "500",
+    paddingHorizontal: 4,
+  },
   weekRow: {
     flexDirection: "row",
     justifyContent: "space-between",
