@@ -92,16 +92,35 @@ export const reportMonthlyApiMock = {
             category: "자기계발",
             hashtags: ["정리", "성장"],
           },
-        ],
-      },
-
-      2026: {
-        1: [
           {
-            readAt: "2026-01-02T11:20:00",
+            readAt: "2025-12-03T08:10:00",
             readingPlace: "HOME",
-            category: "소설/문학",
-            hashtags: ["새해", "몰입"],
+            category: "경제/경영",
+            hashtags: ["투자", "인사이트"],
+          },
+          {
+            readAt: "2025-12-05T23:20:00",
+            readingPlace: "CAFE",
+            category: "과학/기술",
+            hashtags: ["신기함", "호기심"],
+          },
+          {
+            readAt: "2025-12-07T12:40:00",
+            readingPlace: "LIBRARY",
+            category: "예술/대중문화",
+            hashtags: ["감성", "영감"],
+          },
+          {
+            readAt: "2025-12-15T17:35:00",
+            readingPlace: "MOVING",
+            category: "건강/취미",
+            hashtags: ["루틴", "힐링"],
+          },
+          {
+            readAt: "2025-12-18T09:50:00",
+            readingPlace: "HOME",
+            category: "여행",
+            hashtags: ["설렘", "계획"],
           },
         ],
       },
