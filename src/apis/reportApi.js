@@ -102,7 +102,7 @@ export const reportMonthlyApiMock = {
             readAt: "2025-12-05T23:20:00",
             readingPlace: "CAFE",
             category: "과학/기술",
-            hashtags: ["신기함", "호기심"],
+            hashtags: ["신기함", "호기심", "설렘"],
           },
           {
             readAt: "2025-12-07T12:40:00",
