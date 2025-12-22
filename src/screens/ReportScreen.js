@@ -214,7 +214,7 @@ export default function ReportScreen() {
     );
     if (prefVisible && !preferenceAnimatedThisFocus) {
       // 현재 활성 페이지 카드만 애니메이션
-      if (activePreferencePage === 0) {
+      if (activePreferencePage === 1) {
         setKeywordAnimateKey((k) => k + 1);
       } else {
         setGenreAnimateKey((k) => k + 1);
@@ -232,7 +232,7 @@ export default function ReportScreen() {
       setActivePreferencePage(pageIndex);
 
       // 페이지 전환 시, 해당 페이지 카드 애니메이션 재시작
-      if (pageIndex === 0) {
+      if (pageIndex === 1) {
         setKeywordAnimateKey((k) => k + 1);
       } else {
         setGenreAnimateKey((k) => k + 1);
@@ -339,24 +339,24 @@ export default function ReportScreen() {
                     paddingRight: CARD_SPACING,
                   }}
                 >
-                  {/* 페이지 0: 키워드 리뷰 */}
+                  {/* 페이지 0: 최근 선호 장르 도넛 차트 */}
                   <View
                     style={{ width: CARD_WIDTH, marginRight: CARD_SPACING }}
                   >
+                    <GenrePreferenceCard
+                      genres={data.genreDistribution}
+                      animateKey={genreAnimateKey}
+                      isCurrentMonth={isCurrentMonth}
+                    />
+                  </View>
+
+                  {/* 페이지 1: 키워드 리뷰 */}
+                  <View style={{ width: CARD_WIDTH }}>
                     <KeywordReviewCard
                       year={year}
                       month={month}
                       keywords={data.reviewKeywords}
                       animateKey={keywordAnimateKey}
-                    />
-                  </View>
-
-                  {/* 페이지 1: 최근 선호 장르 도넛 차트 */}
-                  <View style={{ width: CARD_WIDTH }}>
-                    <GenrePreferenceCard
-                      genres={data.genreDistribution}
-                      animateKey={genreAnimateKey}
-                      isCurrentMonth={isCurrentMonth}
                     />
                   </View>
                 </Animated.ScrollView>
