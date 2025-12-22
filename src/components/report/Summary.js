@@ -33,13 +33,7 @@ export default function Summary({ summary }) {
       </View>
 
       {/* 카드 */}
-      <LinearGradient
-        colors={[colors.primary[50], colors.primary[200]]}
-        locations={[0.19, 0.87]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <Text style={styles.personaTitle}>{title}</Text>
         <Text style={styles.personaSub}>
           모담 회원 중 {percent}% 유형이에요
@@ -58,7 +52,7 @@ export default function Summary({ summary }) {
             </Text>
           ))}
         </Text>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -94,10 +88,11 @@ const styles = StyleSheet.create({
 
   // 카드
   card: {
-    height: 450,
-    padding: spacing.l,
+    paddingHorizontal: spacing.l,
+    paddingVertical: 20,
     borderRadius: radius[500],
     ...shadow[0],
+    backgroundColor: "white",
   },
   personaTitle: {
     fontSize: 36,
@@ -106,8 +101,8 @@ const styles = StyleSheet.create({
   },
   personaSub: {
     ...typography["body-1-regular"],
-    color: colors.mono[700],
-    marginBottom: spacing.m,
+    color: colors.mono[950],
+    marginBottom: 12,
   },
 
   // 임시 캐릭터 이미지 부분
@@ -117,7 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mono[0],
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: spacing.m,
+    marginBottom: 12,
   },
   characterLabel: {
     ...typography["body-1-bold"],
@@ -125,7 +120,7 @@ const styles = StyleSheet.create({
   },
 
   personaDesc: {
-    ...typography["heading-3-medium"],
+    ...typography["heading-4-medium"],
     color: colors.mono[950],
   },
 });
