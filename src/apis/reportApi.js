@@ -11,7 +11,68 @@ export const reportMonthlyApiMock = {
     manyPlace: "MOVING",
     readingTendency: "몰입·공감형",
     data: {
+      2024: {
+        11: [
+          {
+            readAt: "2024-11-03T09:20:00",
+            readingPlace: "HOME",
+            category: "소설/문학",
+            hashtags: ["잔잔함", "여운"],
+          },
+          {
+            readAt: "2024-11-18T22:10:00",
+            readingPlace: "CAFE",
+            category: "에세이",
+            hashtags: ["공감", "힐링"],
+          },
+        ],
+        12: [
+          {
+            readAt: "2024-12-01T14:30:00",
+            readingPlace: "LIBRARY",
+            category: "인문/사회/정치/법",
+            hashtags: ["집중", "사색"],
+          },
+        ],
+      },
+
       2025: {
+        1: [
+          {
+            readAt: "2025-01-05T08:40:00",
+            readingPlace: "HOME",
+            category: "자기계발",
+            hashtags: ["동기부여", "정리"],
+          },
+          {
+            readAt: "2025-01-21T19:10:00",
+            readingPlace: "CAFE",
+            category: "소설/문학",
+            hashtags: ["몰입", "재미"],
+          },
+        ],
+
+        6: [
+          {
+            readAt: "2025-06-02T07:55:00",
+            readingPlace: "MOVING",
+            category: "소설/문학",
+            hashtags: ["속도감"],
+          },
+          {
+            readAt: "2025-06-15T18:30:00",
+            readingPlace: "MOVING",
+            category: "인문/사회/정치/법",
+            hashtags: ["사고확장"],
+          },
+          {
+            readAt: "2025-06-28T23:10:00",
+            readingPlace: "HOME",
+            category: "에세이",
+            hashtags: ["위로"],
+          },
+        ],
+
         12: [
           {
             readAt: "2025-12-11T19:14:20",
@@ -24,6 +85,23 @@ export const reportMonthlyApiMock = {
             readingPlace: "MOVING",
             category: "인문/사회/정치/법",
             hashtags: ["여운", "몰입"],
+          },
+          {
+            readAt: "2025-12-22T10:05:00",
+            readingPlace: "CAFE",
+            category: "자기계발",
+            hashtags: ["정리", "성장"],
+          },
+        ],
+      },
+
+      2026: {
+        1: [
+          {
+            readAt: "2026-01-02T11:20:00",
+            readingPlace: "HOME",
+            category: "소설/문학",
+            hashtags: ["새해", "몰입"],
           },
         ],
       },

@@ -5,7 +5,10 @@ import KeywordReviewCard from "@components/report/KeywordReviewCard";
 import MonthlyStats from "@components/report/MonthlyStats";
 import Summary from "@components/report/Summary";
 import YearMonthPicker from "@components/report/YearMonthPicker";
-import { REPORT_BACKGROUND_MAP } from "@constants/reportBackgroundMap";
+import {
+  REPORT_BACKGROUND_MAP,
+  REPORT_BACKGROUND_MAP_PAST,
+} from "@constants/reportBackgroundMap";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { colors } from "@theme/colors";
@@ -238,7 +241,11 @@ export default function ReportScreen() {
   const isEmpty = !!data.summary?.isEmpty;
 
   const personaKey = data.summary?.title.trim().split(/\s+/).pop();
-  const bgSource = !isEmpty ? REPORT_BACKGROUND_MAP[personaKey] : null;
+  const map = isCurrentMonth
+    ? REPORT_BACKGROUND_MAP
+    : REPORT_BACKGROUND_MAP_PAST;
+
+  const bgSource = !isEmpty ? map[personaKey] : null;
 
   return (
     <ScrollView

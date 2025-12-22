@@ -14,17 +14,32 @@ export default function Summary({ summary, userName, isCurrentMonth }) {
 
   const lines = splitToLines(description, 20);
 
+  const currentMonthStyle = {
+    headerText: colors.mono[0],
+    monthText: colors.mono[0],
+  };
+
+  const pastMonthStyle = {
+    headerText: colors.mono[950],
+    monthText: colors.primary[500],
+  };
+
+  const styleSet = isCurrentMonth ? currentMonthStyle : pastMonthStyle;
+
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
-        <Text style={styles.headerLine1}>
+        <Text style={[styles.headerLine1, { color: styleSet.headerText }]}>
           {userName} 님의{" "}
-          <Text style={styles.headerMonth}>
+          <Text style={[styles.headerMonth, { color: styleSet.monthText }]}>
             {isCurrentMonth ? "이번 달" : "지난 달"}
           </Text>
         </Text>
-        <Text style={styles.headerLine2}>
-          <Text style={styles.headerMonth}>독서 기록</Text> 결과예요
+        <Text style={[styles.headerLine2, { color: styleSet.headerText }]}>
+          <Text style={[styles.headerMonth, { color: styleSet.headerText }]}>
+            독서 기록
+          </Text>{" "}
+          결과예요
         </Text>
       </View>
 
