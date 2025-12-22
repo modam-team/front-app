@@ -185,14 +185,21 @@ export async function fetchMonthlyReport({ year, month }) {
     const yearKey = String(year);
     const monthKey = String(month);
 
+    // 전체 기록이 있는지 먼저 판단하도록
+    const hasAnyRecord = Object.values(data ?? {}).some((yearMap) =>
+      Object.values(yearMap ?? {}).some(
+        (monthList) => Array.isArray(monthList) && monthList.length > 0,
+      ),
+    );
+
+    // 신규 유저인 경우 empty 처리
+    if (!hasAnyRecord) {
+      return makeEmptyReport({ year, month });
+    }
+
     const yearMap = data?.[yearKey] ?? {};
     const records = yearMap?.[monthKey] ?? [];
     const total = Array.isArray(records) ? records.length : 0;
-
-    // 선택한 달의 기록이 0이면 빈 리포트 반환하게 해뒀습니당
-    if (total === 0) {
-      return makeEmptyReport({ year, month });
-    }
 
     // 1) 연간 월별 카운트 (해당 연도에 있는 달만 length로)
     const monthlyStatus = Array.from({ length: 12 }, (_, i) => {
@@ -291,7 +298,7 @@ export async function fetchMonthlyReport({ year, month }) {
         title: title,
         description,
         percent: 0,
-        isEmpty: total === 0,
+        isEmpty: false,
       },
       monthlyStatus,
       reviewKeywords,
