@@ -1,4 +1,3 @@
-// ✅ 여기도 StyleSheet 포함!
 import colors from "../theme/legacyColors";
 import React from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";

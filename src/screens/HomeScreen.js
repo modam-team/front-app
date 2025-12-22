@@ -1,4 +1,3 @@
-// src/screens/HomeScreen.js
 import colors from "../theme/legacyColors";
 import React, { useMemo, useState } from "react";
 import {
@@ -321,6 +320,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+
   header: {
     paddingTop: 24,
     paddingHorizontal: 16,
