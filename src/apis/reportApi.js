@@ -1,7 +1,35 @@
 import { client } from "@apis/clientApi";
-import { monthlyReportMock } from "@mocks/monthlyReportMock";
+import { PLACE_MOOD_MAP } from "@constants/placeMoodMap";
+import { READING_TENDENCY_MAP } from "@constants/readingTendencyMap";
 
 const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
+
+export const reportMonthlyApiMock = {
+  success: true,
+  error: null,
+  responseDto: {
+    manyPlace: "MOVING",
+    readingTendency: "몰입·공감형",
+    data: {
+      2025: {
+        12: [
+          {
+            readAt: "2025-12-11T19:14:20",
+            readingPlace: "MOVING",
+            category: "소설/문학",
+            hashtags: ["재밌음", "흥미진진", "빠른전개"],
+          },
+          {
+            readAt: "2025-12-10T21:40:00",
+            readingPlace: "MOVING",
+            category: "인문/사회/정치/법",
+            hashtags: ["여운", "몰입"],
+          },
+        ],
+      },
+    },
+  },
+};
 
 const WEEKDAY_LABEL = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -64,16 +92,10 @@ function makeEmptyReport({ year, month }) {
 }
 
 export async function fetchMonthlyReport({ year, month }) {
-  if (USE_REPORT_MOCK) {
-    return {
-      ...monthlyReportMock,
-      summary: { ...monthlyReportMock.summary, year, month },
-    };
-  }
-
   try {
-    const res = await client.get("/api/report/monthly");
-    const body = res.data;
+    const body = USE_REPORT_MOCK
+      ? reportMonthlyApiMock
+      : (await client.get("/api/report/monthly")).data;
 
     // 임시로 success = false 거나 responseDto가 null이어도 throw하지 않고 빈 레포트가 보이도록 해뒀습니당
     if (!body?.success || !body?.responseDto) {
@@ -162,13 +184,25 @@ export async function fetchMonthlyReport({ year, month }) {
 
     // 6) Summary 구성
     const placeLabel = PLACE_LABEL[manyPlace] ?? manyPlace;
+
+    // 캐릭터 이름
+    const rawTendency = readingTendency;
+    const characterName = READING_TENDENCY_MAP[rawTendency];
+
+    // 장소 분위기
+    const moods = PLACE_MOOD_MAP[manyPlace] ?? [];
+    const mood = moods[0] ?? ""; // 일단은 첫 번째만 사용
+
+    // 최종 타이틀
+    const title =
+      total === 0 ? "아직 측정되지 않았어요" : `${mood} ${characterName}`;
+
     const topGenre = genreDistribution[0]?.name; // 가장 많이 읽은 카테고리
-    const tendencyTitle = readingTendency || "아직 측정되지 않았어요";
 
     const description =
       total === 0
         ? "어떤 캐릭터가 나오실 지 궁금해요!"
-        : `${tendencyTitle}형은 주로 ${placeLabel}${locParticle(placeLabel)} ${topGenre}${objParticle(
+        : `${title}형은 주로 ${placeLabel}${locParticle(placeLabel)} ${topGenre}${objParticle(
             topGenre,
           )} 읽는 사람이에요.`;
 
@@ -176,7 +210,7 @@ export async function fetchMonthlyReport({ year, month }) {
       summary: {
         year,
         month,
-        title: tendencyTitle,
+        title: title,
         description,
         percent: 0,
         isEmpty: total === 0,
