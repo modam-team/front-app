@@ -140,7 +140,7 @@ export default function KeywordReviewCard({
     if (!keywords || keywords.length === 0) return;
     if (!containerSize) return;
     if (!positions) return;
-    if (!animateKey) return;
+    if (animateKey == null) return;
     if (lastAnimateKeyRef.current === animateKey) return; // 같은 키로 중복 실행 방지
 
     lastAnimateKeyRef.current = animateKey;
@@ -175,7 +175,9 @@ export default function KeywordReviewCard({
   return (
     <View style={styles.card}>
       <Text style={styles.title}>키워드 리뷰</Text>
-      <Text style={styles.subtitle}>나의 별점을 기준으로 작성된 표예요</Text>
+      <Text style={styles.subtitle}>
+        나의 리뷰 해시태그 기준으로 분석된 표예요
+      </Text>
 
       <View
         style={styles.cloudContainer}
@@ -195,7 +197,8 @@ export default function KeywordReviewCard({
                   fontSize,
                   fontWeight,
                   position: "absolute",
-                  opacity: 0,
+                  left: -9999,
+                  top: -9999,
                 },
               ]}
               onLayout={(e) => handleMeasure(index, e)}
@@ -240,10 +243,10 @@ export default function KeywordReviewCard({
 const styles = StyleSheet.create({
   card: {
     width: 300,
-    height: 350,
+    height: 373,
     padding: spacing.l,
     borderRadius: radius[500],
-    backgroundColor: colors.mono[100],
+    backgroundColor: colors.mono[0],
     alignSelf: "center",
   },
   title: {
