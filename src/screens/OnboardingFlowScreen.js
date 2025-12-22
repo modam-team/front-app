@@ -70,6 +70,9 @@ export default function OnboardingFlowScreen({ navigation, route }) {
   const [nicknameInput, setNicknameInput] = useState(nickname || "");
   const isValidNickname = nicknameInput.trim().length > 0;
 
+  // 버튼 텍스트
+  const nextButtonLabel = step === 3 ? "독서 시작하기" : "다음";
+
   // 이전 버튼
   const handlePrev = () => {
     if (step === 1) {
@@ -128,7 +131,12 @@ export default function OnboardingFlowScreen({ navigation, route }) {
         >
           <View>
             {/* 헤더 */}
-            <AppHeader title="독서 습관 기록" />
+            <AppHeader
+              title="독서 습관 기록"
+              showBack={step >= 2}
+              onPressBack={handlePrev}
+              align="left"
+            />
 
             {/* 상단 진행바 */}
             <ProgressBar
@@ -217,7 +225,7 @@ export default function OnboardingFlowScreen({ navigation, route }) {
           {/* 하단 버튼 */}
           <View style={styles.button}>
             <OnboardingButton
-              label="다음"
+              label={nextButtonLabel}
               onPress={handleNext}
               disabled={isNextDisabled}
             />
