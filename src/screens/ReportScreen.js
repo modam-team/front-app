@@ -56,6 +56,19 @@ export default function ReportScreen() {
   const isCurrentMonth =
     year === now.getFullYear() && month === now.getMonth() + 1;
 
+  // 어떤 달인지에 따라 색상 구분
+  const styleSet = isCurrentMonth
+    ? {
+        title: colors.mono[0],
+        caption: colors.primary[50],
+        month: colors.mono[0],
+      }
+    : {
+        title: colors.mono[950],
+        caption: colors.mono[950],
+        month: colors.primary[500],
+      };
+
   // 리포트 데이터
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -289,32 +302,24 @@ export default function ReportScreen() {
               {/* 취향 분석 스와이프 페이저 섹션 */}
               <View onLayout={handlePreferenceLayout}>
                 {/* 섹션 헤더*/}
-                {/* 섹션 헤더 */}
                 <View style={styles.header}>
                   <View style={styles.titleBlock}>
-                    {/* 제목 + 연도 드롭다운 */}
+                    {/* 제목 */}
                     <View style={styles.titleRow}>
-                      <Text style={styles.sectionTitle}>취향 분석</Text>
-                      <TouchableOpacity
-                        style={styles.monthButton}
-                        onPress={openPicker}
-                        activeOpacity={0.7}
+                      <Text
+                        style={[styles.monthText, { color: styleSet.month }]}
                       >
-                        <Text style={styles.monthText}>{month}월</Text>
-                        <MaterialIcons
-                          name="arrow-forward-ios"
-                          size={17}
-                          color={colors.primary[500]}
-                          style={{
-                            marginLeft: 4,
-                            transform: [{ rotate: "90deg" }],
-                          }} // 아래 방향처럼 보이게 회전
-                        />
-                      </TouchableOpacity>
+                        {month}월
+                      </Text>
+                      <Text
+                        style={[styles.sectionTitle, { color: styleSet.title }]}
+                      >
+                        취향 분석
+                      </Text>
                     </View>
 
                     {/* 캡션 */}
-                    <Text style={styles.caption}>
+                    <Text style={[styles.caption, { color: styleSet.caption }]}>
                       나의 별점을 기준으로 작성된 표예요
                     </Text>
                   </View>
@@ -351,6 +356,7 @@ export default function ReportScreen() {
                     <GenrePreferenceCard
                       genres={data.genreDistribution}
                       animateKey={genreAnimateKey}
+                      isCurrentMonth={isCurrentMonth}
                     />
                   </View>
                 </Animated.ScrollView>
@@ -411,19 +417,15 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
   },
   sectionTitle: {
-    ...typography["heading-1-medium"],
-    color: colors.mono[950],
+    fontSize: 28,
     fontWeight: "600",
-  },
-  monthButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 12,
+    color: colors.mono[950],
   },
   monthText: {
-    ...typography["heading-1-medium"],
-    color: colors.primary[500],
+    fontSize: 28,
     fontWeight: "600",
+    color: colors.primary[500],
+    marginRight: 12,
   },
   dropdownIcon: {
     fontSize: 12,
