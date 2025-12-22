@@ -8,20 +8,25 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-export default function Summary({ summary, userName }) {
+export default function Summary({ summary, userName, isCurrentMonth }) {
   // userName은 나중에 실제 유저 이름으로 교체 예정 !
   const { year, month, title, description, percent } = summary;
 
   const lines = splitToLines(description, 20);
 
+  const monthLabel = isCurrentMonth ? "이번 달" : "지난 달";
+
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
         <Text style={styles.headerLine1}>
-          {userName} 님의 <Text style={styles.headerMonth}>{month}월</Text>
+          {userName} 님의{" "}
+          <Text style={styles.headerMonth}>
+            {isCurrentMonth ? "이번 달" : "지난 달"}
+          </Text>
         </Text>
         <Text style={styles.headerLine2}>
-          <Text style={styles.sectionTitle}>독서 기록</Text> 결과예요
+          <Text style={styles.headerMonth}>독서 기록</Text> 결과예요
         </Text>
       </View>
 
@@ -63,20 +68,22 @@ const styles = StyleSheet.create({
 
   // 헤더 영역
   header: {
-    marginBottom: spacing.m,
+    marginBottom: 28,
   },
   headerLine1: {
-    ...typography["heading-1-medium"],
-    color: colors.mono[950],
-    marginBottom: 2,
+    fontSize: 28,
+    fontWeight: 400,
+    color: "white",
   },
   headerMonth: {
     fontWeight: "700",
-    color: colors.primary[500],
+    fontSize: 28,
+    color: "white",
   },
   headerLine2: {
-    ...typography["heading-1-medium"],
-    color: colors.mono[950],
+    fontSize: 28,
+    fontWeight: 400,
+    color: "white",
   },
 
   // 카드

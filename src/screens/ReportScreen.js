@@ -29,8 +29,8 @@ const CARD_SPACING = 16;
 const SNAP_INTERVAL = CARD_WIDTH + CARD_SPACING;
 
 export default function ReportScreen() {
+  // 닉네임 가져오기
   const [userName, setUserName] = useState("");
-
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -43,6 +43,11 @@ export default function ReportScreen() {
 
     loadUser();
   }, []);
+
+  // 이번달 리포트인지 지난 달 리포트인지 구분하기
+  const now = new Date();
+  const isCurrentMonth =
+    year === now.getFullYear() && month === now.getMonth() + 1;
 
   // 현재 날짜 기준 기본 연도랑 월 설정
   const [year, setYear] = useState(new Date().getFullYear());
@@ -259,6 +264,7 @@ export default function ReportScreen() {
           <Summary
             summary={data.summary}
             userName={userName}
+            isCurrentMonth={isCurrentMonth}
           />
 
           {isEmpty ? null : (
