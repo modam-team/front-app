@@ -8,16 +8,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-export default function Summary({ summary }) {
+export default function Summary({ summary, userName }) {
   // userName은 나중에 실제 유저 이름으로 교체 예정 !
-  const {
-    year,
-    month,
-    title,
-    description,
-    percent,
-    userName = "모담",
-  } = summary;
+  const { year, month, title, description, percent } = summary;
 
   const lines = splitToLines(description, 20);
 
