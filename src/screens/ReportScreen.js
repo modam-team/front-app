@@ -33,6 +33,7 @@ export default function ReportScreen() {
   // 리포트 데이터
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // 연도랑 월 선택 관리
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -87,7 +88,13 @@ export default function ReportScreen() {
         setKeywordAnimateKey((k) => k + 1);
         setGenreAnimateKey((k) => k + 1);
       } catch (e) {
-        // 에러 UI 나중에 추가할 거면 여기다가 추가하기 !!
+        console.error(
+          "리포트 조회 실패:",
+          e?.response?.status,
+          e?.response?.data,
+          e,
+        );
+        setError(e);
       } finally {
         setLoading(false);
       }
@@ -205,6 +212,8 @@ export default function ReportScreen() {
     );
   }
 
+  const isEmpty = !!data.summary?.isEmpty;
+
   return (
     <>
       <ScrollView
@@ -218,84 +227,91 @@ export default function ReportScreen() {
 
         <Summary summary={data.summary} />
 
-        {/* 월별 통계 섹션 */}
-        <View onLayout={handleStatsLayout}>
-          <MonthlyStats
-            year={year}
-            month={month}
-            monthlyStatus={data.monthlyStatus}
-            onChangeYear={setYear}
-            onChangeMonth={setMonth}
-            animateKey={statsAnimateKey}
-            resetKey={statsResetKey}
-            onOpenPicker={openPicker}
-          />
-        </View>
-
-        {/* 취향 분석 스와이프 페이저 섹션 */}
-        <View onLayout={handlePreferenceLayout}>
-          {/* 섹션 헤더*/}
-          {/* 섹션 헤더 */}
-          <View style={styles.header}>
-            <View style={styles.titleBlock}>
-              {/* 제목 + 연도 드롭다운 */}
-              <View style={styles.titleRow}>
-                <Text style={styles.sectionTitle}>취향 분석</Text>
-                <TouchableOpacity
-                  style={styles.monthButton}
-                  onPress={openPicker}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.monthText}>{month}월</Text>
-                  <MaterialIcons
-                    name="arrow-forward-ios"
-                    size={17}
-                    color={colors.primary[500]}
-                    style={{ marginLeft: 4, transform: [{ rotate: "90deg" }] }} // 아래 방향처럼 보이게 회전
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* 캡션 */}
-              <Text style={styles.caption}>
-                나의 별점을 기준으로 작성된 표예요
-              </Text>
-            </View>
-          </View>
-
-          {/* 스와이프 카드 */}
-          <Animated.ScrollView
-            ref={preferencePagerRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handlePreferencePageScrollEnd}
-            scrollEventThrottle={16}
-            snapToInterval={SNAP_INTERVAL}
-            decelerationRate="fast"
-            contentContainerStyle={{
-              // 왼쪽에서부터 차례대로 보이게 (스크린 패딩만 신경)
-              paddingRight: CARD_SPACING,
-            }}
-          >
-            {/* 페이지 0: 키워드 리뷰 */}
-            <View style={{ width: CARD_WIDTH, marginRight: CARD_SPACING }}>
-              <KeywordReviewCard
+        {isEmpty ? null : (
+          <>
+            {/* 월별 통계 섹션 */}
+            <View onLayout={handleStatsLayout}>
+              <MonthlyStats
                 year={year}
                 month={month}
-                keywords={data.reviewKeywords}
-                animateKey={keywordAnimateKey}
+                monthlyStatus={data.monthlyStatus}
+                onChangeYear={setYear}
+                onChangeMonth={setMonth}
+                animateKey={statsAnimateKey}
+                resetKey={statsResetKey}
+                onOpenPicker={openPicker}
               />
             </View>
 
-            {/* 페이지 1: 최근 선호 장르 도넛 차트 */}
-            <View style={{ width: CARD_WIDTH }}>
-              <GenrePreferenceCard
-                genres={data.genreDistribution}
-                animateKey={genreAnimateKey}
-              />
+            {/* 취향 분석 스와이프 페이저 섹션 */}
+            <View onLayout={handlePreferenceLayout}>
+              {/* 섹션 헤더*/}
+              {/* 섹션 헤더 */}
+              <View style={styles.header}>
+                <View style={styles.titleBlock}>
+                  {/* 제목 + 연도 드롭다운 */}
+                  <View style={styles.titleRow}>
+                    <Text style={styles.sectionTitle}>취향 분석</Text>
+                    <TouchableOpacity
+                      style={styles.monthButton}
+                      onPress={openPicker}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.monthText}>{month}월</Text>
+                      <MaterialIcons
+                        name="arrow-forward-ios"
+                        size={17}
+                        color={colors.primary[500]}
+                        style={{
+                          marginLeft: 4,
+                          transform: [{ rotate: "90deg" }],
+                        }} // 아래 방향처럼 보이게 회전
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 캡션 */}
+                  <Text style={styles.caption}>
+                    나의 별점을 기준으로 작성된 표예요
+                  </Text>
+                </View>
+              </View>
+
+              {/* 스와이프 카드 */}
+              <Animated.ScrollView
+                ref={preferencePagerRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={handlePreferencePageScrollEnd}
+                scrollEventThrottle={16}
+                snapToInterval={SNAP_INTERVAL}
+                decelerationRate="fast"
+                contentContainerStyle={{
+                  // 왼쪽에서부터 차례대로 보이게 (스크린 패딩만 신경)
+                  paddingRight: CARD_SPACING,
+                }}
+              >
+                {/* 페이지 0: 키워드 리뷰 */}
+                <View style={{ width: CARD_WIDTH, marginRight: CARD_SPACING }}>
+                  <KeywordReviewCard
+                    year={year}
+                    month={month}
+                    keywords={data.reviewKeywords}
+                    animateKey={keywordAnimateKey}
+                  />
+                </View>
+
+                {/* 페이지 1: 최근 선호 장르 도넛 차트 */}
+                <View style={{ width: CARD_WIDTH }}>
+                  <GenrePreferenceCard
+                    genres={data.genreDistribution}
+                    animateKey={genreAnimateKey}
+                  />
+                </View>
+              </Animated.ScrollView>
             </View>
-          </Animated.ScrollView>
-        </View>
+          </>
+        )}
       </ScrollView>
 
       {/* 공통 YearMonthPicker */}
