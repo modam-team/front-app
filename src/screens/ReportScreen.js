@@ -44,14 +44,14 @@ export default function ReportScreen() {
     loadUser();
   }, []);
 
+  // 현재 날짜 기준 기본 연도랑 월 설정
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+
   // 이번달 리포트인지 지난 달 리포트인지 구분하기
   const now = new Date();
   const isCurrentMonth =
     year === now.getFullYear() && month === now.getMonth() + 1;
-
-  // 현재 날짜 기준 기본 연도랑 월 설정
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
 
   // 리포트 데이터
   const [data, setData] = useState(null);
@@ -240,11 +240,6 @@ export default function ReportScreen() {
   const personaKey = data.summary?.title.trim().split(/\s+/).pop();
   const bgSource = !isEmpty ? REPORT_BACKGROUND_MAP[personaKey] : null;
 
-  const ScreenWrapper = bgSource ? ImageBackground : View;
-  const wrapperProps = bgSource
-    ? { source: bgSource, resizeMode: "cover" }
-    : {};
-
   return (
     <ScrollView
       ref={scrollRef}
@@ -280,6 +275,7 @@ export default function ReportScreen() {
                   animateKey={statsAnimateKey}
                   resetKey={statsResetKey}
                   onOpenPicker={openPicker}
+                  isCurrentMonth={isCurrentMonth}
                 />
               </View>
 

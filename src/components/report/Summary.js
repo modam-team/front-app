@@ -14,8 +14,6 @@ export default function Summary({ summary, userName, isCurrentMonth }) {
 
   const lines = splitToLines(description, 20);
 
-  const monthLabel = isCurrentMonth ? "이번 달" : "지난 달";
-
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
