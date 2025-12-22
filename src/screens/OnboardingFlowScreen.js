@@ -128,7 +128,12 @@ export default function OnboardingFlowScreen({ navigation, route }) {
         >
           <View>
             {/* 헤더 */}
-            <AppHeader title="독서 습관 기록" />
+            <AppHeader
+              title="독서 습관 기록"
+              showBack={step >= 2}
+              onPressBack={handlePrev}
+              align="left"
+            />
 
             {/* 상단 진행바 */}
             <ProgressBar
