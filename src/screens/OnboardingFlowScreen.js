@@ -101,7 +101,7 @@ export default function OnboardingFlowScreen({ navigation, route }) {
           await completeOnboarding({
             nickname: trimmedNickname,
             goalScore,
-            categories: categories.join(","),
+            categories,
           });
         }
 
@@ -290,19 +290,6 @@ const styles = StyleSheet.create({
   //step 3
   nicknameField: {
     padding: spacing.layoutMargin,
-  },
-  fieldLabel: {
-    ...typography["body-1-regular"],
-    color: colors.mono[1000],
-    marginBottom: spacing.s,
-  },
-  nicknameInput: {
-    borderWidth: 1,
-    borderColor: colors.primary[300],
-    borderRadius: 4,
-    padding: 10,
-    ...typography["body-1-regular"],
-    color: colors.mono[1000],
   },
 
   // 버튼
