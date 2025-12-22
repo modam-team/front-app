@@ -1,4 +1,7 @@
 import { client } from "@apis/clientApi";
+import { monthlyReportMock } from "@mocks/monthlyReportMock";
+
+const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
 
 const WEEKDAY_LABEL = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -61,6 +64,13 @@ function makeEmptyReport({ year, month }) {
 }
 
 export async function fetchMonthlyReport({ year, month }) {
+  if (USE_REPORT_MOCK) {
+    return {
+      ...monthlyReportMock,
+      summary: { ...monthlyReportMock.summary, year, month },
+    };
+  }
+
   try {
     const res = await client.get("/api/report/monthly");
     const body = res.data;
