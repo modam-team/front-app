@@ -3,7 +3,6 @@ import AddEntryScreen from "./src/screens/AddEntryScreen";
 import BookDetailScreen from "./src/screens/BookDetailScreen";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import DevPlaygroundScreen from "@screens/DevPlaygroundScreen";
 import OnboardingFlowScreen from "@screens/OnboardingFlowScreen";
 import OnboardingIntroScreen from "@screens/OnboardingIntroScreen";
 import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
@@ -53,12 +52,6 @@ export default function App() {
           name="BookDetail"
           component={BookDetailScreen}
           options={{ headerShown: false }}
-        />
-        {/* 테스트용 화면*/}
-        <Stack.Screen
-          name="DevPlayground"
-          component={DevPlaygroundScreen}
-          options={{ title: "Dev Playground" }}
         />
       </Stack.Navigator>
     </NavigationContainer>
