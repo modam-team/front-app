@@ -124,12 +124,19 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
     const targetR = ranked.map((p) => lerp(MIN_R, MAX_R, p.ratio));
 
     // 최종 targets: i=0이 1등(가장 진한 색), i=1이 2등...
-    return ranked.map((p, rank) => ({
-      label: p.label,
-      ratio: p.ratio,
-      targetR: targetR[rank],
-      color: CIRCLE_COLORS[rank], //  rank 기반 컬러
-    }));
+    const EPS = 0.0001;
+
+    return ranked.map((p, rank) => {
+      const active = p.ratio > EPS;
+
+      return {
+        label: p.label,
+        ratio: p.ratio,
+        active,
+        targetR: active ? targetR[rank] : 0,
+        color: CIRCLE_COLORS[rank],
+      };
+    });
   }, [places]);
 
   // anchor(기본 위치) - layout 기반
@@ -225,13 +232,16 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
         const t = popCurve(value);
 
         // 현재 반지름
-        const r = targets.map((p) => lerp(MIN_R, p.targetR, t));
+        const r = targets.map((p) =>
+          p.active ? lerp(MIN_R, p.targetR, t) : 0,
+        );
 
         // 솔버 반복
         for (let it = 0; it < ITERATIONS; it++) {
           // 1) 충돌 해결(겹치면 밀기)
           for (let i = 0; i < N; i++) {
             for (let j = i + 1; j < N; j++) {
+              if (r[j] === 0) continue;
               const d = dist(
                 physics.x[i],
                 physics.y[i],
@@ -257,6 +267,8 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
 
           // 2) 이웃 관계는 "딱 붙게" 스프링(거리 = r_i + r_j)
           for (const [i, j] of NEIGHBORS) {
+            if (r[i] === 0 || r[j] === 0) continue;
+
             const d = dist(
               physics.x[i],
               physics.y[i],
@@ -288,6 +300,8 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
 
           // 4) 카드 안으로 클램프(원이 잘리지 않게)
           for (let i = 0; i < N; i++) {
+            if (r[i] === 0) continue;
+
             physics.x[i] = clamp(
               physics.x[i],
               PAD + r[i],
@@ -336,7 +350,10 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
         }}
       >
         {pos.map((p, i) => {
-          const label = targets[i]?.label ?? "";
+          const t = targets[i];
+          if (!t?.active) return null;
+
+          const label = t.label ?? "";
           const showText = p.r >= 34; // 너무 작으면 글자 숨김(원하면 제거)
           return (
             <View
@@ -344,7 +361,7 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
               style={[
                 styles.circle,
                 {
-                  backgroundColor: targets[i]?.color ?? "#ddd",
+                  backgroundColor: t.color,
                   width: p.r * 2,
                   height: p.r * 2,
                   borderRadius: p.r,
