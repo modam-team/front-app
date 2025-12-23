@@ -200,6 +200,49 @@ function makeEmptyReport({ year, month }) {
   };
 }
 
+function findLatestRecords(data) {
+  if (!data) return null;
+
+  const years = Object.keys(data)
+    .map(Number)
+    .filter((n) => !Number.isNaN(n))
+    .sort((a, b) => b - a);
+
+  for (const y of years) {
+    const yearMap = data[String(y)] ?? {};
+    const months = Object.keys(yearMap)
+      .map(Number)
+      .filter((n) => !Number.isNaN(n))
+      .sort((a, b) => b - a);
+
+    for (const m of months) {
+      const list = yearMap[String(m)];
+      if (Array.isArray(list) && list.length > 0) {
+        return { year: y, month: m, records: list };
+      }
+    }
+  }
+  return null;
+}
+
+function buildGenreDistribution(records) {
+  const total = Array.isArray(records) ? records.length : 0;
+  const categoryCount = new Map();
+
+  for (const r of records ?? []) {
+    const c = r?.category ?? "기타";
+    categoryCount.set(c, (categoryCount.get(c) ?? 0) + 1);
+  }
+
+  return Array.from(categoryCount.entries())
+    .map(([name, count]) => ({
+      name,
+      count,
+      ratio: total ? count / total : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
 export async function fetchMonthlyReport({ year, month }) {
   try {
     const body = USE_REPORT_MOCK
@@ -231,6 +274,13 @@ export async function fetchMonthlyReport({ year, month }) {
     const yearMap = data?.[yearKey] ?? {};
     const records = yearMap?.[monthKey] ?? [];
     const total = Array.isArray(records) ? records.length : 0;
+
+    const latest = findLatestRecords(data);
+    if (!latest) return makeEmptyReport({ year, month });
+
+    const latestYear = latest.year;
+    const latestMonth = latest.month;
+    const latestRecords = latest.records;
 
     // 1) 연간 월별 카운트 (해당 연도에 있는 달만 length로)
     const monthlyStatus = Array.from({ length: 12 }, (_, i) => {
@@ -309,24 +359,27 @@ export async function fetchMonthlyReport({ year, month }) {
     const moods = PLACE_MOOD_MAP[manyPlace] ?? [];
     const mood = moods[0] ?? ""; // 일단은 첫 번째만 사용
 
-    // 최종 타이틀
-    const title =
-      total === 0 ? "아직 측정되지 않았어요" : `${mood} ${characterName}`;
+    const latestGenreDistribution = buildGenreDistribution(latestRecords);
+    const latestTopGenre = latestGenreDistribution[0]?.name;
 
-    const topGenre = genreDistribution[0]?.name; // 가장 많이 읽은 카테고리
+    // 최종 타이틀
+    const latestTotal = Array.isArray(latestRecords) ? latestRecords.length : 0;
+
+    const title =
+      latestTotal === 0 ? "아직 측정되지 않았어요" : `${mood} ${characterName}`;
 
     const description =
-      total === 0
+      latestTotal === 0
         ? "어떤 캐릭터가 나오실 지 궁금해요!"
-        : `${title}형은 주로 ${placeLabel}${locParticle(placeLabel)} ${topGenre}${objParticle(
-            topGenre,
+        : `${title}형은 주로 ${placeLabel}${locParticle(placeLabel)} ${latestTopGenre}${objParticle(
+            latestTopGenre,
           )} 읽는 사람이에요.`;
 
     return {
       summary: {
-        year,
-        month,
-        title: title,
+        year: latestYear,
+        month: latestMonth,
+        title,
         description,
         percent: 0,
         isEmpty: false,
