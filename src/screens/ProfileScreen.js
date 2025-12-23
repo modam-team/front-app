@@ -1,3 +1,4 @@
+import ActionBottomSheet from "@components/ActionBottomSheet";
 import AppHeader from "@components/AppHeader";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -129,53 +130,31 @@ export default function ProfileScreen() {
       </View>
 
       {/* Bottom Sheet */}
-      <Modal
+      <ActionBottomSheet
         visible={sheetVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSheetVisible(false)}
-      >
-        <Pressable
-          style={styles.overlay}
-          onPress={() => setSheetVisible(false)}
-        />
-
-        <View style={styles.sheet}>
-          <Pressable
-            onPress={onPressChangePhoto}
-            style={({ pressed }) => [
-              styles.sheetItem,
-              pressed && styles.sheetPressed,
-            ]}
-          >
-            <MaterialIcons
-              name="edit"
-              size={20}
-              color={colors.mono[950]}
-            />
-            <Text style={styles.sheetText}>변경하기</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={onPressDeletePhoto}
-            style={({ pressed }) => [
-              styles.sheetItem,
-              pressed && styles.sheetPressed,
-            ]}
-          >
-            <MaterialIcons
-              name="delete"
-              size={20}
-              color={colors.warning.medium}
-            />
-            <Text style={[styles.sheetText, { color: colors.warning.medium }]}>
-              삭제하기
-            </Text>
-          </Pressable>
-
-          <View style={styles.sheetHandle} />
-        </View>
-      </Modal>
+        onClose={() => setSheetVisible(false)}
+        actions={[
+          {
+            key: "edit",
+            label: "변경하기",
+            icon: "edit",
+            onPress: () => {
+              setSheetVisible(false);
+              onPressChangePhoto();
+            },
+          },
+          {
+            key: "delete",
+            label: "삭제하기",
+            icon: "cancel",
+            color: colors.warning.medium,
+            onPress: () => {
+              setSheetVisible(false);
+              onPressDeletePhoto();
+            },
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -262,42 +241,5 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.25)",
-  },
-
-  sheet: {
-    backgroundColor: colors.mono[0],
-    paddingTop: 14,
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-  },
-
-  sheetItem: {
-    height: 48,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-  },
-
-  sheetPressed: {
-    backgroundColor: colors.mono[50],
-  },
-
-  sheetText: {
-    ...typography["body-1-regular"],
-    color: colors.mono[950],
-  },
-
-  sheetHandle: {
-    alignSelf: "center",
-    marginTop: 10,
-    width: 120,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.mono[900],
-    opacity: 0.2,
   },
 });
