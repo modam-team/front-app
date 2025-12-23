@@ -1,4 +1,4 @@
-import { uploadProfileImage } from "@apis/userApi";
+import { deleteProfileImage, uploadProfileImage } from "@apis/userApi";
 import ActionBottomSheet from "@components/ActionBottomSheet";
 import AppHeader from "@components/AppHeader";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -74,6 +74,19 @@ export default function ProfileScreen() {
     }
   };
 
+  const onPressDeletePhoto = async () => {
+    try {
+      await deleteProfileImage();
+
+      // 임시로 UI 즉시 반영
+      setProfileImageUrl(null);
+
+      setSheetVisible(false);
+    } catch (e) {
+      console.error("프로필 삭제 실패:", e);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <AppHeader
@@ -89,10 +102,18 @@ export default function ProfileScreen() {
             onPress={() => setSheetVisible(true)}
             style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
           >
-            <Image
-              source={{ uri: profileImageUrl }}
-              style={styles.avatarImage}
-            />
+            {profileImageUrl ? (
+              <Image
+                source={{ uri: profileImageUrl }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <MaterialIcons
+                name="person"
+                size={32}
+                color={colors.mono[400]}
+              />
+            )}
           </Pressable>
 
           <Pressable
@@ -165,7 +186,9 @@ export default function ProfileScreen() {
             color: colors.warning.medium,
             onPress: () => {
               setSheetVisible(false);
-              //onPressDeletePhoto();
+              setTimeout(() => {
+                onPressDeletePhoto();
+              }, 250);
             },
           },
         ]}

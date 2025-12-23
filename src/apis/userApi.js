@@ -58,3 +58,8 @@ export async function uploadProfileImage(asset) {
 
   return res.data;
 }
+
+// 프로필 사진 삭제
+export async function deleteProfileImage() {
+  await client.delete("/api/user/profile/image");
+}
