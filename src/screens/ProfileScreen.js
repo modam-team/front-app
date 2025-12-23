@@ -1,3 +1,4 @@
+import { uploadProfileImage } from "@apis/userApi";
 import ActionBottomSheet from "@components/ActionBottomSheet";
 import AppHeader from "@components/AppHeader";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -6,6 +7,7 @@ import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
+import * as ImagePicker from "expo-image-picker";
 import React, { useMemo, useState } from "react";
 import {
   Modal,
@@ -34,35 +36,38 @@ export default function ProfileScreen() {
     });
   };
 
-  const onPressChangePhoto = () => {
-    // TODO: 이미지 피커/업로드 연결
-    setSheetVisible(false);
+  const pickImage = async () => {
+    // 갤러리 권한 요청
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") return null;
+
+    // 갤러리 열기
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled) return null;
+    return result.assets[0];
   };
 
-  const onPressDeletePhoto = () => {
-    // TODO: 프로필 사진 삭제 API 연결
-    setSheetVisible(false);
-  };
+  const onPressChangePhoto = async () => {
+    try {
+      const asset = await pickImage();
+      if (!asset) return;
 
-  const rows = useMemo(
-    () => [
-      {
-        key: "nickname",
-        left: "닉네임",
-        right: nickname,
-        onPress: onPressEditName,
-        showChevron: true,
-      },
-      {
-        key: "public",
-        left: "공개여부",
-        right: null,
-        onPress: null,
-        showChevron: false,
-      },
-    ],
-    [nickname, isPublic],
-  );
+      await uploadProfileImage(asset);
+
+      setSheetVisible(false);
+
+      // TODO: 백엔드가 url 내려주면 여기서 상태 업데이트
+      // setProfileImageUrl(res.profileImageUrl)
+    } catch (e) {
+      console.error("프로필 업로드 실패:", e);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -150,7 +155,7 @@ export default function ProfileScreen() {
             color: colors.warning.medium,
             onPress: () => {
               setSheetVisible(false);
-              onPressDeletePhoto();
+              //onPressDeletePhoto();
             },
           },
         ]}

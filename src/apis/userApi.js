@@ -39,3 +39,22 @@ export async function withdrawUser() {
   const res = await client.delete("/api/user/withdraw");
   return res.data; // 200 OK
 }
+
+// 프로필 사진 업로드
+export async function uploadProfileImage(asset) {
+  const formData = new FormData();
+
+  formData.append("imageFile", {
+    uri: asset.uri,
+    name: asset.fileName ?? "profile.jpg",
+    type: asset.mimeType ?? "image/jpeg",
+  });
+
+  const res = await client.post("/api/user/profile/image", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return res.data;
+}
