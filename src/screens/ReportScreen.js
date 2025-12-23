@@ -15,6 +15,7 @@ import {
   REPORT_BACKGROUND_MAP_PAST,
 } from "@constants/reportBackgroundMap";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useTabBarTheme } from "@navigation/TabBarThemeContext";
 import { useIsFocused } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
@@ -39,6 +40,14 @@ const CARD_SPACING = 16;
 const SNAP_INTERVAL = CARD_WIDTH + CARD_SPACING;
 
 export default function ReportScreen() {
+  // 이 스크린이 현재 포커스(탭 선택) 상태인지
+  const isFocused = useIsFocused();
+
+  const navigation = useNavigation();
+
+  // 탭바 테마 제어
+  const { setTheme } = useTabBarTheme();
+
   // 닉네임 가져오기
   const [userName, setUserName] = useState("");
   useEffect(() => {
@@ -53,8 +62,6 @@ export default function ReportScreen() {
 
     loadUser();
   }, [isFocused]);
-
-  const navigation = useNavigation();
 
   // 현재 날짜 기준 기본 연도랑 월 설정
   const [year, setYear] = useState(new Date().getFullYear());
@@ -78,6 +85,17 @@ export default function ReportScreen() {
         month: colors.primary[500],
       };
 
+  // 리포트 화면이 포커스일 때만 탭바 테마를 바꿈
+  useEffect(() => {
+    if (!isFocused) return;
+
+    // 현재 달이면 초록, 아니면 기본(흰색)
+    setTheme(isCurrentMonth ? "reportCurrent" : "default");
+
+    // 화면 나가면 무조건 원복
+    return () => setTheme("default");
+  }, [isFocused, isCurrentMonth, setTheme]);
+
   // 리포트 데이터
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -87,9 +105,6 @@ export default function ReportScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const openPicker = () => setPickerVisible(true);
   const closePicker = () => setPickerVisible(false);
-
-  // 이 스크린이 현재 포커스(탭 선택) 상태인지
-  const isFocused = useIsFocused();
 
   const scrollRef = useRef(null);
 

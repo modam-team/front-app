@@ -4,6 +4,10 @@ import ReportScreen from "../screens/ReportScreen";
 import colors from "../theme/legacyColors";
 import { Ionicons } from "@expo/vector-icons";
 import ReportStack from "@navigation/ReportStack";
+import {
+  TabBarThemeProvider,
+  useTabBarTheme,
+} from "@navigation/TabBarThemeContext";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
@@ -12,7 +16,7 @@ const Tab = createBottomTabNavigator();
 
 export default function BottomTabs({ navigation }) {
   return (
-    <>
+    <TabBarThemeProvider>
       <Tab.Navigator
         screenOptions={{
           headerTitleAlign: "left",
@@ -38,13 +42,20 @@ export default function BottomTabs({ navigation }) {
           component={ReportStack}
         />
       </Tab.Navigator>
-    </>
+    </TabBarThemeProvider>
   );
 }
 
 function CustomTabBar({ state, descriptors, navigation }) {
   const activeColor = "#426B1F";
   const currentRouteName = state.routes[state.index]?.name;
+
+  // theme 가져오기
+  const { theme } = useTabBarTheme();
+
+  // 초록 테마 여부
+  const isGreen = theme === "reportCurrent";
+
   return (
     <View style={{ backgroundColor: "transparent" }}>
       {currentRouteName === "책장" && (
@@ -84,7 +95,8 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
       <View
         style={{
-          backgroundColor: "#FAFAF5",
+          // ✅ (수정4) 탭바 배경색 분기 (기본: 하양 / 리포트 현재달: 초록)
+          backgroundColor: isGreen ? "#426B1F" : "#FAFAF5",
           paddingHorizontal: 12,
           paddingVertical: 8,
           borderTopLeftRadius: 18,
@@ -149,13 +161,27 @@ function CustomTabBar({ state, descriptors, navigation }) {
                 <Ionicons
                   name={iconName}
                   size={20}
-                  color={isFocused ? activeColor : "#252829"}
+                  color={
+                    isGreen
+                      ? isFocused
+                        ? activeColor
+                        : "#FFFFFF"
+                      : isFocused
+                        ? activeColor
+                        : "#252829"
+                  }
                 />
                 <Text
                   style={{
                     fontSize: 12,
-                    color: isFocused ? activeColor : "#252829",
                     marginTop: 4,
+                    color: isGreen
+                      ? isFocused
+                        ? activeColor
+                        : "#FFFFFF"
+                      : isFocused
+                        ? activeColor
+                        : "#252829",
                   }}
                 >
                   {label}
