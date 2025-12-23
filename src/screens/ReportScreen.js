@@ -1,10 +1,12 @@
 import PlaceHabits from "../components/report/PlaceHabits";
 import { fetchMonthlyReport } from "@apis/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
+import ModamLogo from "@assets/icons/modam.svg";
 import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
 import KeywordReviewCard from "@components/report/KeywordReviewCard";
 import MonthlyStats from "@components/report/MonthlyStats";
 import ReportToggle from "@components/report/ReportToggle";
+import ReportTopHeader from "@components/report/ReportTopHeader";
 import Summary from "@components/report/Summary";
 import TimeHabits from "@components/report/TimeHabits";
 import YearMonthPicker from "@components/report/YearMonthPicker";
@@ -14,6 +16,7 @@ import {
 } from "@constants/reportBackgroundMap";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
@@ -29,6 +32,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Platform, StatusBar } from "react-native";
 
 const CARD_WIDTH = 300;
 const CARD_SPACING = 16;
@@ -49,6 +53,8 @@ export default function ReportScreen() {
 
     loadUser();
   }, []);
+
+  const navigation = useNavigation();
 
   // 현재 날짜 기준 기본 연도랑 월 설정
   const [year, setYear] = useState(new Date().getFullYear());
@@ -332,13 +338,16 @@ export default function ReportScreen() {
         resizeMode="cover"
         style={styles.bg}
       >
+        <ReportTopHeader
+          onPressSettings={() => navigation.navigate("SettingsScreen")}
+        />
         <View style={styles.content}>
-          <View style={styles.topSpacer} />
-
           <Summary
             summary={data.summary}
             userName={userName}
             isCurrentMonth={isCurrentMonth}
+            onPressProfile={() => navigation.navigate("ProfileScreen")}
+            onPressEditProfile={() => navigation.navigate("ProfileScreen")}
           />
 
           {isEmpty ? null : (
@@ -504,9 +513,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.l,
-  },
-  topSpacer: {
-    height: 75,
   },
   loadingWrap: {
     flex: 1,
