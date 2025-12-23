@@ -1,4 +1,5 @@
 import TextField from "../components/TextField";
+import { updateProfile } from "@apis/userApi";
 import AppHeader from "@components/AppHeader";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { colors } from "@theme/colors";
@@ -27,11 +28,21 @@ export default function EditNameScreen() {
 
   const countText = useMemo(() => `${value.length}/${MAX}`, [value]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const next = value.trim();
     if (!next) return;
-    onSave?.(next);
-    navigation.goBack();
+
+    try {
+      // 서버에 저장
+      await updateProfile({ nickname: next });
+
+      // 로컬 UI도 업데이트 (부모 state)
+      onSave?.(next);
+
+      navigation.goBack();
+    } catch (e) {
+      console.error("닉네임 수정 실패:", e);
+    }
   };
 
   return (

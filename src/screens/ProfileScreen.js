@@ -1,14 +1,17 @@
 import { deleteProfileImage, uploadProfileImage } from "@apis/userApi";
+import { fetchUserProfile } from "@apis/userApi";
+import { updateProfile } from "@apis/userApi";
 import ActionBottomSheet from "@components/ActionBottomSheet";
 import AppHeader from "@components/AppHeader";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import * as ImagePicker from "expo-image-picker";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -26,11 +29,10 @@ export default function ProfileScreen() {
   // TODO: 실제 프로필 데이터로 교체
   const [nickname, setNickname] = useState("모담이");
   const [isPublic, setIsPublic] = useState(true);
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
 
   // 프로필 사진 변경 bottom sheet 표시 여부
   const [sheetVisible, setSheetVisible] = useState(false);
-
-  const [profileImageUrl, setProfileImageUrl] = useState(null);
 
   const onPressEditName = () => {
     navigation.navigate("EditNameScreen", {
@@ -86,6 +88,47 @@ export default function ProfileScreen() {
       console.error("프로필 삭제 실패:", e);
     }
   };
+
+  const onTogglePublic = async (next) => {
+    // 1) UI 먼저 반영
+    setIsPublic(next);
+
+    try {
+      // 2) 서버 저장
+      await updateProfile({ isPublic: next });
+    } catch (e) {
+      console.error("공개여부 수정 실패:", e);
+
+      // 3) 실패하면 롤백
+      setIsPublic((prev) => !prev);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      const loadProfile = async () => {
+        try {
+          const profile = await fetchUserProfile();
+
+          if (!isMounted) return;
+
+          setNickname(profile.nickname ?? "모담이");
+          setIsPublic(!!profile.isPublic);
+          setProfileImageUrl(profile.profileImageUrl ?? null);
+        } catch (e) {
+          console.error("프로필 조회 실패:", e);
+        }
+      };
+
+      loadProfile();
+
+      return () => {
+        isMounted = false;
+      };
+    }, []),
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -153,7 +196,7 @@ export default function ProfileScreen() {
           <Text style={styles.rowLeft}>공개여부</Text>
           <Switch
             value={isPublic}
-            onValueChange={setIsPublic}
+            onValueChange={onTogglePublic}
             trackColor={{
               false: colors.mono[200],
               true: colors.primary[300],
