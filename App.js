@@ -6,6 +6,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import OnboardingFlowScreen from "@screens/OnboardingFlowScreen";
 import OnboardingIntroScreen from "@screens/OnboardingIntroScreen";
 import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
+import ProfileScreen from "@screens/ProfileScreen";
+import SettingsScreen from "@screens/SettingsScreen";
 import { colors } from "@theme/colors";
 import React from "react";
 import "react-native-gesture-handler";
@@ -51,6 +53,17 @@ export default function App() {
         <Stack.Screen
           name="BookDetail"
           component={BookDetailScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="SettingsScreen"
+          component={SettingsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ProfileScreen"
+          component={ProfileScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
