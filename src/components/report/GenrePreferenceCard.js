@@ -7,8 +7,9 @@ import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, G, Path } from "react-native-svg";
 
 const SIZE = 193;
+const DONUT_SIZE = 167; // 실제 도넛 지름
 const STROKE_WIDTH = 55;
-const RADIUS = (SIZE - STROKE_WIDTH) / 2;
+const RADIUS = (DONUT_SIZE - STROKE_WIDTH) / 2;
 const CENTER = SIZE / 2;
 const ANIMATION_DURATION = 1000;
 
@@ -99,6 +100,9 @@ export default function GenrePreferenceCard({
 
   const [progress, setProgress] = useState(0);
 
+  const popAnimRef = useRef(new Animated.Value(0));
+  const [pop, setPop] = useState(0);
+
   // 상위 5개 + 기타로 만들기
   const normalizedGenres = useMemo(
     () => buildTopNWithEtc(genres, TOP_N),
@@ -149,6 +153,7 @@ export default function GenrePreferenceCard({
     if (!segments || segments.length === 0) return;
 
     const progressAnim = progressAnimRef.current;
+    const popAnim = popAnimRef.current;
 
     // 최초 1번 실행
     if (animateKey == null) {
@@ -163,23 +168,44 @@ export default function GenrePreferenceCard({
     }
 
     progressAnim.stopAnimation();
+    popAnim.stopAnimation();
     progressAnim.setValue(0);
+    popAnim.setValue(0);
 
     const id = progressAnim.addListener(({ value }) => setProgress(value));
+    const id2 = popAnim.addListener(({ value }) => setPop(value));
 
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: ANIMATION_DURATION,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
-    }).start(() => {
+    }).start(({ finished }) => {
       progressAnim.removeListener(id);
+
+      if (!finished) return;
+
+      // 채우기 끝나면 1등만 팝업
+      Animated.timing(popAnim, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: false,
+      }).start(() => {
+        popAnim.removeListener(id2);
+      });
     });
 
     return () => progressAnim.removeListener(id);
   }, [segments, animateKey]);
 
   const globalAngle = 360 * progress;
+
+  const winner = segments[0];
+  const POP_DELTA = 5;
+
+  const winnerR = RADIUS + POP_DELTA * pop;
+  const winnerSW = STROKE_WIDTH + POP_DELTA * 2 * pop;
 
   const leftCol = segments.slice(0, 3);
   const rightCol = segments.slice(3, 6);
@@ -231,6 +257,22 @@ export default function GenrePreferenceCard({
                   />
                 );
               })}
+
+              {winner && progress >= 0.999 && pop > 0 && (
+                <Path
+                  d={describeArc(
+                    CENTER,
+                    CENTER,
+                    winnerR,
+                    winner.startAngle,
+                    winner.endAngle,
+                  )}
+                  stroke={winner.color}
+                  strokeWidth={winnerSW}
+                  fill="none"
+                  strokeLinecap="butt"
+                />
+              )}
             </G>
           </Svg>
         </View>
