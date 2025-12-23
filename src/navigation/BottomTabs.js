@@ -2,6 +2,7 @@ import BookshelfScreen from "../screens/BookshelfScreen";
 import HomeScreen from "../screens/HomeScreen";
 import ReportScreen from "../screens/ReportScreen";
 import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ReportStack from "@navigation/ReportStack";
 import {
   TabBarThemeProvider,
@@ -20,9 +21,9 @@ const Tab = createBottomTabNavigator();
 
 // 탭 라벨 및 아이콘 정의
 const TAB_META = {
-  책장: { icon: "bookmark" },
-  홈: { icon: "home" },
-  리포트: { icon: "bar-chart" },
+  책장: { icon: "book" },
+  홈: { icon: "home-variant" },
+  리포트: { icon: "chart-box" },
 };
 
 const TAB_BAR_HEIGHT = 52;
@@ -156,7 +157,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
                         isFocused && { backgroundColor: palette.focusedBg },
                       ]}
                     >
-                      <Ionicons
+                      <MaterialCommunityIcons
                         name={iconName}
                         size={20}
                         color={iconColor}
