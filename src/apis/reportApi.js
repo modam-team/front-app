@@ -66,6 +66,12 @@ export const reportMonthlyApiMock = {
             hashtags: ["사고확장"],
           },
           {
+            readAt: "2025-06-15T20:30:00",
+            readingPlace: "MOVING",
+            category: "인문/사회/정치/법",
+            hashtags: ["사고확장"],
+          },
+          {
             readAt: "2025-06-28T23:10:00",
             readingPlace: "HOME",
             category: "에세이",
@@ -112,6 +118,12 @@ export const reportMonthlyApiMock = {
           },
           {
             readAt: "2025-12-15T17:35:00",
+            readingPlace: "MOVING",
+            category: "건강/취미",
+            hashtags: ["루틴", "힐링"],
+          },
+          {
+            readAt: "2025-12-15T18:35:00",
             readingPlace: "MOVING",
             category: "건강/취미",
             hashtags: ["루틴", "힐링"],

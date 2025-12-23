@@ -1,9 +1,12 @@
+import PlaceHabits from "../components/report/PlaceHabits";
 import { fetchMonthlyReport } from "@apis/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
 import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
 import KeywordReviewCard from "@components/report/KeywordReviewCard";
 import MonthlyStats from "@components/report/MonthlyStats";
+import ReportToggle from "@components/report/ReportToggle";
 import Summary from "@components/report/Summary";
+import TimeHabits from "@components/report/TimeHabits";
 import YearMonthPicker from "@components/report/YearMonthPicker";
 import {
   REPORT_BACKGROUND_MAP,
@@ -14,7 +17,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -93,6 +96,17 @@ export default function ReportScreen() {
     height: 0,
   });
 
+  // 습관 섹션 레이아웃
+  const [habitLayout, setHabitLayout] = useState({ y: 0, height: 0 });
+  const [habitAnimatedThisFocus, setHabitAnimatedThisFocus] = useState(false);
+
+  // 습관 분석 토글
+  const [habitTab, setHabitTab] = useState("time"); // 'time' | 'place'
+
+  // 습관 카드 애니메이션 키 (TimeHabits용)
+  const [habitAnimateKey, setHabitAnimateKey] = useState(0);
+  const [habitResetKey, setHabitResetKey] = useState(0);
+
   // 세로 스크롤 애니메이션 트리거 키
   const [statsAnimateKey, setStatsAnimateKey] = useState(0);
   const [statsResetKey, setStatsResetKey] = useState(0);
@@ -128,6 +142,11 @@ export default function ReportScreen() {
         setStatsAnimatedThisFocus(false);
         setPreferenceAnimatedThisFocus(false);
 
+        // 습관도 같이 리셋
+        setHabitResetKey((k) => k + 1);
+        setHabitAnimatedThisFocus(false);
+        setHabitTab("time");
+
         // 페이지 안 카드 키들도 초기화
         setGenreAnimateKey((k) => k + 1);
       } catch (e) {
@@ -157,6 +176,9 @@ export default function ReportScreen() {
       setKeywordAnimateKey((k) => k + 1);
       setGenreAnimateKey((k) => k + 1);
 
+      setHabitResetKey((k) => k + 1);
+      setHabitAnimatedThisFocus(false);
+
       if (scrollRef.current) {
         scrollRef.current.scrollTo({
           y: 0,
@@ -165,6 +187,26 @@ export default function ReportScreen() {
       }
     }
   }, [isFocused]);
+
+  const places = useMemo(() => {
+    const list = data?.readingPlaces ?? [];
+    const ratioByLabel = new Map(list.map((p) => [p.label, p.ratio]));
+
+    return [
+      {
+        key: "MOVING",
+        label: "이동중",
+        ratio: ratioByLabel.get("이동중") ?? 0,
+      },
+      { key: "CAFE", label: "카페", ratio: ratioByLabel.get("카페") ?? 0 },
+      { key: "HOME", label: "집", ratio: ratioByLabel.get("집") ?? 0 },
+      {
+        key: "LIBRARY",
+        label: "도서관",
+        ratio: ratioByLabel.get("도서관") ?? 0,
+      },
+    ];
+  }, [data]);
 
   // 통계 섹션 위치 저장
   const handleStatsLayout = (e) => {
@@ -176,6 +218,12 @@ export default function ReportScreen() {
   const handlePreferenceLayout = (e) => {
     const { y, height } = e.nativeEvent.layout;
     setPreferenceLayout({ y, height });
+  };
+
+  // 습관 분석 섹션 위치 저장
+  const handleHabitLayout = (e) => {
+    const { y, height } = e.nativeEvent.layout;
+    setHabitLayout({ y, height });
   };
 
   // 특정 섹션이 화면에 50% 이상 보이는지 계산하는 헬퍼
@@ -224,6 +272,13 @@ export default function ReportScreen() {
         setKeywordAnimateKey((k) => k + 1);
       }
       setPreferenceAnimatedThisFocus(true);
+    }
+
+    // 습관 분석 섹션
+    const habitVisible = isSectionVisible(habitLayout, scrollY, screenHeight);
+    if (habitVisible && !habitAnimatedThisFocus) {
+      setHabitAnimateKey((k) => k + 1);
+      setHabitAnimatedThisFocus(true);
     }
   };
 
@@ -366,6 +421,55 @@ export default function ReportScreen() {
                   </View>
                 </Animated.ScrollView>
               </View>
+
+              {/* 습관 분석 섹션 */}
+              <View
+                style={{ marginTop: 30 }}
+                onLayout={handleHabitLayout}
+              >
+                {/* 섹션 헤더 */}
+                <View style={{ marginBottom: 12 }}>
+                  <View style={styles.titleBlock}>
+                    <View style={styles.titleRow}>
+                      <Text
+                        style={[styles.monthText, { color: styleSet.month }]}
+                      >
+                        {month}월
+                      </Text>
+                      <Text
+                        style={[styles.sectionTitle, { color: styleSet.title }]}
+                      >
+                        습관 분석
+                      </Text>
+                    </View>
+
+                    <Text style={[styles.caption, { color: styleSet.caption }]}>
+                      독서 기록 버튼을 누른 기록으로 분석했어요
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 토글 */}
+                <ReportToggle
+                  value={habitTab}
+                  onChange={setHabitTab}
+                />
+
+                {/* 카드 */}
+                {habitTab === "time" ? (
+                  <TimeHabits
+                    readingCountsByWeekday={data.readingCountsByWeekday}
+                    animateKey={habitAnimateKey}
+                    resetKey={habitResetKey}
+                  />
+                ) : (
+                  <PlaceHabits
+                    places={places}
+                    animateKey={habitAnimateKey}
+                    resetKey={habitResetKey}
+                  />
+                )}
+              </View>
             </>
           )}
 
@@ -439,5 +543,26 @@ const styles = StyleSheet.create({
   caption: {
     ...typography["body-1-regular"],
     color: colors.mono[950],
+  },
+
+  // 임시
+  placeHolderCard: {
+    height: 436,
+    marginTop: 12,
+    borderRadius: 28,
+    backgroundColor: colors.mono[100],
+    paddingVertical: 22,
+    paddingHorizontal: 29,
+    justifyContent: "center",
+  },
+  placeHolderTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: colors.mono[950],
+    marginBottom: 8,
+  },
+  placeHolderCaption: {
+    ...typography["body-2-regular"],
+    color: colors.mono[500],
   },
 });
