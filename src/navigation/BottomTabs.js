@@ -179,10 +179,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
 const styles = StyleSheet.create({
   root: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: "transparent",
   },
 
