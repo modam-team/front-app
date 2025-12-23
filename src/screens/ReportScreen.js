@@ -118,13 +118,17 @@ export default function ReportScreen() {
         const res = await fetchMonthlyReport({ year, month });
         setData(res);
 
+        if (preferencePagerRef.current) {
+          preferencePagerRef.current.scrollTo({ x: 0, animated: false });
+        }
+        setActivePreferencePage(0);
+
         // 통계랑 취향 섹션 모두 다시 애니메이션 가능하도록 리셋
         setStatsResetKey((k) => k + 1);
         setStatsAnimatedThisFocus(false);
         setPreferenceAnimatedThisFocus(false);
 
         // 페이지 안 카드 키들도 초기화
-        setKeywordAnimateKey((k) => k + 1);
         setGenreAnimateKey((k) => k + 1);
       } catch (e) {
         console.error(
@@ -214,10 +218,10 @@ export default function ReportScreen() {
     );
     if (prefVisible && !preferenceAnimatedThisFocus) {
       // 현재 활성 페이지 카드만 애니메이션
-      if (activePreferencePage === 1) {
-        setKeywordAnimateKey((k) => k + 1);
-      } else {
+      if (activePreferencePage === 0) {
         setGenreAnimateKey((k) => k + 1);
+      } else {
+        setKeywordAnimateKey((k) => k + 1);
       }
       setPreferenceAnimatedThisFocus(true);
     }
@@ -232,10 +236,10 @@ export default function ReportScreen() {
       setActivePreferencePage(pageIndex);
 
       // 페이지 전환 시, 해당 페이지 카드 애니메이션 재시작
-      if (pageIndex === 1) {
-        setKeywordAnimateKey((k) => k + 1);
-      } else {
+      if (pageIndex === 0) {
         setGenreAnimateKey((k) => k + 1);
+      } else {
+        setKeywordAnimateKey((k) => k + 1);
       }
     }
   };
@@ -357,6 +361,7 @@ export default function ReportScreen() {
                       month={month}
                       keywords={data.reviewKeywords}
                       animateKey={keywordAnimateKey}
+                      isActive={activePreferencePage === 1}
                     />
                   </View>
                 </Animated.ScrollView>
