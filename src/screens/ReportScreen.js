@@ -1,9 +1,14 @@
 import { fetchMonthlyReport } from "@apis/reportApi";
+import { fetchUserProfile } from "@apis/userApi";
 import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
 import KeywordReviewCard from "@components/report/KeywordReviewCard";
 import MonthlyStats from "@components/report/MonthlyStats";
 import Summary from "@components/report/Summary";
 import YearMonthPicker from "@components/report/YearMonthPicker";
+import {
+  REPORT_BACKGROUND_MAP,
+  REPORT_BACKGROUND_MAP_PAST,
+} from "@constants/reportBackgroundMap";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { colors } from "@theme/colors";
@@ -14,6 +19,7 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,13 +32,47 @@ const CARD_SPACING = 16;
 const SNAP_INTERVAL = CARD_WIDTH + CARD_SPACING;
 
 export default function ReportScreen() {
+  // 닉네임 가져오기
+  const [userName, setUserName] = useState("");
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const profile = await fetchUserProfile();
+        setUserName(profile.nickname);
+      } catch (e) {
+        console.error("유저 프로필 조회 실패", e);
+      }
+    };
+
+    loadUser();
+  }, []);
+
   // 현재 날짜 기준 기본 연도랑 월 설정
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
 
+  // 이번달 리포트인지 지난 달 리포트인지 구분하기
+  const now = new Date();
+  const isCurrentMonth =
+    year === now.getFullYear() && month === now.getMonth() + 1;
+
+  // 어떤 달인지에 따라 색상 구분
+  const styleSet = isCurrentMonth
+    ? {
+        title: colors.mono[0],
+        caption: colors.primary[50],
+        month: colors.mono[0],
+      }
+    : {
+        title: colors.mono[950],
+        caption: colors.mono[950],
+        month: colors.primary[500],
+      };
+
   // 리포트 데이터
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // 연도랑 월 선택 관리
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -78,16 +118,26 @@ export default function ReportScreen() {
         const res = await fetchMonthlyReport({ year, month });
         setData(res);
 
+        if (preferencePagerRef.current) {
+          preferencePagerRef.current.scrollTo({ x: 0, animated: false });
+        }
+        setActivePreferencePage(0);
+
         // 통계랑 취향 섹션 모두 다시 애니메이션 가능하도록 리셋
         setStatsResetKey((k) => k + 1);
         setStatsAnimatedThisFocus(false);
         setPreferenceAnimatedThisFocus(false);
 
         // 페이지 안 카드 키들도 초기화
-        setKeywordAnimateKey((k) => k + 1);
         setGenreAnimateKey((k) => k + 1);
       } catch (e) {
-        // 에러 UI 나중에 추가할 거면 여기다가 추가하기 !!
+        console.error(
+          "리포트 조회 실패:",
+          e?.response?.status,
+          e?.response?.data,
+          e,
+        );
+        setError(e);
       } finally {
         setLoading(false);
       }
@@ -169,9 +219,9 @@ export default function ReportScreen() {
     if (prefVisible && !preferenceAnimatedThisFocus) {
       // 현재 활성 페이지 카드만 애니메이션
       if (activePreferencePage === 0) {
-        setKeywordAnimateKey((k) => k + 1);
-      } else {
         setGenreAnimateKey((k) => k + 1);
+      } else {
+        setKeywordAnimateKey((k) => k + 1);
       }
       setPreferenceAnimatedThisFocus(true);
     }
@@ -187,9 +237,9 @@ export default function ReportScreen() {
 
       // 페이지 전환 시, 해당 페이지 카드 애니메이션 재시작
       if (pageIndex === 0) {
-        setKeywordAnimateKey((k) => k + 1);
-      } else {
         setGenreAnimateKey((k) => k + 1);
+      } else {
+        setKeywordAnimateKey((k) => k + 1);
       }
     }
   };
@@ -205,109 +255,132 @@ export default function ReportScreen() {
     );
   }
 
+  const isEmpty = !!data.summary?.isEmpty;
+
+  const personaKey = data.summary?.title.trim().split(/\s+/).pop();
+  const map = isCurrentMonth
+    ? REPORT_BACKGROUND_MAP
+    : REPORT_BACKGROUND_MAP_PAST;
+
+  const bgSource = !isEmpty ? map[personaKey] : null;
+
   return (
-    <>
-      <ScrollView
-        ref={scrollRef}
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
+    <ScrollView
+      ref={scrollRef}
+      style={styles.container}
+      contentContainerStyle={styles.scrollContainer}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+    >
+      <ImageBackground
+        source={bgSource}
+        resizeMode="cover"
+        style={styles.bg}
       >
-        <View style={styles.topSpacer} />
+        <View style={styles.content}>
+          <View style={styles.topSpacer} />
 
-        <Summary summary={data.summary} />
-
-        {/* 월별 통계 섹션 */}
-        <View onLayout={handleStatsLayout}>
-          <MonthlyStats
-            year={year}
-            month={month}
-            monthlyStatus={data.monthlyStatus}
-            onChangeYear={setYear}
-            onChangeMonth={setMonth}
-            animateKey={statsAnimateKey}
-            resetKey={statsResetKey}
-            onOpenPicker={openPicker}
+          <Summary
+            summary={data.summary}
+            userName={userName}
+            isCurrentMonth={isCurrentMonth}
           />
-        </View>
 
-        {/* 취향 분석 스와이프 페이저 섹션 */}
-        <View onLayout={handlePreferenceLayout}>
-          {/* 섹션 헤더*/}
-          {/* 섹션 헤더 */}
-          <View style={styles.header}>
-            <View style={styles.titleBlock}>
-              {/* 제목 + 연도 드롭다운 */}
-              <View style={styles.titleRow}>
-                <Text style={styles.sectionTitle}>취향 분석</Text>
-                <TouchableOpacity
-                  style={styles.monthButton}
-                  onPress={openPicker}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.monthText}>{month}월</Text>
-                  <MaterialIcons
-                    name="arrow-forward-ios"
-                    size={17}
-                    color={colors.primary[500]}
-                    style={{ marginLeft: 4, transform: [{ rotate: "90deg" }] }} // 아래 방향처럼 보이게 회전
-                  />
-                </TouchableOpacity>
+          {isEmpty ? null : (
+            <>
+              {/* 월별 통계 섹션 */}
+              <View onLayout={handleStatsLayout}>
+                <MonthlyStats
+                  year={year}
+                  month={month}
+                  monthlyStatus={data.monthlyStatus}
+                  onChangeYear={setYear}
+                  onChangeMonth={setMonth}
+                  animateKey={statsAnimateKey}
+                  resetKey={statsResetKey}
+                  onOpenPicker={openPicker}
+                  isCurrentMonth={isCurrentMonth}
+                />
               </View>
 
-              {/* 캡션 */}
-              <Text style={styles.caption}>
-                나의 별점을 기준으로 작성된 표예요
-              </Text>
-            </View>
-          </View>
+              {/* 취향 분석 스와이프 페이저 섹션 */}
+              <View onLayout={handlePreferenceLayout}>
+                {/* 섹션 헤더*/}
+                <View style={styles.header}>
+                  <View style={styles.titleBlock}>
+                    {/* 제목 */}
+                    <View style={styles.titleRow}>
+                      <Text
+                        style={[styles.monthText, { color: styleSet.month }]}
+                      >
+                        {month}월
+                      </Text>
+                      <Text
+                        style={[styles.sectionTitle, { color: styleSet.title }]}
+                      >
+                        취향 분석
+                      </Text>
+                    </View>
 
-          {/* 스와이프 카드 */}
-          <Animated.ScrollView
-            ref={preferencePagerRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handlePreferencePageScrollEnd}
-            scrollEventThrottle={16}
-            snapToInterval={SNAP_INTERVAL}
-            decelerationRate="fast"
-            contentContainerStyle={{
-              // 왼쪽에서부터 차례대로 보이게 (스크린 패딩만 신경)
-              paddingRight: CARD_SPACING,
-            }}
-          >
-            {/* 페이지 0: 키워드 리뷰 */}
-            <View style={{ width: CARD_WIDTH, marginRight: CARD_SPACING }}>
-              <KeywordReviewCard
-                year={year}
-                month={month}
-                keywords={data.reviewKeywords}
-                animateKey={keywordAnimateKey}
-              />
-            </View>
+                    {/* 캡션 */}
+                    <Text style={[styles.caption, { color: styleSet.caption }]}>
+                      나의 별점을 기준으로 작성된 표예요
+                    </Text>
+                  </View>
+                </View>
 
-            {/* 페이지 1: 최근 선호 장르 도넛 차트 */}
-            <View style={{ width: CARD_WIDTH }}>
-              <GenrePreferenceCard
-                genres={data.genreDistribution}
-                animateKey={genreAnimateKey}
-              />
-            </View>
-          </Animated.ScrollView>
+                {/* 스와이프 카드 */}
+                <Animated.ScrollView
+                  ref={preferencePagerRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  onMomentumScrollEnd={handlePreferencePageScrollEnd}
+                  scrollEventThrottle={16}
+                  snapToInterval={SNAP_INTERVAL}
+                  decelerationRate="fast"
+                  contentContainerStyle={{
+                    // 왼쪽에서부터 차례대로 보이게 (스크린 패딩만 신경)
+                    paddingRight: CARD_SPACING,
+                  }}
+                >
+                  {/* 페이지 0: 최근 선호 장르 도넛 차트 */}
+                  <View
+                    style={{ width: CARD_WIDTH, marginRight: CARD_SPACING }}
+                  >
+                    <GenrePreferenceCard
+                      genres={data.genreDistribution}
+                      animateKey={genreAnimateKey}
+                      isCurrentMonth={isCurrentMonth}
+                    />
+                  </View>
+
+                  {/* 페이지 1: 키워드 리뷰 */}
+                  <View style={{ width: CARD_WIDTH }}>
+                    <KeywordReviewCard
+                      year={year}
+                      month={month}
+                      keywords={data.reviewKeywords}
+                      animateKey={keywordAnimateKey}
+                      isActive={activePreferencePage === 1}
+                    />
+                  </View>
+                </Animated.ScrollView>
+              </View>
+            </>
+          )}
+
+          {/* 공통 YearMonthPicker */}
+          <YearMonthPicker
+            visible={pickerVisible}
+            onClose={closePicker}
+            selectedYear={year}
+            selectedMonth={month}
+            onSelectYear={setYear}
+            onSelectMonth={setMonth}
+          />
         </View>
-      </ScrollView>
-
-      {/* 공통 YearMonthPicker */}
-      <YearMonthPicker
-        visible={pickerVisible}
-        onClose={closePicker}
-        selectedYear={year}
-        selectedMonth={month}
-        onSelectYear={setYear}
-        onSelectMonth={setMonth}
-      />
-    </>
+      </ImageBackground>
+    </ScrollView>
   );
 }
 
@@ -315,6 +388,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.DEFAULT,
+  },
+
+  bg: {
+    flexGrow: 1,
+    width: "100%",
+  },
+
+  scrollContainer: {
+    flexGrow: 1, // 컨텐츠 높이만큼 늘어나서 배경도 같이 스크롤
   },
   content: {
     padding: spacing.l,
@@ -340,19 +422,15 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
   },
   sectionTitle: {
-    ...typography["heading-1-medium"],
-    color: colors.mono[950],
+    fontSize: 28,
     fontWeight: "600",
-  },
-  monthButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 12,
+    color: colors.mono[950],
   },
   monthText: {
-    ...typography["heading-1-medium"],
-    color: colors.primary[500],
+    fontSize: 28,
     fontWeight: "600",
+    color: colors.primary[500],
+    marginRight: 12,
   },
   dropdownIcon: {
     fontSize: 12,

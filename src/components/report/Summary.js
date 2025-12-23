@@ -8,38 +8,43 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-export default function Summary({ summary }) {
+export default function Summary({ summary, userName, isCurrentMonth }) {
   // userName은 나중에 실제 유저 이름으로 교체 예정 !
-  const {
-    year,
-    month,
-    title,
-    description,
-    percent,
-    userName = "모담",
-  } = summary;
+  const { year, month, title, description, percent } = summary;
 
   const lines = splitToLines(description, 20);
+
+  const currentMonthStyle = {
+    headerText: colors.mono[0],
+    monthText: colors.mono[0],
+  };
+
+  const pastMonthStyle = {
+    headerText: colors.mono[950],
+    monthText: colors.primary[500],
+  };
+
+  const styleSet = isCurrentMonth ? currentMonthStyle : pastMonthStyle;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
-        <Text style={styles.headerLine1}>
-          {userName} 님의 <Text style={styles.headerMonth}>{month}월</Text>
+        <Text style={[styles.headerLine1, { color: styleSet.headerText }]}>
+          {userName} 님의{" "}
+          <Text style={[styles.headerMonth, { color: styleSet.monthText }]}>
+            {isCurrentMonth ? "이번 달" : "지난 달"}
+          </Text>
         </Text>
-        <Text style={styles.headerLine2}>
-          <Text style={styles.sectionTitle}>독서 기록</Text> 결과예요
+        <Text style={[styles.headerLine2, { color: styleSet.headerText }]}>
+          <Text style={[styles.headerMonth, { color: styleSet.headerText }]}>
+            독서 기록
+          </Text>{" "}
+          결과예요
         </Text>
       </View>
 
       {/* 카드 */}
-      <LinearGradient
-        colors={[colors.primary[50], colors.primary[200]]}
-        locations={[0.19, 0.87]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <Text style={styles.personaTitle}>{title}</Text>
         <Text style={styles.personaSub}>
           모담 회원 중 {percent}% 유형이에요
@@ -58,7 +63,7 @@ export default function Summary({ summary }) {
             </Text>
           ))}
         </Text>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -76,28 +81,31 @@ const styles = StyleSheet.create({
 
   // 헤더 영역
   header: {
-    marginBottom: spacing.m,
+    marginBottom: 28,
   },
   headerLine1: {
-    ...typography["heading-1-medium"],
-    color: colors.mono[950],
-    marginBottom: 2,
+    fontSize: 28,
+    fontWeight: 400,
+    color: "white",
   },
   headerMonth: {
     fontWeight: "700",
-    color: colors.primary[500],
+    fontSize: 28,
+    color: "white",
   },
   headerLine2: {
-    ...typography["heading-1-medium"],
-    color: colors.mono[950],
+    fontSize: 28,
+    fontWeight: 400,
+    color: "white",
   },
 
   // 카드
   card: {
-    height: 450,
-    padding: spacing.l,
+    paddingHorizontal: spacing.l,
+    paddingVertical: 20,
     borderRadius: radius[500],
     ...shadow[0],
+    backgroundColor: "white",
   },
   personaTitle: {
     fontSize: 36,
@@ -106,8 +114,8 @@ const styles = StyleSheet.create({
   },
   personaSub: {
     ...typography["body-1-regular"],
-    color: colors.mono[700],
-    marginBottom: spacing.m,
+    color: colors.mono[950],
+    marginBottom: 12,
   },
 
   // 임시 캐릭터 이미지 부분
@@ -117,7 +125,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mono[0],
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: spacing.m,
+    marginBottom: 12,
   },
   characterLabel: {
     ...typography["body-1-bold"],
@@ -125,7 +133,7 @@ const styles = StyleSheet.create({
   },
 
   personaDesc: {
-    ...typography["heading-3-medium"],
+    ...typography["heading-4-medium"],
     color: colors.mono[950],
   },
 });

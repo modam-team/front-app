@@ -13,8 +13,26 @@ import {
   View,
 } from "react-native";
 
-const BAR_MAX_HEIGHT = 230;
+const BAR_MAX_HEIGHT = 227;
 const MONTH_COUNT = 12;
+
+const currentMonthStyle = {
+  barColor: colors.primary[0],
+  dateColor: colors.primary[0],
+  textColor: colors.mono[0],
+  captionColor: colors.primary[50],
+  axisColor: colors.mono[0],
+  iconColor: colors.mono[0],
+};
+
+const pastMonthStyle = {
+  barColor: colors.primary[200],
+  dateColor: colors.primary[500],
+  textColor: colors.mono[950],
+  captionColor: colors.mono[950],
+  axisColor: colors.mono[950],
+  iconColor: colors.mono[950],
+};
 
 export default function MonthlyStats({
   year,
@@ -25,7 +43,10 @@ export default function MonthlyStats({
   animateKey,
   resetKey,
   onOpenPicker,
+  isCurrentMonth,
 }) {
+  const styleSet = isCurrentMonth ? currentMonthStyle : pastMonthStyle;
+
   const monthData = useMemo(() => {
     const map = new Map();
     (monthlyStatus || []).forEach((m) => map.set(m.month, m.count));
@@ -77,26 +98,37 @@ export default function MonthlyStats({
       {/* 섹션 헤더 */}
       <View style={styles.header}>
         <View style={styles.titleBlock}>
+          {/* 선택된 연도 및 월 표시 */}
+          <Text style={[styles.dateText, { color: styleSet.dateColor }]}>
+            {year}년 {month}월
+          </Text>
+
           {/* 제목 + 연도 드롭다운 */}
           <View style={styles.titleRow}>
-            <Text style={styles.sectionTitle}>독서 통계</Text>
+            <Text style={[styles.sectionTitle, { color: styleSet.textColor }]}>
+              독서 통계
+            </Text>
             <TouchableOpacity
               style={styles.yearButton}
               onPress={onOpenPicker}
               activeOpacity={0.7}
             >
-              <Text style={styles.yearText}>{year}년</Text>
+              <Text style={[styles.yearText, { color: styleSet.textColor }]}>
+                {year}년
+              </Text>
               <MaterialIcons
                 name="arrow-forward-ios"
                 size={17}
-                color={colors.primary[500]}
+                color={styleSet.iconColor}
                 style={{ marginLeft: 4, transform: [{ rotate: "90deg" }] }} // 아래 방향처럼 보이게 회전
               />
             </TouchableOpacity>
           </View>
 
           {/* 캡션 */}
-          <Text style={styles.caption}>완독으로 표시된 책 기준이에요</Text>
+          <Text style={[styles.caption, { color: styleSet.captionColor }]}>
+            완독으로 표시된 책 기준이에요
+          </Text>
         </View>
       </View>
 
@@ -124,15 +156,14 @@ export default function MonthlyStats({
                 {/* 막대 영역 */}
                 <View style={styles.barOuter}>
                   <Animated.View
-                    style={[styles.barInner, { height: animatedHeight }]}
-                  >
-                    <LinearGradient
-                      colors={[colors.primary[400], colors.primary[100]]}
-                      start={{ x: 0.5, y: 0 }}
-                      end={{ x: 0.5, y: 1 }}
-                      style={styles.barGradient}
-                    />
-                  </Animated.View>
+                    style={[
+                      styles.barInner,
+                      {
+                        height: animatedHeight,
+                        backgroundColor: styleSet.barColor,
+                      },
+                    ]}
+                  />
                 </View>
 
                 {/* 막대 위 숫자 */}
@@ -141,6 +172,7 @@ export default function MonthlyStats({
                     style={[
                       styles.barValue,
                       {
+                        color: styleSet.textColor,
                         position: "absolute",
                         bottom: labelBottom,
                       },
@@ -155,7 +187,9 @@ export default function MonthlyStats({
         </View>
 
         {/* x축 라인 */}
-        <View style={styles.axisLine} />
+        <View
+          style={[styles.axisLine, { backgroundColor: styleSet.axisColor }]}
+        />
 
         {/* 월 라벨 줄 */}
         <View style={styles.monthLabelRow}>
@@ -164,7 +198,9 @@ export default function MonthlyStats({
               key={item.month}
               style={styles.monthLabelWrapper}
             >
-              <Text style={styles.monthLabel}>{item.month}</Text>
+              <Text style={[styles.monthLabel, { color: styleSet.textColor }]}>
+                {item.month}
+              </Text>
             </View>
           ))}
         </View>
@@ -175,14 +211,19 @@ export default function MonthlyStats({
 
 const styles = StyleSheet.create({
   wrap: {
-    marginBottom: spacing.sectionGap,
+    marginBottom: 42,
   },
 
   header: {
-    marginBottom: spacing.m,
+    marginBottom: 12,
   },
   titleBlock: {
     flexShrink: 1,
+  },
+  dateText: {
+    fontSize: 28,
+    fontWeight: "600",
+    marginBottom: spacing.s,
   },
   titleRow: {
     flexDirection: "row",
@@ -190,7 +231,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography["heading-1-medium"],
-    color: colors.mono[950],
     fontWeight: "600",
   },
   yearButton: {
@@ -200,22 +240,14 @@ const styles = StyleSheet.create({
   },
   yearText: {
     ...typography["heading-1-medium"],
-    color: colors.primary[500],
     fontWeight: "600",
-  },
-  dropdownIcon: {
-    fontSize: 12,
-    color: colors.primary[500],
   },
   caption: {
     ...typography["body-1-regular"],
-    color: colors.mono[950],
   },
 
   chartContainer: {
     height: 265,
-    paddingHorizontal: spacing.s,
-    paddingTop: spacing.sectionGap,
   },
   barRow: {
     flexDirection: "row",
@@ -230,8 +262,8 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   barValue: {
-    ...typography["detail-regular"],
-    color: colors.mono[950],
+    fontSize: 10,
+    fontWeight: "600",
   },
 
   barOuter: {
@@ -240,8 +272,6 @@ const styles = StyleSheet.create({
   },
   barInner: {
     width: 23,
-    borderTopLeftRadius: 999,
-    borderTopRightRadius: 999,
     overflow: "hidden",
   },
   barGradient: {
@@ -258,12 +288,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   monthLabel: {
-    ...typography["detail-regular"],
-    color: colors.mono[950],
+    fontSize: 10,
+    fontWeight: "400",
   },
   axisLine: {
     height: 1.5,
-    backgroundColor: colors.mono[950],
     marginTop: spacing.s,
   },
 });
