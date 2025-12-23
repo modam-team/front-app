@@ -3,6 +3,7 @@ import HomeScreen from "../screens/HomeScreen";
 import ReportScreen from "../screens/ReportScreen";
 import colors from "../theme/legacyColors";
 import { Ionicons } from "@expo/vector-icons";
+import ReportStack from "@navigation/ReportStack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
@@ -34,7 +35,7 @@ export default function BottomTabs({ navigation }) {
         />
         <Tab.Screen
           name="리포트"
-          component={ReportScreen}
+          component={ReportStack}
         />
       </Tab.Navigator>
     </>
