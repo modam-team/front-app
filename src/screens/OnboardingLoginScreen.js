@@ -87,13 +87,7 @@ export default function OnboardingLoginScreen({ navigation }) {
 
         setShowWebView(false);
 
-        if (completed) {
-          // 이미 온보딩한 유저는 바로 메인으로
-          navigation.replace("Root");
-        } else {
-          // 아직 안 한 유저는 Flow로 이동하면서 userId 넘겨주기
-          navigation.replace("OnboardingFlow");
-        }
+        navigation.replace("AuthGate");
 
         setShowWebView(false);
       } catch (err) {

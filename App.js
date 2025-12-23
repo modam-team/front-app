@@ -1,5 +1,6 @@
 import BottomTabs from "./src/navigation/BottomTabs";
 import AddEntryScreen from "./src/screens/AddEntryScreen";
+import AuthGateScreen from "./src/screens/AuthGateScreen";
 import BookDetailScreen from "./src/screens/BookDetailScreen";
 import EditNameScreen from "./src/screens/EditNameScreen";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
@@ -70,6 +71,11 @@ export default function App() {
         <Stack.Screen
           name="EditNameScreen"
           component={EditNameScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="AuthGate"
+          component={AuthGateScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
