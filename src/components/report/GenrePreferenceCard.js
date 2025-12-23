@@ -42,26 +42,31 @@ const SEGMENT_COLORS = [
 
 // 각도를 좌표로 변환
 function polarToCartesian(cx, cy, r, angle) {
-  const rad = ((angle - 90) * Math.PI) / 180;
+  const rad = (angle * Math.PI) / 180;
   return {
-    x: cx + r * Math.cos(rad),
-    y: cy + r * Math.sin(rad),
+    x: cx + r * Math.sin(rad),
+    y: cy - r * Math.cos(rad),
   };
 }
 
 // start -> end 원호 path
 function describeArc(cx, cy, r, start, end) {
-  const startPt = polarToCartesian(cx, cy, r, end);
-  const endPt = polarToCartesian(cx, cy, r, start);
+  const startPt = polarToCartesian(cx, cy, r, start);
+  const endPt = polarToCartesian(cx, cy, r, end);
   const largeArc = end - start <= 180 ? "0" : "1";
 
-  return `M ${startPt.x} ${startPt.y} A ${r} ${r} 0 ${largeArc} 0 ${endPt.x} ${endPt.y}`;
+  return `M ${startPt.x} ${startPt.y} A ${r} ${r} 0 ${largeArc} 1 ${endPt.x} ${endPt.y}`;
 }
 
 function buildTopNWithEtc(genres, topN) {
   if (!Array.isArray(genres) || genres.length === 0) return [];
 
-  const sorted = [...genres].sort((a, b) => (b.ratio || 0) - (a.ratio || 0));
+  const sorted = [...genres].sort((a, b) => {
+    const diff = (b.ratio || 0) - (a.ratio || 0);
+    if (diff !== 0) return diff;
+    // 동률: 가나다순
+    return String(a.name || "").localeCompare(String(b.name || ""), "ko");
+  });
 
   const top = sorted.slice(0, topN - 1);
   const rest = sorted.slice(topN - 1);
@@ -116,7 +121,7 @@ export default function GenrePreferenceCard({
     const reservedAngle = MIN_DEG * normalizedGenres.length; // 전체에서 빼놓을 각도
     const variableAngleTotal = Math.max(360 - reservedAngle, 0);
 
-    let startAngle = -90;
+    let startAngle = 0;
 
     return normalizedGenres.map((g, i) => {
       const ratio = emphasized[i] / emphasizedSum;
@@ -174,7 +179,7 @@ export default function GenrePreferenceCard({
     return () => progressAnim.removeListener(id);
   }, [segments, animateKey]);
 
-  const globalAngle = -90 + 360 * progress;
+  const globalAngle = 360 * progress;
 
   const leftCol = segments.slice(0, 3);
   const rightCol = segments.slice(3, 6);
