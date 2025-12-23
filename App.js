@@ -1,6 +1,7 @@
 import BottomTabs from "./src/navigation/BottomTabs";
 import AddEntryScreen from "./src/screens/AddEntryScreen";
 import BookDetailScreen from "./src/screens/BookDetailScreen";
+import EditNameScreen from "./src/screens/EditNameScreen";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import OnboardingFlowScreen from "@screens/OnboardingFlowScreen";
@@ -64,6 +65,11 @@ export default function App() {
         <Stack.Screen
           name="ProfileScreen"
           component={ProfileScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="EditNameScreen"
+          component={EditNameScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
