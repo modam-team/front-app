@@ -1,3 +1,4 @@
+import PlaceHabits from "../components/report/PlaceHabits";
 import { fetchMonthlyReport } from "@apis/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
 import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
@@ -16,7 +17,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -95,6 +96,10 @@ export default function ReportScreen() {
     height: 0,
   });
 
+  // 습관 섹션 레이아웃
+  const [habitLayout, setHabitLayout] = useState({ y: 0, height: 0 });
+  const [habitAnimatedThisFocus, setHabitAnimatedThisFocus] = useState(false);
+
   // 습관 분석 토글
   const [habitTab, setHabitTab] = useState("time"); // 'time' | 'place'
 
@@ -139,7 +144,7 @@ export default function ReportScreen() {
 
         // 습관도 같이 리셋
         setHabitResetKey((k) => k + 1);
-        setHabitAnimateKey((k) => k + 1);
+        setHabitAnimatedThisFocus(false);
         setHabitTab("time");
 
         // 페이지 안 카드 키들도 초기화
@@ -172,7 +177,7 @@ export default function ReportScreen() {
       setGenreAnimateKey((k) => k + 1);
 
       setHabitResetKey((k) => k + 1);
-      setHabitAnimateKey((k) => k + 1);
+      setHabitAnimatedThisFocus(false);
 
       if (scrollRef.current) {
         scrollRef.current.scrollTo({
@@ -182,6 +187,26 @@ export default function ReportScreen() {
       }
     }
   }, [isFocused]);
+
+  const places = useMemo(() => {
+    const list = data?.readingPlaces ?? [];
+    const ratioByLabel = new Map(list.map((p) => [p.label, p.ratio]));
+
+    return [
+      {
+        key: "MOVING",
+        label: "이동중",
+        ratio: ratioByLabel.get("이동중") ?? 0,
+      },
+      { key: "CAFE", label: "카페", ratio: ratioByLabel.get("카페") ?? 0 },
+      { key: "HOME", label: "집", ratio: ratioByLabel.get("집") ?? 0 },
+      {
+        key: "LIBRARY",
+        label: "도서관",
+        ratio: ratioByLabel.get("도서관") ?? 0,
+      },
+    ];
+  }, [data]);
 
   // 통계 섹션 위치 저장
   const handleStatsLayout = (e) => {
@@ -193,6 +218,12 @@ export default function ReportScreen() {
   const handlePreferenceLayout = (e) => {
     const { y, height } = e.nativeEvent.layout;
     setPreferenceLayout({ y, height });
+  };
+
+  // 습관 분석 섹션 위치 저장
+  const handleHabitLayout = (e) => {
+    const { y, height } = e.nativeEvent.layout;
+    setHabitLayout({ y, height });
   };
 
   // 특정 섹션이 화면에 50% 이상 보이는지 계산하는 헬퍼
@@ -241,6 +272,13 @@ export default function ReportScreen() {
         setKeywordAnimateKey((k) => k + 1);
       }
       setPreferenceAnimatedThisFocus(true);
+    }
+
+    // 습관 분석 섹션
+    const habitVisible = isSectionVisible(habitLayout, scrollY, screenHeight);
+    if (habitVisible && !habitAnimatedThisFocus) {
+      setHabitAnimateKey((k) => k + 1);
+      setHabitAnimatedThisFocus(true);
     }
   };
 
@@ -385,7 +423,10 @@ export default function ReportScreen() {
               </View>
 
               {/* 습관 분석 섹션 */}
-              <View style={{ marginTop: 30 }}>
+              <View
+                style={{ marginTop: 30 }}
+                onLayout={handleHabitLayout}
+              >
                 {/* 섹션 헤더 */}
                 <View style={{ marginBottom: 12 }}>
                   <View style={styles.titleBlock}>
@@ -422,14 +463,11 @@ export default function ReportScreen() {
                     resetKey={habitResetKey}
                   />
                 ) : (
-                  <View style={styles.placeHolderCard}>
-                    <Text style={styles.placeHolderTitle}>
-                      장소 분석은 준비중이에요 🙂
-                    </Text>
-                    <Text style={styles.placeHolderCaption}>
-                      다음 카드에서 장소별 독서 습관을 보여줄게요
-                    </Text>
-                  </View>
+                  <PlaceHabits
+                    places={places}
+                    animateKey={habitAnimateKey}
+                    resetKey={habitResetKey}
+                  />
                 )}
               </View>
             </>
