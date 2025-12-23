@@ -37,12 +37,12 @@ const MAX_R = 120;
 // 카드 패딩(원 클램프용)
 const PAD = 16;
 
-// 색(이미지 느낌대로)
+// 색
 const CIRCLE_COLORS = [
-  "#3E5E17", // 이동중 (진한 초록)
-  "#5F8139", // 카페
-  "#A7C08A", // 집
-  "#D6F0C8", // 도서관 (연한)
+  colors.primary[500],
+  colors.primary[400],
+  colors.primary[200],
+  colors.primary[0],
 ];
 
 function clamp(v, min, max) {
@@ -93,28 +93,42 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
 
   // 데이터 정규화 + targetR 계산
   const targets = useMemo(() => {
-    const safe = places.slice(0, 4);
-    while (safe.length < 4) safe.push({ label: "", ratio: 0 });
+    const raw = places
+      .map((p) => ({
+        label: p.label ?? "",
+        ratio: Number(p.ratio) || 0,
+      }))
+      .slice(0, 4);
 
-    const sum = safe.reduce((a, c) => a + (Number(c.ratio) || 0), 0);
-    const norm =
+    // 4개 미만이면 채우기
+    while (raw.length < 4) raw.push({ label: "", ratio: 0 });
+
+    // 합계로 정규화(비율)
+    const sum = raw.reduce((a, c) => a + c.ratio, 0);
+    const normalized =
       sum > 0
-        ? safe.map((p) => (Number(p.ratio) || 0) / sum)
-        : [0.4, 0.3, 0.2, 0.1];
+        ? raw.map((p) => ({ ...p, ratio: p.ratio / sum }))
+        : [
+            { label: raw[0].label, ratio: 0.4 },
+            { label: raw[1].label, ratio: 0.3 },
+            { label: raw[2].label, ratio: 0.2 },
+            { label: raw[3].label, ratio: 0.1 },
+          ];
 
-    const gamma = 1;
-    const eased = norm.map((t) => Math.pow(t, gamma));
-    const easedSum = eased.reduce((a, c) => a + c, 0);
-    const final = eased.map((t) => (easedSum ? t / easedSum : 0.25));
+    // 랭킹(내림차순) 정렬 + 원래 label 유지
+    const ranked = normalized
+      .map((p, idx) => ({ ...p, _idx: idx }))
+      .sort((a, b) => b.ratio - a.ratio);
 
-    // radius 매핑
-    const targetR = final.map((t) => lerp(MIN_R, MAX_R, t));
+    // radius 매핑 (랭킹 기준으로 1등이 가장 큼)
+    const targetR = ranked.map((p) => lerp(MIN_R, MAX_R, p.ratio));
 
-    return safe.map((p, i) => ({
+    // 최종 targets: i=0이 1등(가장 진한 색), i=1이 2등...
+    return ranked.map((p, rank) => ({
       label: p.label,
-      ratio: norm[i],
-      targetR: targetR[i],
-      color: CIRCLE_COLORS[i],
+      ratio: p.ratio,
+      targetR: targetR[rank],
+      color: CIRCLE_COLORS[rank], //  rank 기반 컬러
     }));
   }, [places]);
 
@@ -185,7 +199,7 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
 
       Animated.timing(textProgress, {
         toValue: 1,
-        duration: 220, // 글자 뜨는 속도
+        duration: 250, // 글자 뜨는 속도
         delay: TEXT_DELAY,
         easing: Easing.out(Easing.ease),
         useNativeDriver: true, // opacity만이면 true 가능
