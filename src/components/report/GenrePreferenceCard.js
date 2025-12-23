@@ -7,8 +7,9 @@ import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, G, Path } from "react-native-svg";
 
 const SIZE = 193;
+const DONUT_SIZE = 167; // 실제 도넛 지름
 const STROKE_WIDTH = 55;
-const RADIUS = (SIZE - STROKE_WIDTH) / 2;
+const RADIUS = (DONUT_SIZE - STROKE_WIDTH) / 2;
 const CENTER = SIZE / 2;
 const ANIMATION_DURATION = 1000;
 
@@ -42,26 +43,31 @@ const SEGMENT_COLORS = [
 
 // 각도를 좌표로 변환
 function polarToCartesian(cx, cy, r, angle) {
-  const rad = ((angle - 90) * Math.PI) / 180;
+  const rad = (angle * Math.PI) / 180;
   return {
-    x: cx + r * Math.cos(rad),
-    y: cy + r * Math.sin(rad),
+    x: cx + r * Math.sin(rad),
+    y: cy - r * Math.cos(rad),
   };
 }
 
 // start -> end 원호 path
 function describeArc(cx, cy, r, start, end) {
-  const startPt = polarToCartesian(cx, cy, r, end);
-  const endPt = polarToCartesian(cx, cy, r, start);
+  const startPt = polarToCartesian(cx, cy, r, start);
+  const endPt = polarToCartesian(cx, cy, r, end);
   const largeArc = end - start <= 180 ? "0" : "1";
 
-  return `M ${startPt.x} ${startPt.y} A ${r} ${r} 0 ${largeArc} 0 ${endPt.x} ${endPt.y}`;
+  return `M ${startPt.x} ${startPt.y} A ${r} ${r} 0 ${largeArc} 1 ${endPt.x} ${endPt.y}`;
 }
 
 function buildTopNWithEtc(genres, topN) {
   if (!Array.isArray(genres) || genres.length === 0) return [];
 
-  const sorted = [...genres].sort((a, b) => (b.ratio || 0) - (a.ratio || 0));
+  const sorted = [...genres].sort((a, b) => {
+    const diff = (b.ratio || 0) - (a.ratio || 0);
+    if (diff !== 0) return diff;
+    // 동률: 가나다순
+    return String(a.name || "").localeCompare(String(b.name || ""), "ko");
+  });
 
   const top = sorted.slice(0, topN - 1);
   const rest = sorted.slice(topN - 1);
@@ -94,6 +100,9 @@ export default function GenrePreferenceCard({
 
   const [progress, setProgress] = useState(0);
 
+  const popAnimRef = useRef(new Animated.Value(0));
+  const [pop, setPop] = useState(0);
+
   // 상위 5개 + 기타로 만들기
   const normalizedGenres = useMemo(
     () => buildTopNWithEtc(genres, TOP_N),
@@ -116,7 +125,7 @@ export default function GenrePreferenceCard({
     const reservedAngle = MIN_DEG * normalizedGenres.length; // 전체에서 빼놓을 각도
     const variableAngleTotal = Math.max(360 - reservedAngle, 0);
 
-    let startAngle = -90;
+    let startAngle = 0;
 
     return normalizedGenres.map((g, i) => {
       const ratio = emphasized[i] / emphasizedSum;
@@ -144,6 +153,7 @@ export default function GenrePreferenceCard({
     if (!segments || segments.length === 0) return;
 
     const progressAnim = progressAnimRef.current;
+    const popAnim = popAnimRef.current;
 
     // 최초 1번 실행
     if (animateKey == null) {
@@ -158,23 +168,44 @@ export default function GenrePreferenceCard({
     }
 
     progressAnim.stopAnimation();
+    popAnim.stopAnimation();
     progressAnim.setValue(0);
+    popAnim.setValue(0);
 
     const id = progressAnim.addListener(({ value }) => setProgress(value));
+    const id2 = popAnim.addListener(({ value }) => setPop(value));
 
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: ANIMATION_DURATION,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
-    }).start(() => {
+    }).start(({ finished }) => {
       progressAnim.removeListener(id);
+
+      if (!finished) return;
+
+      // 채우기 끝나면 1등만 팝업
+      Animated.timing(popAnim, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: false,
+      }).start(() => {
+        popAnim.removeListener(id2);
+      });
     });
 
     return () => progressAnim.removeListener(id);
   }, [segments, animateKey]);
 
-  const globalAngle = -90 + 360 * progress;
+  const globalAngle = 360 * progress;
+
+  const winner = segments[0];
+  const POP_DELTA = 5;
+
+  const winnerR = RADIUS + POP_DELTA * pop;
+  const winnerSW = STROKE_WIDTH + POP_DELTA * 2 * pop;
 
   const leftCol = segments.slice(0, 3);
   const rightCol = segments.slice(3, 6);
@@ -226,6 +257,22 @@ export default function GenrePreferenceCard({
                   />
                 );
               })}
+
+              {winner && progress >= 0.999 && pop > 0 && (
+                <Path
+                  d={describeArc(
+                    CENTER,
+                    CENTER,
+                    winnerR,
+                    winner.startAngle,
+                    winner.endAngle,
+                  )}
+                  stroke={winner.color}
+                  strokeWidth={winnerSW}
+                  fill="none"
+                  strokeLinecap="butt"
+                />
+              )}
             </G>
           </Svg>
         </View>
