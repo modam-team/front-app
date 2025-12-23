@@ -33,7 +33,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[0],
     borderRadius: 28,
     padding: 4,
-    marginTop: 12,
   },
   tab: {
     flex: 1,

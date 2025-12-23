@@ -385,9 +385,9 @@ export default function ReportScreen() {
               </View>
 
               {/* 습관 분석 섹션 */}
-              <View style={{ marginTop: spacing.xl }}>
+              <View style={{ marginTop: 30 }}>
                 {/* 섹션 헤더 */}
-                <View style={styles.header}>
+                <View style={{ marginBottom: 12 }}>
                   <View style={styles.titleBlock}>
                     <View style={styles.titleRow}>
                       <Text
