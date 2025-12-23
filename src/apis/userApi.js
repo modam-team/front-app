@@ -33,3 +33,9 @@ export async function completeOnboarding(payload) {
   // 200 OK만 응답으로 옴
   return res.data;
 }
+
+// 회원탈퇴
+export async function withdrawUser() {
+  const res = await client.delete("/api/user/withdraw");
+  return res.data; // 200 OK
+}
