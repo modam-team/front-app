@@ -52,6 +52,17 @@ function polarToCartesian(cx, cy, r, angle) {
 
 // start -> end 원호 path
 function describeArc(cx, cy, r, start, end) {
+  const sweep = end - start;
+
+  if (sweep >= 359.999) {
+    const startPt = polarToCartesian(cx, cy, r, start);
+    const midPt = polarToCartesian(cx, cy, r, start + 180);
+
+    return `M ${startPt.x} ${startPt.y}
+            A ${r} ${r} 0 1 1 ${midPt.x} ${midPt.y}
+            A ${r} ${r} 0 1 1 ${startPt.x} ${startPt.y}`;
+  }
+
   const startPt = polarToCartesian(cx, cy, r, start);
   const endPt = polarToCartesian(cx, cy, r, end);
   const largeArc = end - start <= 180 ? "0" : "1";
@@ -189,7 +200,7 @@ export default function GenrePreferenceCard({
       Animated.timing(popAnim, {
         toValue: 1,
         duration: 260,
-        easing: Easing.out(Easing.back(1.2)),
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
       }).start(() => {
         popAnim.removeListener(id2);
@@ -209,6 +220,8 @@ export default function GenrePreferenceCard({
 
   const leftCol = segments.slice(0, 3);
   const rightCol = segments.slice(3, 6);
+
+  const isPopping = pop > 0;
 
   return (
     <View style={styles.card}>
@@ -234,6 +247,9 @@ export default function GenrePreferenceCard({
 
               {/* 채워지는 막대 */}
               {segments.map((seg, index) => {
+                const isWinner = winner && seg.name === winner.name;
+                if (isWinner && isPopping) return null;
+
                 if (globalAngle <= seg.startAngle) return null;
                 const end = Math.min(globalAngle, seg.endAngle);
                 if (end <= seg.startAngle) return null;
