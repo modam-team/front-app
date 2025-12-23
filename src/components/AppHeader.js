@@ -8,7 +8,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 export default function AppHeader({
   title,
   backgroundColor = colors.background.DEFAULT,
-  showBack = true,
+  showBack = false,
   onPressBack,
   align = "center",
 }) {
@@ -24,12 +24,13 @@ export default function AppHeader({
             hitSlop={10}
             style={styles.backButton}
           >
-            <MaterialIcons
-              name="arrow-forward-ios"
-              size={24}
-              color={colors.mono[1000]}
-              style={{ transform: [{ scaleX: -1 }] }}
-            />
+            <View style={{ transform: [{ scaleX: -1 }] }}>
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={24}
+                color={colors.mono[1000]}
+              />
+            </View>
           </Pressable>
         ) : null}
       </View>
