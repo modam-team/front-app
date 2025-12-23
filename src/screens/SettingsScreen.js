@@ -109,7 +109,7 @@ export default function SettingsScreen() {
       {/* Header */}
       <AppHeader
         title="설정"
-        showBack={true}
+        showBack
         onPressBack={() => navigation.goBack()}
       />
 
