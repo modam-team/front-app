@@ -2,7 +2,7 @@ import { client } from "@apis/clientApi";
 import { PLACE_MOOD_MAP } from "@constants/placeMoodMap";
 import { READING_TENDENCY_MAP } from "@constants/readingTendencyMap";
 
-const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "false";
+const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
 
 export const reportMonthlyApiMock = {
   success: true,

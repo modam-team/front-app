@@ -1,10 +1,9 @@
-import PlaceHabits from "../components/report/PlaceHabits";
 import { fetchMonthlyReport } from "@apis/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
-import ModamLogo from "@assets/icons/modam.svg";
 import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
 import KeywordReviewCard from "@components/report/KeywordReviewCard";
 import MonthlyStats from "@components/report/MonthlyStats";
+import PlaceHabits from "@components/report/PlaceHabits";
 import ReportToggle from "@components/report/ReportToggle";
 import ReportTopHeader from "@components/report/ReportTopHeader";
 import Summary from "@components/report/Summary";
@@ -320,25 +319,15 @@ export default function ReportScreen() {
     }
   };
 
-  if (loading || !data) {
-    return (
-      <View style={styles.loadingWrap}>
-        <ActivityIndicator
-          size="large"
-          color={colors.primary[500]}
-        />
-      </View>
-    );
-  }
+  const isEmpty = !!data?.summary?.isEmpty;
+  const headerVariant = isCurrentMonth && !isEmpty ? "light" : "green";
 
-  const isEmpty = !!data.summary?.isEmpty;
-
-  const personaKey = data.summary?.title.trim().split(/\s+/).pop();
+  const personaKey = data?.summary?.title?.trim().split(/\s+/).pop();
   const map = isCurrentMonth
     ? REPORT_BACKGROUND_MAP
     : REPORT_BACKGROUND_MAP_PAST;
 
-  const bgSource = !isEmpty ? map[personaKey] : null;
+  const bgSource = !isEmpty && personaKey ? map[personaKey] : null;
 
   return (
     <ScrollView
@@ -354,146 +343,176 @@ export default function ReportScreen() {
         style={styles.bg}
       >
         <ReportTopHeader
+          variant={headerVariant}
           onPressSettings={() => navigation.navigate("SettingsScreen")}
         />
         <View style={styles.content}>
-          <Summary
-            summary={data.summary}
-            userName={userName}
-            isCurrentMonth={isCurrentMonth}
-            onPressProfile={() => navigation.navigate("ProfileScreen")}
-            onPressEditProfile={() => navigation.navigate("ProfileScreen")}
-          />
-
-          {isEmpty ? null : (
+          {loading || !data ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator
+                size="large"
+                color={colors.primary[500]}
+              />
+            </View>
+          ) : (
             <>
-              {/* 월별 통계 섹션 */}
-              <View onLayout={handleStatsLayout}>
-                <MonthlyStats
-                  year={year}
-                  month={month}
-                  monthlyStatus={data.monthlyStatus}
-                  onChangeYear={setYear}
-                  onChangeMonth={setMonth}
-                  animateKey={statsAnimateKey}
-                  resetKey={statsResetKey}
-                  onOpenPicker={openPicker}
-                  isCurrentMonth={isCurrentMonth}
-                />
-              </View>
+              {/* Summary는 신규 유저여도 항상 */}
+              <Summary
+                summary={data.summary}
+                userName={userName}
+                isCurrentMonth={isCurrentMonth}
+                onPressProfile={() => navigation.navigate("ProfileScreen")}
+                onPressEditProfile={() => navigation.navigate("ProfileScreen")}
+              />
 
-              {/* 취향 분석 스와이프 페이저 섹션 */}
-              <View onLayout={handlePreferenceLayout}>
-                {/* 섹션 헤더*/}
-                <View style={styles.header}>
-                  <View style={styles.titleBlock}>
-                    {/* 제목 */}
-                    <View style={styles.titleRow}>
-                      <Text
-                        style={[styles.monthText, { color: styleSet.month }]}
-                      >
-                        {month}월
-                      </Text>
-                      <Text
-                        style={[styles.sectionTitle, { color: styleSet.title }]}
-                      >
-                        취향 분석
-                      </Text>
-                    </View>
-
-                    {/* 캡션 */}
-                    <Text style={[styles.caption, { color: styleSet.caption }]}>
-                      나의 별점을 기준으로 작성된 표예요
-                    </Text>
-                  </View>
-                </View>
-
-                {/* 스와이프 카드 */}
-                <Animated.ScrollView
-                  ref={preferencePagerRef}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  onMomentumScrollEnd={handlePreferencePageScrollEnd}
-                  scrollEventThrottle={16}
-                  snapToInterval={SNAP_INTERVAL}
-                  decelerationRate="fast"
-                  contentContainerStyle={{
-                    // 왼쪽에서부터 차례대로 보이게 (스크린 패딩만 신경)
-                    paddingRight: CARD_SPACING,
-                  }}
-                >
-                  {/* 페이지 0: 최근 선호 장르 도넛 차트 */}
-                  <View
-                    style={{ width: CARD_WIDTH, marginRight: CARD_SPACING }}
-                  >
-                    <GenrePreferenceCard
-                      genres={data.genreDistribution}
-                      animateKey={genreAnimateKey}
+              {/* ✅ 신규 유저면 나머지 섹션만 숨김 */}
+              {isEmpty ? null : (
+                <>
+                  {/* 월별 통계 섹션 */}
+                  <View onLayout={handleStatsLayout}>
+                    <MonthlyStats
+                      year={year}
+                      month={month}
+                      monthlyStatus={data.monthlyStatus}
+                      onChangeYear={setYear}
+                      onChangeMonth={setMonth}
+                      animateKey={statsAnimateKey}
+                      resetKey={statsResetKey}
+                      onOpenPicker={openPicker}
                       isCurrentMonth={isCurrentMonth}
                     />
                   </View>
 
-                  {/* 페이지 1: 키워드 리뷰 */}
-                  <View style={{ width: CARD_WIDTH }}>
-                    <KeywordReviewCard
-                      year={year}
-                      month={month}
-                      keywords={data.reviewKeywords}
-                      animateKey={keywordAnimateKey}
-                      isActive={activePreferencePage === 1}
-                    />
-                  </View>
-                </Animated.ScrollView>
-              </View>
+                  {/* 취향 분석 스와이프 페이저 섹션 */}
+                  <View onLayout={handlePreferenceLayout}>
+                    {/* 섹션 헤더*/}
+                    <View style={styles.header}>
+                      <View style={styles.titleBlock}>
+                        {/* 제목 */}
+                        <View style={styles.titleRow}>
+                          <Text
+                            style={[
+                              styles.monthText,
+                              { color: styleSet.month },
+                            ]}
+                          >
+                            {month}월
+                          </Text>
+                          <Text
+                            style={[
+                              styles.sectionTitle,
+                              { color: styleSet.title },
+                            ]}
+                          >
+                            취향 분석
+                          </Text>
+                        </View>
 
-              {/* 습관 분석 섹션 */}
-              <View
-                style={{ marginTop: 30 }}
-                onLayout={handleHabitLayout}
-              >
-                {/* 섹션 헤더 */}
-                <View style={{ marginBottom: 12 }}>
-                  <View style={styles.titleBlock}>
-                    <View style={styles.titleRow}>
-                      <Text
-                        style={[styles.monthText, { color: styleSet.month }]}
-                      >
-                        {month}월
-                      </Text>
-                      <Text
-                        style={[styles.sectionTitle, { color: styleSet.title }]}
-                      >
-                        습관 분석
-                      </Text>
+                        {/* 캡션 */}
+                        <Text
+                          style={[styles.caption, { color: styleSet.caption }]}
+                        >
+                          나의 별점을 기준으로 작성된 표예요
+                        </Text>
+                      </View>
                     </View>
 
-                    <Text style={[styles.caption, { color: styleSet.caption }]}>
-                      독서 기록 버튼을 누른 기록으로 분석했어요
-                    </Text>
+                    {/* 스와이프 카드 */}
+                    <Animated.ScrollView
+                      ref={preferencePagerRef}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      onMomentumScrollEnd={handlePreferencePageScrollEnd}
+                      scrollEventThrottle={16}
+                      snapToInterval={SNAP_INTERVAL}
+                      decelerationRate="fast"
+                      contentContainerStyle={{
+                        // 왼쪽에서부터 차례대로 보이게 (스크린 패딩만 신경)
+                        paddingRight: CARD_SPACING,
+                      }}
+                    >
+                      {/* 페이지 0: 최근 선호 장르 도넛 차트 */}
+                      <View
+                        style={{ width: CARD_WIDTH, marginRight: CARD_SPACING }}
+                      >
+                        <GenrePreferenceCard
+                          genres={data.genreDistribution}
+                          animateKey={genreAnimateKey}
+                          isCurrentMonth={isCurrentMonth}
+                        />
+                      </View>
+
+                      {/* 페이지 1: 키워드 리뷰 */}
+                      <View style={{ width: CARD_WIDTH }}>
+                        <KeywordReviewCard
+                          year={year}
+                          month={month}
+                          keywords={data.reviewKeywords}
+                          animateKey={keywordAnimateKey}
+                          isActive={activePreferencePage === 1}
+                        />
+                      </View>
+                    </Animated.ScrollView>
                   </View>
-                </View>
 
-                {/* 토글 */}
-                <ReportToggle
-                  value={habitTab}
-                  onChange={setHabitTab}
-                />
+                  {/* 습관 분석 섹션 */}
+                  <View
+                    style={{ marginTop: 30 }}
+                    onLayout={handleHabitLayout}
+                  >
+                    {/* 섹션 헤더 */}
+                    <View style={{ marginBottom: 12 }}>
+                      <View style={styles.titleBlock}>
+                        <View style={styles.titleRow}>
+                          <Text
+                            style={[
+                              styles.monthText,
+                              { color: styleSet.month },
+                            ]}
+                          >
+                            {month}월
+                          </Text>
+                          <Text
+                            style={[
+                              styles.sectionTitle,
+                              { color: styleSet.title },
+                            ]}
+                          >
+                            습관 분석
+                          </Text>
+                        </View>
 
-                {/* 카드 */}
-                {habitTab === "time" ? (
-                  <TimeHabits
-                    readingCountsByWeekday={data.readingCountsByWeekday}
-                    animateKey={habitAnimateKey}
-                    resetKey={habitResetKey}
-                  />
-                ) : (
-                  <PlaceHabits
-                    places={places}
-                    animateKey={habitAnimateKey}
-                    resetKey={habitResetKey}
-                  />
-                )}
-              </View>
+                        <Text
+                          style={[styles.caption, { color: styleSet.caption }]}
+                        >
+                          독서 기록 버튼을 누른 기록으로 분석했어요
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* 토글 */}
+                    <ReportToggle
+                      value={habitTab}
+                      onChange={setHabitTab}
+                    />
+
+                    {/* 카드 */}
+                    {habitTab === "time" ? (
+                      <TimeHabits
+                        readingCountsByWeekday={data.readingCountsByWeekday}
+                        animateKey={habitAnimateKey}
+                        resetKey={habitResetKey}
+                      />
+                    ) : (
+                      <PlaceHabits
+                        places={places}
+                        animateKey={habitAnimateKey}
+                        resetKey={habitResetKey}
+                      />
+                    )}
+                  </View>
+                </>
+              )}
             </>
           )}
 
