@@ -1,3 +1,4 @@
+import Button from "@components/Button";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { shadow } from "@theme/shadow";
@@ -6,11 +7,17 @@ import { typography } from "@theme/typography";
 import { splitToLines } from "@utils/textSplit";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-export default function Summary({ summary, userName, isCurrentMonth }) {
+export default function Summary({
+  summary,
+  userName,
+  isCurrentMonth,
+  onPressEditProfile,
+  onPressProfile,
+}) {
   // userName은 나중에 실제 유저 이름으로 교체 예정 !
-  const { year, month, title, description, percent } = summary;
+  const { title, description, percent } = summary;
 
   const lines = splitToLines(description, 20);
 
@@ -28,6 +35,25 @@ export default function Summary({ summary, userName, isCurrentMonth }) {
 
   return (
     <View style={styles.wrap}>
+      {/* 상단 프로필 / 편집 */}
+      <View style={styles.headerTop}>
+        <Pressable
+          onPress={onPressProfile}
+          disabled={!onPressProfile}
+          style={styles.profileCircle}
+          hitSlop={8}
+        />
+
+        <Button
+          label="프로필 편집"
+          onPress={onPressEditProfile}
+          variant="primary"
+          tone="outline"
+          size="small"
+          style={styles.editBtn}
+          textStyle={styles.editBtnText}
+        />
+      </View>
       <View style={styles.header}>
         <Text style={[styles.headerLine1, { color: styleSet.headerText }]}>
           {userName} 님의{" "}
@@ -69,6 +95,21 @@ export default function Summary({ summary, userName, isCurrentMonth }) {
 }
 
 const styles = StyleSheet.create({
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+
+  profileCircle: {
+    width: 49,
+    height: 49,
+    borderRadius: 999,
+    backgroundColor: colors.mono[0],
+    // 실제 이미지 쓰면 Image로 교체
+  },
+
   // 전체 섹션 래퍼
   wrap: {
     marginBottom: spacing.sectionGap,
