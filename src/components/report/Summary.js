@@ -16,8 +16,7 @@ export default function Summary({
   onPressEditProfile,
   onPressProfile,
 }) {
-  // userName은 나중에 실제 유저 이름으로 교체 예정 !
-  const { title, description, percent } = summary;
+  const { title, description, percent, isEmpty } = summary;
 
   const lines = splitToLines(description, 20);
 
@@ -31,7 +30,11 @@ export default function Summary({
     monthText: colors.primary[500],
   };
 
-  const styleSet = isCurrentMonth ? currentMonthStyle : pastMonthStyle;
+  const styleSet = isEmpty
+    ? pastMonthStyle
+    : isCurrentMonth
+      ? currentMonthStyle
+      : pastMonthStyle;
 
   return (
     <View style={styles.wrap}>
@@ -71,9 +74,15 @@ export default function Summary({
 
       {/* 카드 */}
       <View style={styles.card}>
-        <Text style={styles.personaTitle}>{title}</Text>
+        <Text
+          style={[styles.personaTitle, isEmpty && styles.personaTitleEmpty]}
+        >
+          {title}
+        </Text>
         <Text style={styles.personaSub}>
-          모담 회원 중 {percent}% 유형이에요
+          {isEmpty
+            ? "다음 달에 알 수 있어요"
+            : `모담 회원 중 ${percent}% 유형이에요`}
         </Text>
 
         {/* 캐릭터 이미지 자리 (지금은 placeholder 박스) */}
@@ -150,6 +159,11 @@ const styles = StyleSheet.create({
   },
   personaTitle: {
     fontSize: 36,
+    fontWeight: "600",
+    color: colors.mono[950],
+  },
+  personaTitleEmpty: {
+    fontSize: 32,
     fontWeight: "600",
     color: colors.mono[950],
   },

@@ -2,7 +2,7 @@ import { client } from "@apis/clientApi";
 import { PLACE_MOOD_MAP } from "@constants/placeMoodMap";
 import { READING_TENDENCY_MAP } from "@constants/readingTendencyMap";
 
-const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
+const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "false";
 
 export const reportMonthlyApiMock = {
   success: true,
@@ -349,6 +349,8 @@ export async function fetchMonthlyReport({ year, month }) {
       .sort((a, b) => b.ratio - a.ratio);
 
     // 6) Summary 구성
+    const isEmpty = latestTotal === 0;
+
     const placeLabel = PLACE_LABEL[manyPlace] ?? manyPlace;
 
     // 캐릭터 이름
@@ -381,7 +383,7 @@ export async function fetchMonthlyReport({ year, month }) {
         month: latestMonth,
         title,
         description,
-        percent: 0,
+        percent: isEmpty ? null : 0,
         isEmpty: false,
       },
       monthlyStatus,
