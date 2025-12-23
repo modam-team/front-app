@@ -1,12 +1,17 @@
+import { deleteProfileImage, uploadProfileImage } from "@apis/userApi";
+import { fetchUserProfile } from "@apis/userApi";
+import { updateProfile } from "@apis/userApi";
 import ActionBottomSheet from "@components/ActionBottomSheet";
 import AppHeader from "@components/AppHeader";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useMemo, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -16,6 +21,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Image } from "react-native";
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
@@ -23,6 +29,7 @@ export default function ProfileScreen() {
   // TODO: 실제 프로필 데이터로 교체
   const [nickname, setNickname] = useState("모담이");
   const [isPublic, setIsPublic] = useState(true);
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
 
   // 프로필 사진 변경 bottom sheet 표시 여부
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -34,34 +41,93 @@ export default function ProfileScreen() {
     });
   };
 
-  const onPressChangePhoto = () => {
-    // TODO: 이미지 피커/업로드 연결
-    setSheetVisible(false);
+  const pickImage = async () => {
+    // 갤러리 권한 요청
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") return null;
+
+    // 갤러리 열기
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled) return null;
+    return result.assets[0];
   };
 
-  const onPressDeletePhoto = () => {
-    // TODO: 프로필 사진 삭제 API 연결
-    setSheetVisible(false);
+  const onPressChangePhoto = async () => {
+    try {
+      const asset = await pickImage();
+      if (!asset) return;
+
+      // TODO: 백엔드가 url 내려주면 여기서 상태 업데이트
+      // 일단은 임시로 걍 놔뒀습니당
+      // setProfileImageUrl(res.profileImageUrl)
+      setProfileImageUrl(asset.uri);
+
+      await uploadProfileImage(asset);
+
+      setSheetVisible(false);
+    } catch (e) {
+      console.error("프로필 업로드 실패:", e);
+    }
   };
 
-  const rows = useMemo(
-    () => [
-      {
-        key: "nickname",
-        left: "닉네임",
-        right: nickname,
-        onPress: onPressEditName,
-        showChevron: true,
-      },
-      {
-        key: "public",
-        left: "공개여부",
-        right: null,
-        onPress: null,
-        showChevron: false,
-      },
-    ],
-    [nickname, isPublic],
+  const onPressDeletePhoto = async () => {
+    try {
+      await deleteProfileImage();
+
+      // 임시로 UI 즉시 반영
+      setProfileImageUrl(null);
+
+      setSheetVisible(false);
+    } catch (e) {
+      console.error("프로필 삭제 실패:", e);
+    }
+  };
+
+  const onTogglePublic = async (next) => {
+    // 1) UI 먼저 반영
+    setIsPublic(next);
+
+    try {
+      // 2) 서버 저장
+      await updateProfile({ isPublic: next });
+    } catch (e) {
+      console.error("공개여부 수정 실패:", e);
+
+      // 3) 실패하면 롤백
+      setIsPublic((prev) => !prev);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      const loadProfile = async () => {
+        try {
+          const profile = await fetchUserProfile();
+
+          if (!isMounted) return;
+
+          setNickname(profile.nickname ?? "모담이");
+          setIsPublic(!!profile.isPublic);
+          setProfileImageUrl(profile.profileImageUrl ?? null);
+        } catch (e) {
+          console.error("프로필 조회 실패:", e);
+        }
+      };
+
+      loadProfile();
+
+      return () => {
+        isMounted = false;
+      };
+    }, []),
   );
 
   return (
@@ -79,7 +145,18 @@ export default function ProfileScreen() {
             onPress={() => setSheetVisible(true)}
             style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
           >
-            {/* TODO: Image로 교체 */}
+            {profileImageUrl ? (
+              <Image
+                source={{ uri: profileImageUrl }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <MaterialIcons
+                name="person"
+                size={32}
+                color={colors.mono[400]}
+              />
+            )}
           </Pressable>
 
           <Pressable
@@ -119,7 +196,7 @@ export default function ProfileScreen() {
           <Text style={styles.rowLeft}>공개여부</Text>
           <Switch
             value={isPublic}
-            onValueChange={setIsPublic}
+            onValueChange={onTogglePublic}
             trackColor={{
               false: colors.mono[200],
               true: colors.primary[300],
@@ -140,7 +217,9 @@ export default function ProfileScreen() {
             icon: "edit",
             onPress: () => {
               setSheetVisible(false);
-              onPressChangePhoto();
+              setTimeout(() => {
+                onPressChangePhoto();
+              }, 250);
             },
           },
           {
@@ -150,7 +229,9 @@ export default function ProfileScreen() {
             color: colors.warning.medium,
             onPress: () => {
               setSheetVisible(false);
-              onPressDeletePhoto();
+              setTimeout(() => {
+                onPressDeletePhoto();
+              }, 250);
             },
           },
         ]}
@@ -182,6 +263,13 @@ const styles = StyleSheet.create({
     height: 89,
     borderRadius: 999,
     backgroundColor: colors.mono[200],
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
 
   changeTextWrap: {

@@ -52,7 +52,7 @@ export default function ReportScreen() {
     };
 
     loadUser();
-  }, []);
+  }, [isFocused]);
 
   const navigation = useNavigation();
 

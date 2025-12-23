@@ -5,6 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
+import { clearAuth } from "@utils/auth";
 import React, { useMemo } from "react";
 import {
   Alert,
@@ -53,9 +54,13 @@ export default function SettingsScreen() {
       {
         text: "로그아웃",
         style: "destructive",
-        onPress: () => {
-          // TODO: 토큰 삭제 + 상태 초기화
-          // navigation.reset({ index: 0, routes: [{ name: "LoginScreen" }] });
+        onPress: async () => {
+          await clearAuth();
+
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "OnboardingIntro" }],
+          });
         },
       },
     ]);
@@ -72,12 +77,8 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await withdrawUser();
-
-              // TODO: 여기서 토큰 삭제/상태 초기화 (SecureStore/AsyncStorage 쓰는 곳에 맞게)
-              // 예)
-              // await SecureStore.deleteItemAsync("accessToken");
-              // await SecureStore.deleteItemAsync("refreshToken");
+              await withdrawUser(); // 서버 탈퇴
+              await clearAuth(); // 토큰 완전 삭제
 
               Alert.alert("완료", "회원탈퇴가 완료됐어요.");
 
