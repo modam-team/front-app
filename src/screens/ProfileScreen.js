@@ -18,6 +18,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Image } from "react-native";
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
@@ -28,6 +29,8 @@ export default function ProfileScreen() {
 
   // 프로필 사진 변경 bottom sheet 표시 여부
   const [sheetVisible, setSheetVisible] = useState(false);
+
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
 
   const onPressEditName = () => {
     navigation.navigate("EditNameScreen", {
@@ -58,12 +61,14 @@ export default function ProfileScreen() {
       const asset = await pickImage();
       if (!asset) return;
 
+      // TODO: 백엔드가 url 내려주면 여기서 상태 업데이트
+      // 일단은 임시로 걍 놔뒀습니당
+      // setProfileImageUrl(res.profileImageUrl)
+      setProfileImageUrl(asset.uri);
+
       await uploadProfileImage(asset);
 
       setSheetVisible(false);
-
-      // TODO: 백엔드가 url 내려주면 여기서 상태 업데이트
-      // setProfileImageUrl(res.profileImageUrl)
     } catch (e) {
       console.error("프로필 업로드 실패:", e);
     }
@@ -84,7 +89,10 @@ export default function ProfileScreen() {
             onPress={() => setSheetVisible(true)}
             style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
           >
-            {/* TODO: Image로 교체 */}
+            <Image
+              source={{ uri: profileImageUrl }}
+              style={styles.avatarImage}
+            />
           </Pressable>
 
           <Pressable
@@ -145,7 +153,9 @@ export default function ProfileScreen() {
             icon: "edit",
             onPress: () => {
               setSheetVisible(false);
-              onPressChangePhoto();
+              setTimeout(() => {
+                onPressChangePhoto();
+              }, 250);
             },
           },
           {
@@ -187,6 +197,13 @@ const styles = StyleSheet.create({
     height: 89,
     borderRadius: 999,
     backgroundColor: colors.mono[200],
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
 
   changeTextWrap: {
