@@ -115,7 +115,7 @@ export default function ProfileScreen() {
           if (!isMounted) return;
 
           setNickname(profile.nickname ?? "모담이");
-          setIsPublic(!!profile.isPublic);
+          setIsPublic(!!profile.public);
           setProfileImageUrl(profile.profileImageUrl ?? null);
         } catch (e) {
           console.error("프로필 조회 실패:", e);

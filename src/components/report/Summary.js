@@ -7,7 +7,7 @@ import { typography } from "@theme/typography";
 import { splitToLines } from "@utils/textSplit";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function Summary({
   summary,
@@ -15,6 +15,7 @@ export default function Summary({
   isCurrentMonth,
   onPressEditProfile,
   onPressProfile,
+  profileImageUrl,
 }) {
   const { title, description, percent, isEmpty } = summary;
 
@@ -35,6 +36,7 @@ export default function Summary({
     : isCurrentMonth
       ? currentMonthStyle
       : pastMonthStyle;
+  console.log("profileImageUrl:", profileImageUrl);
 
   return (
     <View style={styles.wrap}>
@@ -45,7 +47,16 @@ export default function Summary({
           disabled={!onPressProfile}
           style={styles.profileCircle}
           hitSlop={8}
-        />
+        >
+          {profileImageUrl ? (
+            <Image
+              source={{ uri: profileImageUrl }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profileFallback} />
+          )}
+        </Pressable>
 
         <Button
           label="프로필 편집"
@@ -116,7 +127,15 @@ const styles = StyleSheet.create({
     height: 49,
     borderRadius: 999,
     backgroundColor: colors.mono[0],
-    // 실제 이미지 쓰면 Image로 교체
+    overflow: "hidden",
+  },
+  profileImage: {
+    width: "100%",
+    height: "100%",
+  },
+  profileFallback: {
+    flex: 1,
+    backgroundColor: colors.mono[200],
   },
 
   // 전체 섹션 래퍼
@@ -151,6 +170,7 @@ const styles = StyleSheet.create({
 
   // 카드
   card: {
+    marginHorizontal: 12,
     paddingHorizontal: spacing.l,
     paddingVertical: 20,
     borderRadius: radius[500],

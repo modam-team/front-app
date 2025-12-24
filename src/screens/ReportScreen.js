@@ -49,11 +49,15 @@ export default function ReportScreen() {
 
   // 닉네임 가져오기
   const [userName, setUserName] = useState("");
+  // 프로필 이미지 가져오기
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
+
   useEffect(() => {
     const loadUser = async () => {
       try {
         const profile = await fetchUserProfile();
         setUserName(profile.nickname);
+        setProfileImageUrl(profile.profileImageUrl ?? null);
       } catch (e) {
         console.error("유저 프로필 조회 실패", e);
       }
@@ -363,6 +367,7 @@ export default function ReportScreen() {
                 isCurrentMonth={isCurrentMonth}
                 onPressProfile={() => navigation.navigate("ProfileScreen")}
                 onPressEditProfile={() => navigation.navigate("ProfileScreen")}
+                profileImageUrl={profileImageUrl}
               />
 
               {/* 신규 유저면 나머지 섹션만 숨김 */}
