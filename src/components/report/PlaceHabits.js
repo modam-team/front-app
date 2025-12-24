@@ -109,12 +109,7 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
     const normalized =
       sum > 0
         ? raw.map((p) => ({ ...p, ratio: p.ratio / sum }))
-        : [
-            { label: raw[0].label, ratio: 0.4 },
-            { label: raw[1].label, ratio: 0.3 },
-            { label: raw[2].label, ratio: 0.2 },
-            { label: raw[3].label, ratio: 0.1 },
-          ];
+        : raw.map((p) => ({ ...p, ratio: 0 }));
 
     // 랭킹(내림차순) 정렬 + 원래 label 유지
     const ranked = normalized
