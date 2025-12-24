@@ -180,8 +180,11 @@ export default function GenrePreferenceCard({
 
     progressAnim.stopAnimation();
     popAnim.stopAnimation();
+
     progressAnim.setValue(0);
     popAnim.setValue(0);
+    setProgress(0);
+    setPop(0);
 
     const id = progressAnim.addListener(({ value }) => setProgress(value));
     const id2 = popAnim.addListener(({ value }) => setPop(value));
@@ -207,7 +210,10 @@ export default function GenrePreferenceCard({
       });
     });
 
-    return () => progressAnim.removeListener(id);
+    return () => {
+      progressAnim.removeListener(id);
+      popAnim.removeListener(id2);
+    };
   }, [segments, animateKey]);
 
   const globalAngle = 360 * progress;
