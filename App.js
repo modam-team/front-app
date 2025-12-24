@@ -3,6 +3,10 @@ import AddEntryScreen from "./src/screens/AddEntryScreen";
 import AuthGateScreen from "./src/screens/AuthGateScreen";
 import BookDetailScreen from "./src/screens/BookDetailScreen";
 import EditNameScreen from "./src/screens/EditNameScreen";
+import {
+  REPORT_BACKGROUND_MAP,
+  REPORT_BACKGROUND_MAP_PAST,
+} from "@constants/reportBackgroundMap";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import OnboardingFlowScreen from "@screens/OnboardingFlowScreen";
@@ -11,7 +15,8 @@ import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
 import ProfileScreen from "@screens/ProfileScreen";
 import SettingsScreen from "@screens/SettingsScreen";
 import { colors } from "@theme/colors";
-import React from "react";
+import { Asset } from "expo-asset";
+import React, { useEffect } from "react";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 
@@ -23,6 +28,13 @@ const navTheme = {
 };
 
 export default function App() {
+  useEffect(() => {
+    Asset.loadAsync([
+      ...Object.values(REPORT_BACKGROUND_MAP),
+      ...Object.values(REPORT_BACKGROUND_MAP_PAST),
+    ]);
+  }, []);
+
   return (
     <NavigationContainer theme={navTheme}>
       {/* 앱이 처음 켜질 때 OnboardingIntro부터 보이도록 ! */}

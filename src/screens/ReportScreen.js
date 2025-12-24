@@ -365,7 +365,7 @@ export default function ReportScreen() {
                 onPressEditProfile={() => navigation.navigate("ProfileScreen")}
               />
 
-              {/* ✅ 신규 유저면 나머지 섹션만 숨김 */}
+              {/* 신규 유저면 나머지 섹션만 숨김 */}
               {isEmpty ? null : (
                 <>
                   {/* 월별 통계 섹션 */}
