@@ -15,7 +15,7 @@ export default function AuthGateScreen({ navigation }) {
         if (profile.status === "WITHDRAWAL_PENDING") {
           Alert.alert(
             "탈퇴 처리 중인 계정이에요",
-            "아직 14일이 지나지 않아 계정을 복구할 수 있어요.\n다시 돌아오시겠어요?",
+            "아직 14일이 지나지 않아\n계정을 복구할 수 있어요.\n다시 돌아오시겠어요?",
             [
               {
                 text: "아니요",
