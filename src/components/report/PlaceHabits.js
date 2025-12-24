@@ -29,6 +29,7 @@ const COLLISION_PUSH = 0.6; // 겹침 밀어내는 강도
 const LINK_SPRING = 0.03; // 접하게 당기는 강도
 const ANCHOR_PULL = 0.0; // 기본 위치로 당기는 강도
 const DAMPING = 0.8; // 속도 감쇠(튀는 느낌 줄이기)
+const JITTER = 10; // 6~16 정도
 
 // 반지름 범위 (디자인에 맞게 조절)
 const MIN_R = 25;
@@ -148,7 +149,7 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
     const cy = h * 0.55;
 
     // "몰림 정도" (작을수록 더 겹침)
-    const spread = Math.min(w, h) * 0.06; // 0.04~0.09 사이로 튜닝 추천
+    const spread = Math.min(w, h) * 0.03;
 
     return [
       { x: cx - spread * 0.9, y: cy - spread * 0.9 }, // A
@@ -167,8 +168,10 @@ export default function PlaceHabits({ places = [], animateKey, resetKey }) {
     progress.setValue(0);
 
     for (let i = 0; i < N; i++) {
-      physics.x[i] = anchors[i].x;
-      physics.y[i] = anchors[i].y;
+      const jx = (Math.random() * 2 - 1) * JITTER;
+      const jy = (Math.random() * 2 - 1) * JITTER;
+      physics.x[i] = anchors[i].x + jx;
+      physics.y[i] = anchors[i].y + jy;
       physics.vx[i] = 0;
       physics.vy[i] = 0;
     }
