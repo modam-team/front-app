@@ -8,16 +8,49 @@ export async function fetchBookcase() {
 }
 
 // 책장에 책 추가
-export async function addBookToBookcase(bookId, state = "BEFORE") {
-  const payload = { bookId, state };
+export async function addBookToBookcase(
+  bookId,
+  state = "BEFORE",
+  { startDate, endDate } = {},
+) {
+  const payload = {
+    bookId,
+    state,
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+  };
   const res = await client.post("/api/bookcase", payload);
   return res.data?.responseDto;
 }
 
+// 책장 상태별 검색
+export async function searchBookcase(title, state) {
+  const res = await client.get("/api/bookcase/search", {
+    params: { title, state },
+  });
+  return res.data?.responseDto || [];
+}
+
 // 책 상태 변경 (전/중/후)
-export async function updateBookcaseState(bookId, state = "BEFORE") {
-  const payload = { bookId, state };
+export async function updateBookcaseState(
+  bookId,
+  state = "BEFORE",
+  { startDate, endDate } = {},
+) {
+  const payload = {
+    bookId,
+    state,
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+  };
   const res = await client.patch("/api/bookcase", payload);
+  return res.data?.responseDto;
+}
+
+// 리뷰 조회
+export async function fetchReview(bookId) {
+  if (!bookId) return null;
+  const res = await client.get("/api/review", { params: { bookId } });
   return res.data?.responseDto;
 }
 
@@ -33,9 +66,25 @@ export async function createReview({
   return res.data?.responseDto;
 }
 
+// 리뷰 수정 (코멘트 등)
+export async function updateReview({
+  bookId,
+  comment = "",
+}) {
+  const payload = { bookId, comment };
+  const res = await client.patch("/api/review", payload);
+  return res.data?.responseDto;
+}
+
 // 책 삭제
 export async function deleteBookFromBookcase(bookId) {
   if (!bookId) return null;
   const res = await client.delete(`/api/bookcase/${bookId}`);
   return res.data?.responseDto;
+}
+
+// 홈 추천 2권
+export async function fetchRecommendedBooks() {
+  const res = await client.get("/api/bookcase/recommend");
+  return res.data?.responseDto || [];
 }

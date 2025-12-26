@@ -44,19 +44,24 @@ export async function withdrawUser() {
 export async function uploadProfileImage(asset) {
   const formData = new FormData();
 
+  const mime =
+    asset?.mimeType || asset?.type?.mimeType || "image/jpeg";
+  const name = asset?.fileName || "profile.jpg";
+
   formData.append("imageFile", {
     uri: asset.uri,
-    name: asset.fileName ?? "profile.jpg",
-    type: asset.mimeType ?? "image/jpeg",
+    name,
+    type: mime,
   });
 
   const res = await client.post("/api/user/profile/image", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
+      Accept: "application/json",
     },
   });
 
-  return res.data;
+  return res.data; // 서버가 내려주는 profileImageUrl 등을 그대로 반환
 }
 
 // 프로필 사진 삭제

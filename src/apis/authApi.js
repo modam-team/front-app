@@ -1,4 +1,4 @@
-import { saveToken } from "../utils/secureStore";
+import { getToken, saveToken } from "../utils/secureStore";
 import { client } from "@apis/clientApi";
 
 // 카카오 인증코드로 JWT 발급 요청
@@ -38,4 +38,38 @@ export async function kakaoLogin(code) {
     }
     throw e;
   }
+}
+
+// 리프레시 토큰으로 액세스 토큰 재발급
+export async function reissueToken(refreshTokenParam) {
+  const refreshToken = refreshTokenParam || (await getToken("refreshToken"));
+  if (!refreshToken) {
+    throw new Error("refresh token not found");
+  }
+
+  const res = await client.post(
+    "/api/v1/auth/reissue",
+    null,
+    {
+      params: { refreshToken },
+      skipAuth: true,
+      headers: { Accept: "application/json" },
+    },
+  );
+
+  const data = res.data;
+  if (!data?.success) {
+    const err = new Error(data?.error?.message || "토큰 재발급 실패");
+    err.response = data;
+    throw err;
+  }
+
+  const { accessToken, refreshToken: newRefresh, expiresIn } = data.responseDto;
+  await Promise.all([
+    accessToken ? saveToken("accessToken", accessToken) : Promise.resolve(),
+    newRefresh ? saveToken("refreshToken", newRefresh) : Promise.resolve(),
+    expiresIn ? saveToken("expiresIn", String(expiresIn)) : Promise.resolve(),
+  ]);
+
+  return data.responseDto;
 }

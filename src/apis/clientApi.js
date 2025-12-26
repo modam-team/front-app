@@ -1,4 +1,4 @@
-import { getToken } from "@utils/secureStore";
+import { getToken, saveToken, deleteToken } from "@utils/secureStore";
 import axios from "axios";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -30,3 +30,80 @@ client.interceptors.request.use(async (config) => {
 
   return config;
 });
+
+// 401/403 대응: 리프레시 토큰으로 재발급 후 한 번만 재시도
+let isRefreshing = false;
+let pendingQueue = [];
+
+async function reissueToken() {
+  if (isRefreshing) {
+    return new Promise((resolve, reject) =>
+      pendingQueue.push({ resolve, reject }),
+    );
+  }
+  isRefreshing = true;
+  try {
+    const refreshToken = await getToken("refreshToken");
+    if (!refreshToken) throw new Error("no refresh token");
+    const res = await client.post(
+      "/api/v1/auth/reissue",
+      null,
+      {
+        params: { refreshToken },
+        skipAuth: true,
+        headers: { Accept: "application/json" },
+      },
+    );
+    const { accessToken, refreshToken: newRefresh, expiresIn } =
+      res.data?.responseDto || {};
+    if (!accessToken) throw new Error("reissue failed");
+    await Promise.all([
+      saveToken("accessToken", accessToken),
+      newRefresh ? saveToken("refreshToken", newRefresh) : Promise.resolve(),
+      expiresIn ? saveToken("expiresIn", String(expiresIn)) : Promise.resolve(),
+    ]);
+    pendingQueue.forEach((p) => p.resolve(accessToken));
+    pendingQueue = [];
+    return accessToken;
+  } catch (err) {
+    pendingQueue.forEach((p) => p.reject(err));
+    pendingQueue = [];
+    await Promise.all([
+      deleteToken("accessToken"),
+      deleteToken("refreshToken"),
+      deleteToken("expiresIn"),
+    ]);
+    throw err;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+client.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const status = error.response?.status;
+    const original = error.config || {};
+
+    // skipAuth 요청이거나, 이미 한 번 재시도했다면 그대로 실패 처리
+    if (original.skipAuth || original._retry) {
+      return Promise.reject(error);
+    }
+
+    if (status === 401 || status === 403) {
+      try {
+        const newAccess = await reissueToken();
+        original._retry = true;
+        original.headers = {
+          ...(original.headers || {}),
+          Authorization: `Bearer ${newAccess}`,
+        };
+        return client.request(original);
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);

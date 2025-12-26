@@ -1,7 +1,6 @@
 import BookshelfScreen from "../screens/BookshelfScreen";
 import HomeScreen from "../screens/HomeScreen";
 import ReportScreen from "../screens/ReportScreen";
-import { Ionicons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ReportStack from "@navigation/ReportStack";
 import {
@@ -40,6 +39,7 @@ export default function BottomTabs({ navigation }) {
             color: colors.text,
           },
           headerShown: false,
+          animationEnabled: true, // 탭 전환을 조금 더 부드럽게
         }}
         tabBar={(props) => <CustomTabBar {...props} />}
       >
@@ -77,29 +77,11 @@ function CustomTabBar({ state, descriptors, navigation }) {
       active: colors.primary[500], // 활성 아이콘 및 텍스트
       inactive: isGreen ? colors.mono[0] : colors.mono[950], // 비활성 아이콘 및 텍스트
       focusedBg: isGreen ? colors.primary[0] : colors.primary[0], // 선택 탭 pill 배경
-      fabBg: colors.primary[700], // + 버튼 배경
     };
   }, [isGreen]);
 
   return (
     <View style={styles.root}>
-      {/* FAB도 스타일시트로 */}
-      {currentRouteName === "책장" && (
-        <View style={styles.fabWrap}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => navigation.navigate("AddEntry")}
-            style={[styles.fabButton, { backgroundColor: palette.fabBg }]} // 색만 동적으로
-          >
-            <Ionicons
-              name="add"
-              size={24}
-              color={colors.mono[0]}
-            />
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* 라운드/그림자 문제 방지용 2겹 구조 */}
       <View style={styles.tabShadowOuter}>
         {/* radius + clip 전용 */}
@@ -180,30 +162,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
 const styles = StyleSheet.create({
   root: {
     backgroundColor: "transparent",
-  },
-
-  // FAB
-  fabWrap: {
-    position: "absolute",
-    right: 24,
-    bottom: 96,
-    zIndex: 10,
-  },
-  fabButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-
-    // shadow (iOS)
-    shadowColor: colors.mono[950],
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-
-    // elevation (Android)
-    elevation: 6,
   },
 
   // 그림자 전용

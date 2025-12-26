@@ -1,14 +1,13 @@
 // src/screens/AddEntryScreen.js
 import placeholder from "../../assets/icon.png";
 import { requestBookRegistration, searchBooks } from "@apis/bookApi";
-import { addBookToBookcase } from "@apis/bookcaseApi";
+import { addBookToBookcase, fetchReview } from "@apis/bookcaseApi";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
   Modal,
-  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -75,13 +74,13 @@ export default function AddEntryScreen({ navigation }) {
   const [manualPublisher, setManualPublisher] = useState("");
   const [manualCategory, setManualCategory] = useState("");
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [showDateModal, setShowDateModal] = useState(false);
-  const [dateTarget, setDateTarget] = useState(null); // 'start' | 'end'
-  const [tempYear, setTempYear] = useState(new Date().getFullYear());
-  const [tempMonth, setTempMonth] = useState(new Date().getMonth() + 1);
-  const [tempDay, setTempDay] = useState(new Date().getDate());
+  const [showReviewPrompt, setShowReviewPrompt] = useState(false);
+  const [reviewPromptRating, setReviewPromptRating] = useState(0);
+  const [reviewPromptText, setReviewPromptText] = useState("");
+  const [detailReview, setDetailReview] = useState(null);
+  const [detailReviewLoading, setDetailReviewLoading] = useState(false);
+  const [startDateText, setStartDateText] = useState("");
+  const [endDateText, setEndDateText] = useState("");
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -104,9 +103,11 @@ export default function AddEntryScreen({ navigation }) {
       } catch (e) {
         console.error("책 검색 실패:", e.response || e.message || e);
         setError(
-          isKeyword
-            ? "검색 중 오류가 발생했습니다."
-            : "베스트셀러를 불러오지 못했습니다.",
+          e?.message?.includes("2글자")
+            ? e.message
+            : isKeyword
+              ? "검색 중 오류가 발생했습니다."
+              : "베스트셀러를 불러오지 못했습니다.",
         );
         setResults(isKeyword ? [] : bestsellers);
       } finally {
@@ -123,7 +124,7 @@ export default function AddEntryScreen({ navigation }) {
         {[...Array(5)].map((_, idx) => (
           <Ionicons
             key={idx}
-            name="star"
+            name="star-sharp"
             size={size}
             color={idx < count ? color : "#C6C6C6"}
             style={{ marginRight: 2 }}
@@ -143,8 +144,13 @@ export default function AddEntryScreen({ navigation }) {
     setManualPublisher("");
     setManualCategory("");
     setSelectedBook(book);
-    setStartDate(null);
-    setEndDate(null);
+    setStartDateText("");
+    setEndDateText("");
+    setShowReviewPrompt(false);
+    setReviewPromptRating(0);
+    setReviewPromptText("");
+    setDetailReview(null);
+    setDetailReviewLoading(false);
   };
 
   const openManualAdd = () => {
@@ -169,10 +175,13 @@ export default function AddEntryScreen({ navigation }) {
 
   const closeDetail = () => {
     setSelectedBook(null);
-    setStartDate(null);
-    setEndDate(null);
-    setDateTarget(null);
-    setShowDateModal(false);
+    setStartDateText("");
+    setEndDateText("");
+    setShowReviewPrompt(false);
+    setReviewPromptRating(0);
+    setReviewPromptText("");
+    setDetailReview(null);
+    setDetailReviewLoading(false);
   };
 
   const getCoverUri = (book) =>
@@ -182,6 +191,56 @@ export default function AddEntryScreen({ navigation }) {
     book?.thumbnail ||
     book?.thumbnailUrl ||
     null;
+
+  useEffect(() => {
+    const bookId = selectedBook?.bookId || selectedBook?.id;
+    if (!bookId) {
+      setDetailReview(null);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setDetailReviewLoading(true);
+        const data = await fetchReview(bookId);
+        if (cancelled) return;
+        setDetailReview(data || null);
+      } catch (e) {
+        if (cancelled) return;
+        console.error(
+          "리뷰 조회 실패:",
+          e.response?.status,
+          e.response?.data || e.message,
+        );
+        setDetailReview(null);
+      } finally {
+        if (!cancelled) setDetailReviewLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBook?.bookId, selectedBook?.id]);
+
+  const parseDateInput = (text) => {
+    if (!text) return null;
+    const match = text.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const [_, y, m, d] = match;
+    const year = Number(y);
+    const month = Number(m) - 1;
+    const day = Number(d);
+    const dt = new Date(year, month, day);
+    if (
+      dt.getFullYear() !== year ||
+      dt.getMonth() !== month ||
+      dt.getDate() !== day
+    ) {
+      return null;
+    }
+    return dt;
+  };
 
   const handleAddToShelf = async () => {
     if (!selectedBook) return;
@@ -219,32 +278,24 @@ export default function AddEntryScreen({ navigation }) {
       coverUri,
       status,
     };
-    if (!localAddOnly && status === "after") {
-      if (!startDate || !endDate) {
-        Alert.alert("날짜를 확인해주세요", "시작일과 완독일을 선택해주세요.");
+    if (status === "after") {
+      const parsedStart = parseDateInput(startDateText);
+      const parsedEnd = parseDateInput(endDateText);
+      if (!parsedStart || !parsedEnd) {
+        Alert.alert("날짜를 확인해주세요", "YYYY-MM-DD 형식으로 입력해주세요.");
         return;
       }
-
-      const parsedStart = new Date(
-        startDate.getFullYear(),
-        startDate.getMonth(),
-        startDate.getDate(),
-      ).getTime();
-      const parsedEnd = new Date(
-        endDate.getFullYear(),
-        endDate.getMonth(),
-        endDate.getDate(),
-      ).getTime();
-
-      if (parsedStart > parsedEnd) {
+      if (parsedStart.getTime() > parsedEnd.getTime()) {
         Alert.alert(
           "날짜 순서를 확인해주세요",
           "시작일이 완독일보다 늦을 수 없습니다.",
         );
         return;
       }
-      newBook.readStartAt = parsedStart;
-      newBook.readEndAt = parsedEnd;
+      newBook.readStartAt = parsedStart.getTime();
+      newBook.readEndAt = parsedEnd.getTime();
+      newBook.startDate = startDateText.trim();
+      newBook.endDate = endDateText.trim();
     }
 
     if (localAddOnly) {
@@ -275,7 +326,14 @@ export default function AddEntryScreen({ navigation }) {
     const submit = async () => {
       try {
         if (hasValidId && !localAddOnly) {
-          await addBookToBookcase(bookIdNum, status.toUpperCase());
+          const payloadDates =
+            status === "after"
+              ? {
+                  startDate: startDateText.trim(),
+                  endDate: endDateText.trim(),
+                }
+              : {};
+          await addBookToBookcase(bookIdNum, status.toUpperCase(), payloadDates);
         }
         closeDetail();
         navigation.navigate("Root", {
@@ -292,6 +350,20 @@ export default function AddEntryScreen({ navigation }) {
           e.response?.status,
           e.response?.data || e.message,
         );
+        const status = e.response?.status;
+        const code = e.response?.data?.error?.code || e.response?.data?.code;
+        const msgText =
+          e.response?.data?.error?.message ||
+          e.response?.data?.message ||
+          e.message;
+        if (status === 409 || code === "409") {
+          Alert.alert("추가 실패", "이미 담아둔 책이 있습니다.");
+          return;
+        }
+        if (msgText && /already|존재/i.test(msgText)) {
+          Alert.alert("추가 실패", "이미 담아둔 책이 있습니다.");
+          return;
+        }
         Alert.alert(
           "추가 실패",
           e.response?.data?.error?.message ||
@@ -304,7 +376,8 @@ export default function AddEntryScreen({ navigation }) {
   };
 
   const renderBookItem = (item, idx) => {
-    const id = item.bookId || item.id || item.isbn || idx;
+    const baseId = item.bookId || item.id || item.isbn || "item";
+    const id = `${baseId}-${idx}`;
     const coverUri = getCoverUri(item);
 
     return (
@@ -361,22 +434,23 @@ export default function AddEntryScreen({ navigation }) {
     { label: "완독한", value: "after" },
   ];
   const categoryOptions = [
-    "라이프스타일/ 취미",
-    "경제/ 경영",
-    "소설/ 문학",
-    "과학/ 기술/ 공학",
+    "소설/문학",
+    "에세이/전기",
+    "심리/명상",
+    "인문/사회/정치/법",
+    "경제/경영",
+    "과학/기술/공학",
+    "예술/디자인/건축",
+    "유아/청소년",
+    "라이프스타일/취미",
+    "의학/건강",
+    "엔터테인먼트/문화",
+    "교육/어학",
+    "역사/종교",
     "여행",
-    "교육/ 어학",
-    "엔터테인먼트/ 문화",
-    "인문/ 사회/ 정치/ 법",
-    "에세이/ 전기",
-    "역사/ 종교",
-    "건강/ 의학",
-    "예술/ 디자인/ 건축",
-    "심리/ 명상",
     "로맨스",
-    "판타지/ 무협",
-    "가족/ 관계",
+    "가족/관계",
+    "판타지/무협/SF",
   ];
   const statusLabel = useMemo(
     () => statusOptions.find((o) => o.value === status)?.label || "읽기 전",
@@ -388,58 +462,12 @@ export default function AddEntryScreen({ navigation }) {
     manualPublisher.trim() &&
     manualCategory;
 
-  const formatDate = (d) => {
-    if (!d) return "YYYY-MM-DD";
-    const year = d.getFullYear();
-    const month = `${d.getMonth() + 1}`.padStart(2, "0");
-    const day = `${d.getDate()}`.padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const years = useMemo(() => {
-    const current = new Date().getFullYear();
-    const start = current - 60; // 과거 60년 정도
-    const arr = [];
-    for (let y = current; y >= start; y -= 1) arr.push(y);
-    return arr;
-  }, []);
-
-  const daysInMonth = useMemo(() => {
-    return new Date(tempYear, tempMonth, 0).getDate();
-  }, [tempYear, tempMonth]);
-
-  useEffect(() => {
-    if (tempDay > daysInMonth) {
-      setTempDay(daysInMonth);
-    }
-  }, [daysInMonth, tempDay]);
-
-  const openDateModal = (type) => {
-    const base =
-      type === "start" ? startDate || new Date() : endDate || new Date();
-    setDateTarget(type);
-    setTempYear(base.getFullYear());
-    setTempMonth(base.getMonth() + 1);
-    setTempDay(base.getDate());
-    setShowDateModal(true);
-  };
-
-  const handleDateConfirm = () => {
-    if (!dateTarget) return;
-    const chosen = new Date(tempYear, tempMonth - 1, tempDay);
-    if (dateTarget === "start") {
-      setStartDate(chosen);
-    } else {
-      setEndDate(chosen);
-    }
-    setShowDateModal(false);
-    setDateTarget(null);
-  };
-
-  const handleDateCancel = () => {
-    setShowDateModal(false);
-    setDateTarget(null);
-  };
+  const parsedStart = parseDateInput(startDateText);
+  const parsedEnd = parseDateInput(endDateText);
+  const isDateRangeValid =
+    status !== "after" ||
+    (parsedStart && parsedEnd && parsedStart.getTime() <= parsedEnd.getTime());
+  const canSubmit = status === "after" ? isDateRangeValid : true;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -732,6 +760,7 @@ export default function AddEntryScreen({ navigation }) {
                                     onPress={() => {
                                       setStatus(opt.value);
                                       setShowStatusMenu(false);
+                                      setShowReviewPrompt(opt.value === "after");
                                     }}
                                     activeOpacity={0.9}
                                   >
@@ -767,8 +796,19 @@ export default function AddEntryScreen({ navigation }) {
                       </View>
 
                       <View style={styles.detailStarsRow}>
-                        {renderStars(4, 20)}
-                        <Text style={styles.voteCount}>10명</Text>
+                        {renderStars(
+                          (detailReview?.rating ||
+                            selectedBook.userRate ||
+                            selectedBook.rate ||
+                            0) ?? 0,
+                          20,
+                        )}
+                        <Text style={styles.voteCount}>
+                          {selectedBook.totalReview ||
+                            (detailReview ? 1 : 0) ||
+                            0}
+                          명
+                        </Text>
                       </View>
 
                       {status === "after" && (
@@ -777,40 +817,36 @@ export default function AddEntryScreen({ navigation }) {
                           <View style={styles.dateRow}>
                             <View style={{ flex: 1 }}>
                               <Text style={styles.formLabel}>시작일</Text>
-                              <TouchableOpacity
-                                style={styles.datePickerInput}
-                                activeOpacity={0.8}
-                                onPress={() => openDateModal("start")}
-                              >
-                                <Text
-                                  style={[
-                                    styles.dateValueText,
-                                    !startDate && styles.datePlaceholder,
-                                  ]}
-                                >
-                                  {formatDate(startDate)}
-                                </Text>
-                              </TouchableOpacity>
+                              <TextInput
+                                style={styles.dateInput}
+                                placeholder="YYYY-MM-DD"
+                                placeholderTextColor="#B1B1B1"
+                                value={startDateText}
+                                onChangeText={setStartDateText}
+                                keyboardType="numbers-and-punctuation"
+                                maxLength={10}
+                              />
                             </View>
                             <View style={{ width: 12 }} />
                             <View style={{ flex: 1 }}>
                               <Text style={styles.formLabel}>완독일</Text>
-                              <TouchableOpacity
-                                style={styles.datePickerInput}
-                                activeOpacity={0.8}
-                                onPress={() => openDateModal("end")}
-                              >
-                                <Text
-                                  style={[
-                                    styles.dateValueText,
-                                    !endDate && styles.datePlaceholder,
-                                  ]}
-                                >
-                                  {formatDate(endDate)}
-                                </Text>
-                              </TouchableOpacity>
+                              <TextInput
+                                style={styles.dateInput}
+                                placeholder="YYYY-MM-DD"
+                                placeholderTextColor="#B1B1B1"
+                                value={endDateText}
+                                onChangeText={setEndDateText}
+                                keyboardType="numbers-and-punctuation"
+                                maxLength={10}
+                              />
                             </View>
                           </View>
+                          {!isDateRangeValid && (
+                            <Text style={styles.dateError}>
+                              날짜를 YYYY-MM-DD로 입력하고 시작일이 완독일보다
+                              늦지 않도록 해주세요.
+                            </Text>
+                          )}
                         </View>
                       )}
                     </View>
@@ -818,37 +854,61 @@ export default function AddEntryScreen({ navigation }) {
                 )}
 
                 <Text style={styles.reviewSectionTitle}>리뷰</Text>
-
                 <View style={styles.reviewList}>
-                  {[1, 2, 3].map((i) => (
-                    <View
-                      key={i}
-                      style={styles.reviewCard}
-                    >
+                  {detailReviewLoading && (
+                    <Text style={styles.helperText}>리뷰 불러오는 중...</Text>
+                  )}
+                  {!detailReviewLoading && detailReview && (
+                    <View style={styles.reviewCard}>
                       <View style={styles.avatar} />
                       <View style={styles.reviewBody}>
                         <View style={styles.reviewTop}>
-                          <Text style={styles.reviewNickname}>닉네임입력</Text>
+                          <Text style={styles.reviewNickname}>한줄 리뷰</Text>
                           <View style={styles.reviewStars}>
-                            {renderStars()}
+                            {renderStars(
+                              detailReview.rating || 0,
+                              16,
+                              "#426B1F",
+                            )}
                           </View>
                         </View>
                         <Text style={styles.reviewText}>
-                          어떻게 이런 생각을 이렇게 멋진 스토리로 풀어낼 수
-                          있는가...그의 문체 하나 하나가 경의롭다.
+                          {detailReview.comment || "리뷰 내용이 없습니다."}
                         </Text>
+                        {Array.isArray(detailReview.hashtag) &&
+                          detailReview.hashtag.length > 0 && (
+                            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                              {detailReview.hashtag.map((tag) => (
+                                <View
+                                  key={tag}
+                                  style={styles.reviewTagChip}
+                                >
+                                  <Text style={styles.reviewTagText}>
+                                    #{tag}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
                       </View>
                     </View>
-                  ))}
+                  )}
+                  {!detailReviewLoading && !detailReview && (
+                    <Text style={styles.helperText}>아직 등록된 리뷰가 없습니다.</Text>
+                  )}
                 </View>
               </ScrollView>
 
               {/* 고정 하단 CTA */}
               <View style={styles.detailFooter}>
                 <TouchableOpacity
-                  style={styles.ctaButton}
+                  style={[
+                    styles.ctaButton,
+                    !canSubmit && styles.ctaButtonDisabled,
+                  ]}
                   activeOpacity={0.9}
                   onPress={handleAddToShelf}
+                  disabled={!canSubmit}
                 >
                   <Text style={styles.ctaLabel}>추가하기</Text>
                 </TouchableOpacity>
@@ -858,130 +918,55 @@ export default function AddEntryScreen({ navigation }) {
         </SafeAreaView>
       </Modal>
 
-      {showDateModal && (
+      {showReviewPrompt && (
         <Modal
-          transparent
           visible
+          transparent
           animationType="fade"
-          onRequestClose={handleDateCancel}
+          onRequestClose={() => setShowReviewPrompt(false)}
         >
-          <View style={styles.dateModalBackdrop}>
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={handleDateCancel}
-            />
-            <View style={styles.dateModalBox}>
-              <Text style={styles.dateModalTitle}>
-                {dateTarget === "start" ? "시작일 선택" : "완독일 선택"}
+          <View style={styles.reviewPromptOverlay}>
+            <View style={styles.reviewPromptBox}>
+              <Text style={styles.reviewPromptTitle}>리뷰 작성</Text>
+              <Text style={styles.reviewPromptDesc}>
+                완독한 책의 별점과 한 줄 리뷰를 먼저 남겨주세요.
               </Text>
-              <View style={styles.dateColumns}>
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  style={styles.dateColumn}
-                >
-                  {years.map((y) => (
-                    <TouchableOpacity
-                      key={y}
-                      style={[
-                        styles.dateOption,
-                        tempYear === y && styles.dateOptionActive,
-                      ]}
-                      onPress={() => setTempYear(y)}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.dateOptionText,
-                          tempYear === y && styles.dateOptionTextActive,
-                        ]}
-                      >
-                        {y}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  style={styles.dateColumn}
-                >
-                  {[...Array(12)].map((_, idx) => {
-                    const m = idx + 1;
-                    return (
-                      <TouchableOpacity
-                        key={m}
-                        style={[
-                          styles.dateOption,
-                          tempMonth === m && styles.dateOptionActive,
-                        ]}
-                        onPress={() => setTempMonth(m)}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.dateOptionText,
-                            tempMonth === m && styles.dateOptionTextActive,
-                          ]}
-                        >
-                          {m.toString().padStart(2, "0")}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  style={styles.dateColumn}
-                >
-                  {[...Array(daysInMonth)].map((_, idx) => {
-                    const d = idx + 1;
-                    return (
-                      <TouchableOpacity
-                        key={d}
-                        style={[
-                          styles.dateOption,
-                          tempDay === d && styles.dateOptionActive,
-                        ]}
-                        onPress={() => setTempDay(d)}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.dateOptionText,
-                            tempDay === d && styles.dateOptionTextActive,
-                          ]}
-                        >
-                          {d.toString().padStart(2, "0")}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+              <View style={styles.reviewPromptStars}>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => setReviewPromptRating(i)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={reviewPromptRating >= i ? "star" : "star-outline"}
+                      size={24}
+                      color="#426B1F"
+                      style={{ marginHorizontal: 2 }}
+                    />
+                  </TouchableOpacity>
+                ))}
               </View>
-
-              <View style={styles.dateActionRow}>
-                <TouchableOpacity
-                  style={styles.dateActionBtn}
-                  onPress={handleDateCancel}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.dateActionText}>취소</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.dateActionBtn, styles.dateActionBtnConfirm]}
-                  onPress={handleDateConfirm}
-                  activeOpacity={0.9}
-                >
-                  <Text style={[styles.dateActionText, { color: "#426B1F" }]}>
-                    선택
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <TextInput
+                style={styles.reviewPromptInput}
+                placeholder="어떤 점이 좋았나요?"
+                placeholderTextColor="#B1B1B1"
+                multiline
+                value={reviewPromptText}
+                onChangeText={setReviewPromptText}
+              />
+              <TouchableOpacity
+                style={styles.reviewPromptCTA}
+                activeOpacity={0.9}
+                onPress={() => setShowReviewPrompt(false)}
+              >
+                <Text style={styles.reviewPromptCTAText}>계속하기</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
       )}
+
     </SafeAreaView>
   );
 }
@@ -1153,6 +1138,16 @@ const styles = StyleSheet.create({
     color: "#000",
     lineHeight: 20,
   },
+  reviewTagChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: "#E8F3DD",
+  },
+  reviewTagText: {
+    fontSize: 12,
+    color: "#426B1F",
+  },
   menuBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
@@ -1168,6 +1163,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#426B1F",
     justifyContent: "center",
     alignItems: "center",
+  },
+  ctaButtonDisabled: {
+    backgroundColor: "#C9C9C9",
   },
   ctaLabel: {
     fontSize: 16,
@@ -1354,26 +1352,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  datePickerInput: {
+  dateInput: {
     height: 40,
     borderWidth: 1,
     borderColor: "#D7EEC4",
     borderRadius: 10,
     paddingHorizontal: 10,
     backgroundColor: "#FFF",
-    justifyContent: "center",
     marginTop: 4,
-  },
-  dateValueText: {
     fontSize: 14,
     color: "#191919",
   },
-  datePlaceholder: {
-    color: "#B1B1B1",
-  },
-  dateHelper: {
+  dateError: {
     fontSize: 12,
-    color: "#666",
+    color: "#D0312D",
+    marginTop: 6,
   },
   // manual add
   manualSafe: {
@@ -1485,77 +1478,55 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFF",
   },
-  dateModalBackdrop: {
+  reviewPromptOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
   },
-  dateModalBox: {
+  reviewPromptBox: {
     width: "100%",
-    maxHeight: "80%",
-    borderRadius: 16,
     backgroundColor: "#FFF",
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    padding: 20,
+    gap: 12,
   },
-  dateModalTitle: {
-    fontSize: 16,
+  reviewPromptTitle: {
+    fontSize: 18,
     fontWeight: "700",
     color: "#191919",
-    marginBottom: 12,
-    textAlign: "center",
   },
-  dateColumns: {
+  reviewPromptDesc: {
+    fontSize: 14,
+    color: "#555",
+  },
+  reviewPromptStars: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
+    alignItems: "center",
+    marginTop: 4,
   },
-  dateColumn: {
-    flex: 1,
-    maxHeight: 220,
-  },
-  dateOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 6,
-    backgroundColor: "#F6F6F6",
-  },
-  dateOptionActive: {
-    backgroundColor: "#D7EEC4",
-  },
-  dateOptionText: {
-    fontSize: 16,
-    color: "#333",
-    textAlign: "center",
-  },
-  dateOptionTextActive: {
-    fontWeight: "700",
-    color: "#426B1F",
-  },
-  dateActionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  dateActionBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
+  reviewPromptInput: {
+    minHeight: 90,
     borderWidth: 1,
     borderColor: "#E0E0E0",
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: "#191919",
+    textAlignVertical: "top",
+  },
+  reviewPromptCTA: {
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#426B1F",
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFF",
+    marginTop: 4,
   },
-  dateActionBtnConfirm: {
-    borderColor: "#426B1F",
-    backgroundColor: "#E8F3DD",
-  },
-  dateActionText: {
+  reviewPromptCTAText: {
+    color: "#FFF",
     fontSize: 15,
-    fontWeight: "600",
-    color: "#555",
+    fontWeight: "700",
   },
 });

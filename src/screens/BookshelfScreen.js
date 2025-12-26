@@ -1,6 +1,11 @@
 import placeholder from "../../assets/icon.png";
-import { deleteBookFromBookcase, fetchBookcase } from "@apis/bookcaseApi";
+import {
+  deleteBookFromBookcase,
+  fetchBookcase,
+  searchBookcase,
+} from "@apis/bookcaseApi";
 import { Ionicons } from "@expo/vector-icons";
+import SortLatestIcon from "../../assets/icons/sort-latest.svg";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { LinearGradient } from "expo-linear-gradient";
@@ -85,6 +90,50 @@ const normalizeBooks = (sources = []) => {
   return result;
 };
 
+const sortByLatest = (list = []) => {
+  const score = (b) => {
+    const t =
+      b.enrollAt ||
+      b.startedAt ||
+      b.finishedAt ||
+      b.createdAt ||
+      b.updatedAt ||
+      b.createdDate ||
+      null;
+    const ts = t ? new Date(t).getTime() : 0;
+    return isNaN(ts) ? 0 : ts;
+  };
+  return [...list].sort((a, b) => {
+    const sa = score(a);
+    const sb = score(b);
+    if (sa !== sb) return sb - sa;
+    return (b.id || 0) - (a.id || 0);
+  });
+};
+
+const getCompletionDate = (book) => {
+  const raw =
+    book?.endDate ||
+    book?.finishedAt ||
+    book?.finishedAtTime ||
+    book?.updatedAt ||
+    book?.createdAt ||
+    book?.enrollAt ||
+    null;
+  if (!raw) return null;
+  const dt = new Date(raw);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt;
+};
+
+const getCompletionKey = (book) => {
+  const dt = getCompletionDate(book);
+  if (!dt) return null;
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  return { key: `${y}-${m}`, label: `${y}.${m}`, sortVal: dt.getTime() };
+};
+
 export default function BookshelfScreen({ route, navigation: navProp }) {
   const [tab, setTab] = useState("before");
   const [search, setSearch] = useState("");
@@ -99,22 +148,83 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
     reading: [],
     after: [],
   });
+  const [searchResults, setSearchResults] = useState({
+    before: null,
+    reading: null,
+    after: null,
+  });
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [afterMonthKey, setAfterMonthKey] = useState(null);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const screenWidth = Dimensions.get("window").width;
   const translateX = useRef(new Animated.Value(0)).current;
 
   const tabOrder = useMemo(() => tabs.map((t) => t.value), []);
   const currentIndex = tabOrder.indexOf(tab);
+  const afterMonthOptions = useMemo(() => {
+    const list = books.after || [];
+    const map = new Map();
+    list.forEach((b) => {
+      const info = getCompletionKey(b);
+      if (!info) return;
+      if (!map.has(info.key)) {
+        map.set(info.key, info);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.sortVal - a.sortVal);
+  }, [books.after]);
+
+  useEffect(() => {
+    if (afterMonthOptions.length === 0) {
+      setAfterMonthKey(null);
+      return;
+    }
+    // 기본값: 최신 달
+    setAfterMonthKey((prev) =>
+      prev && afterMonthOptions.some((o) => o.key === prev)
+        ? prev
+        : afterMonthOptions[0].key,
+    );
+  }, [afterMonthOptions]);
+
+  useEffect(() => {
+    if (tab !== "after") {
+      setMonthDropdownOpen(false);
+    }
+  }, [tab]);
+
+  const monthLabel = useMemo(() => {
+    if (afterMonthOptions.length === 0) {
+      const now = new Date();
+      return `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}`;
+    }
+    const opt =
+      afterMonthOptions.find((o) => o.key === afterMonthKey) ||
+      afterMonthOptions[0];
+    return opt?.label || "";
+  }, [afterMonthOptions, afterMonthKey]);
   const tabBooks = useMemo(() => {
-    const list = books[tab] || [];
     const q = search.trim().toLowerCase();
-    const filtered = q
-      ? list.filter((b) => (b.title || "").toLowerCase().includes(q))
-      : list;
+    const listFromSearch =
+      q && searchResults[tab] ? searchResults[tab] : null;
+    const baseList = listFromSearch ?? books[tab] ?? [];
+    let filtered = listFromSearch
+      ? baseList
+      : q
+        ? baseList.filter((b) => (b.title || "").toLowerCase().includes(q))
+        : baseList;
+
+    if (tab === "after" && afterMonthKey) {
+      filtered = filtered.filter((b) => {
+        const info = getCompletionKey(b);
+        return info?.key === afterMonthKey;
+      });
+    }
     if (sortBy === "rating") {
       return [...filtered].sort((a, b) => (b.rate || 0) - (a.rate || 0));
     }
-    return filtered;
-  }, [books, tab, search, sortBy]);
+    return sortByLatest(filtered);
+  }, [books, tab, search, sortBy, searchResults, afterMonthKey]);
   const navigationFromHook = useNavigation();
   const navigation = navProp ?? navigationFromHook;
 
@@ -130,6 +240,58 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
   useEffect(() => {
     setBooks(bookshelfCache);
   }, []);
+
+  // 상태+제목 검색 (서버)
+  useEffect(() => {
+    const q = search.trim();
+    if (!q) {
+      setSearchResults({ before: null, reading: null, after: null });
+      setSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const stateParam = tab.toUpperCase();
+        const res = await searchBookcase(q, stateParam);
+        if (cancelled) return;
+        const mapped = (res || []).map((b) => ({
+          id: b.bookId,
+          title: b.title,
+          author: b.author || b.publisher || "",
+          coverUri: b.cover || null,
+          status: (b.status || tab).toLowerCase(),
+          rate: typeof b.userRate === "number" ? b.userRate : b.rate || 0,
+          categoryName:
+            b.categoryName || b.category || b.genre || b.genreName || "기타",
+          enrollAt: b.enrollAt,
+          startedAt: b.startedAt,
+          finishedAt: b.endDate || b.finishedAt || b.finishedAtTime,
+          userRate: b.userRate,
+        }));
+        setSearchResults((prev) => ({
+          ...prev,
+          [tab]: sortByLatest(mapped),
+        }));
+      } catch (e) {
+        if (cancelled) return;
+        console.error(
+          "책장 검색 실패:",
+          e.response?.status,
+          e.response?.data || e.message,
+        );
+        setSearchResults((prev) => ({ ...prev, [tab]: [] }));
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search, tab]);
 
   // 단일 업데이트 반영 (상태 이동)
   useEffect(() => {
@@ -160,18 +322,31 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
     try {
       const data = await fetchBookcase();
       if (!data) return;
-      const mapBook = (b) => ({
-        id: b.bookId,
-        title: b.title,
-        author: b.author || b.publisher || "",
-        coverUri: b.cover || null,
-        status: (b.status || "").toLowerCase() || "before",
-        rate: typeof b.userRate === "number" ? b.userRate : b.rate || 0,
-      });
+      const mapBook = (b, fallbackStatus = "before") => {
+        const status =
+          (b.status || fallbackStatus || "before").toLowerCase();
+        return {
+          id: b.bookId,
+          title: b.title,
+          author: b.author || b.publisher || "",
+          coverUri: b.cover || null,
+          status,
+          rate: typeof b.userRate === "number" ? b.userRate : b.rate || 0,
+          categoryName:
+            b.categoryName ||
+            b.category ||
+            b.genre ||
+            b.genreName ||
+            "기타",
+          enrollAt: b.enrollAt,
+          startedAt: b.startDate || b.startedAt,
+          finishedAt: b.endDate || b.finishedAt || b.finishedAtTime,
+        };
+      };
       const serverState = {
-        before: (data.before || []).map(mapBook),
-        reading: (data.reading || []).map(mapBook),
-        after: (data.after || []).map(mapBook),
+        before: (data.before || []).map((b) => mapBook(b, "before")),
+        reading: (data.reading || []).map((b) => mapBook(b, "reading")),
+        after: (data.after || []).map((b) => mapBook(b, "after")),
       };
 
       // 서버 + 로컬 캐시를 통합하고 상태별로 단일화
@@ -331,6 +506,17 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
       {/* 상단 영역 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>책장</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate("AddEntry")}
+        >
+          <Ionicons
+            name="add"
+            size={20}
+            color="#426B1F"
+          />
+        </TouchableOpacity>
       </View>
 
       {/* 탭 */}
@@ -355,11 +541,11 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
 
       {/* 검색 */}
       <View style={styles.searchWrap}>
-        <View style={styles.searchBox}>
-          <Ionicons
-            name="search-outline"
-            size={22}
-            color="#8A8A8A"
+      <View style={styles.searchBox}>
+        <Ionicons
+          name="search-outline"
+          size={22}
+          color="#8A8A8A"
           />
           <TextInput
             style={styles.searchInput}
@@ -371,7 +557,61 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
         </View>
       </View>
 
-      {/* 정렬 */}
+      {/* 필터 / 정렬 */}
+      <View style={styles.filterWrap}>
+        {tab === "after" ? (
+          <View style={styles.monthDropdownContainer}>
+            <Pressable
+              style={styles.monthLabelWrap}
+              hitSlop={6}
+              onPress={() => setMonthDropdownOpen((v) => !v)}
+            >
+              <Text style={styles.monthLabel}>{monthLabel}</Text>
+              <Ionicons
+                name={monthDropdownOpen ? "chevron-up" : "chevron-down"}
+                size={14}
+                color="#426B1F"
+              />
+            </Pressable>
+            {monthDropdownOpen && (
+              <View style={styles.monthDropdownList}>
+                {afterMonthOptions.map((opt) => (
+                  <Pressable
+                    key={opt.key}
+                    style={styles.monthDropdownItem}
+                    onPress={() => {
+                      setAfterMonthKey(opt.key);
+                      setMonthDropdownOpen(false);
+                    }}
+                  >
+                    <Text style={styles.monthDropdownItemText}>{opt.label}</Text>
+                    {afterMonthKey === opt.key && (
+                      <Ionicons name="checkmark" size={16} color="#426B1F" />
+                    )}
+                  </Pressable>
+                ))}
+                {afterMonthOptions.length === 0 && (
+                  <Text style={styles.monthDropdownEmpty}>완독 기록이 없어요</Text>
+                )}
+              </View>
+            )}
+          </View>
+        ) : (
+          <View />
+        )}
+        <Pressable
+          style={styles.sortRow}
+          onPress={() => setShowSortSheet(true)}
+          hitSlop={8}
+        >
+          <SortLatestIcon width={12} height={12} />
+          <Text style={styles.sortText}>
+            {sortBy === "rating" ? "별점 높은순" : "최신순"}
+            {searchLoading ? " · 검색중" : ""}
+          </Text>
+        </Pressable>
+      </View>
+
       <View
         style={styles.bodyArea}
         onStartShouldSetResponder={() => {
@@ -382,20 +622,6 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
           return false;
         }}
       >
-        <TouchableOpacity
-          style={styles.sortRow}
-          activeOpacity={0.8}
-          onPress={() => setShowSortSheet(true)}
-        >
-          <Ionicons
-            name="funnel-outline"
-            size={14}
-            color="#191919"
-          />
-          <Text style={styles.sortText}>
-            {sortBy === "rating" ? "별점 높은순" : "최신순"}
-          </Text>
-        </TouchableOpacity>
 
         <View style={styles.swipeContainer}>
           <Animated.View
@@ -650,17 +876,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAF5",
   },
   header: {
-    height: 64,
+    height: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: "#FAFAF5",
-    paddingTop: 0,
     paddingHorizontal: 16,
-    justifyContent: "flex-end",
-    paddingBottom: 10,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#1F2A3D",
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#000",
+  },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabsRow: {
     flexDirection: "row",
@@ -696,6 +932,60 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
+  filterWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 6,
+    gap: 10,
+    backgroundColor: "#FAFAF5",
+  },
+  monthLabelWrap: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  monthLabel: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#426B1F",
+  },
+  monthDropdownContainer: {
+    position: "relative",
+  },
+  monthDropdownList: {
+    position: "absolute",
+    top: 28,
+    left: 0,
+    minWidth: 110,
+    borderWidth: 1,
+    borderColor: "#D7EEC4",
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    zIndex: 10,
+  },
+  monthDropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  monthDropdownItemText: { fontSize: 14, color: "#191919", fontWeight: "600" },
+  monthDropdownEmpty: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: "#666",
+  },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -718,7 +1008,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    gap: 4,
+    gap: 6,
   },
   sortText: {
     fontSize: 12,

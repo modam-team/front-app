@@ -1,22 +1,50 @@
 import colors from "../theme/legacyColors";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  Image,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
+import {
+  addBookToBookcase,
+  deleteBookFromBookcase,
+  fetchBookcase,
+  fetchRecommendedBooks,
+  updateBookcaseState,
+} from "@apis/bookcaseApi";
+import { fetchReadingLogs, saveReadingLog } from "@apis/reportApi";
+import { fetchUserProfile, updateProfile } from "@apis/userApi";
+import { searchFriends } from "@apis/friendApi";
 
 const green = "#608540";
-const lightGreen = "#d7eec4";
+const lightGreen = "#fafaf5";
 const mutedGreen = "#9fb37b";
+const starGray = "#c6c6c6";
+const placeLabelMap = {
+  HOME: "집",
+  CAFE: "카페",
+  LIBRARY: "도서관",
+  MOVING: "이동중",
+};
+const placeKeyMap = {
+  집: "HOME",
+  카페: "CAFE",
+  도서관: "LIBRARY",
+  이동중: "MOVING",
+};
 
-function Rating({ value }) {
+function Rating({ value, color = green, inactiveColor = starGray }) {
   const stars = [1, 2, 3, 4, 5];
   return (
     <View style={styles.ratingRow}>
@@ -33,7 +61,7 @@ function Rating({ value }) {
               style={[
                 styles.star,
                 {
-                  color: isFull ? green : isHalf ? mutedGreen : "#d1d5db",
+                  color: isFull ? color : isHalf ? mutedGreen : inactiveColor,
                 },
               ]}
             >
@@ -46,35 +74,69 @@ function Rating({ value }) {
   );
 }
 
-function BookCard({ title, author, tags, rating }) {
+function RecommendationItem({
+  title,
+  author,
+  tags,
+  rating,
+  cover,
+  totalReview = 0,
+  onToggleHeart,
+  liked,
+  onPress,
+  heartDisabled = false,
+}) {
   return (
-    <View style={styles.bookCard}>
+    <Pressable
+      style={styles.recCard}
+      onPress={onPress}
+    >
       <View style={styles.bookCover}>
-        <Text style={styles.coverText}>{title.slice(0, 2)}</Text>
+        {cover ? (
+          <Image
+            source={{ uri: cover }}
+            style={styles.coverImg}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text style={styles.coverText}>{title.slice(0, 2)}</Text>
+        )}
       </View>
       <View style={styles.bookMeta}>
         <Text style={styles.bookTitle}>{title}</Text>
         <Text style={styles.bookAuthor}>{author}</Text>
-        <Rating value={rating} />
-        <View style={styles.tagRow}>
-          {tags.map((tag) => (
-            <View
-              key={tag}
-              style={styles.tagPill}
-            >
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
+        <View style={styles.ratingLine}>
+          <Rating value={rating} color={starGray} inactiveColor={starGray} />
+          <Text style={styles.reviewCount}>({totalReview})</Text>
         </View>
       </View>
-      <View style={styles.heart}>
-        <Text style={styles.heartText}>♡</Text>
-      </View>
-    </View>
+      <Pressable
+        hitSlop={8}
+        onPress={onToggleHeart}
+        disabled={heartDisabled}
+        style={styles.heartBtn}
+      >
+        <Ionicons
+          name={liked ? "heart" : "heart-outline"}
+          size={28}
+          color={liked ? "#426b1f" : "#c6c6c6"}
+        />
+      </Pressable>
+    </Pressable>
   );
 }
 
-function Calendar({ year, month, onPrev, onNext, onYearChange }) {
+function Calendar({
+  year,
+  month,
+  onPrev,
+  onNext,
+  onYearChange,
+  markedDates = new Set(),
+  onDayPress,
+  selectedDayKey,
+  getDayBubbleStyle = () => null,
+}) {
   const weeks = useMemo(() => {
     const first = new Date(year, month - 1, 1);
     const last = new Date(year, month, 0).getDate();
@@ -138,7 +200,38 @@ function Calendar({ year, month, onPrev, onNext, onYearChange }) {
               style={styles.dayCell}
             >
               {day ? (
-                <Text style={styles.dayText}>{day}</Text>
+                (() => {
+                  const dayKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                  const isMarked = markedDates?.has?.(dayKey);
+                  const isSelected = selectedDayKey === dayKey;
+                  const bubbleStyle = getDayBubbleStyle?.(dayKey);
+                  return (
+                    <Pressable
+                      onPress={() => {
+                        if (isMarked) {
+                          onDayPress?.(dayKey);
+                        }
+                      }}
+                      style={[
+                        styles.dayBubble,
+                        (isMarked || isSelected) && styles.dayBubbleMarked,
+                        bubbleStyle,
+                        isSelected && styles.dayBubbleSelected,
+                      ]}
+                      hitSlop={8}
+                    >
+                      <Text
+                        style={[
+                          styles.dayText,
+                          (isMarked || isSelected) && styles.dayTextHighlighted,
+                          isSelected && styles.dayTextSelected,
+                        ]}
+                      >
+                        {day}
+                      </Text>
+                    </Pressable>
+                  );
+                })()
               ) : (
                 <Text style={styles.dayTextMuted}> </Text>
               )}
@@ -150,10 +243,110 @@ function Calendar({ year, month, onPrev, onNext, onYearChange }) {
   );
 }
 
-export default function HomeScreen() {
-  const [month, setMonth] = useState(12);
-  const [year, setYear] = useState(2025);
+const now = new Date();
+
+export default function HomeScreen({ navigation }) {
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [place, setPlace] = useState(null);
+  const [bookSelectOpen, setBookSelectOpen] = useState(false);
+  const [bookOptions, setBookOptions] = useState({ before: [], reading: [] });
+  const [selectedBookId, setSelectedBookId] = useState(null);
+  const [loadingBooks, setLoadingBooks] = useState(false);
+  const [bookSearch, setBookSearch] = useState("");
+  const [readingLogs, setReadingLogs] = useState({});
+  const [dayModalKey, setDayModalKey] = useState(null);
+  const bookScrollRef = React.useRef(null);
+  const [goalCount, setGoalCount] = useState(0);
+  const [readCount, setReadCount] = useState(0);
+  const [goalModalVisible, setGoalModalVisible] = useState(false);
+  const [goalSetModalVisible, setGoalSetModalVisible] = useState(false);
+  const [goalCandidate, setGoalCandidate] = useState(1);
+  const [goalBarWidth, setGoalBarWidth] = useState(0);
+  const [friendList, setFriendList] = useState([]);
+  const formatDateKey = useCallback((dateObj) => {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, []);
+  const formatTime = useCallback((dateObj) => {
+    const h = String(dateObj.getHours()).padStart(2, "0");
+    const m = String(dateObj.getMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  }, []);
+  const parseReadAt = useCallback((raw) => {
+    if (!raw) return null;
+    if (typeof raw === "number") return new Date(raw);
+    if (raw instanceof Date) return raw;
+    if (typeof raw === "string") {
+      const hasTimezone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(raw);
+      return new Date(hasTimezone ? raw : `${raw}Z`);
+    }
+    return null;
+  }, []);
+  const allBooks = useMemo(
+    () => [...(bookOptions.before || []), ...(bookOptions.reading || [])],
+    [bookOptions],
+  );
+  const markedDates = useMemo(
+    () => new Set(Object.keys(readingLogs)),
+    [readingLogs],
+  );
+  const maxDayCount = useMemo(() => {
+    const counts = Object.values(readingLogs || {}).map((v) => v?.length || 0);
+    if (counts.length === 0) return 1;
+    return Math.max(...counts, 1);
+  }, [readingLogs]);
+  const mixColor = useCallback((from, to, ratio) => {
+    const clamp = (v) => Math.min(255, Math.max(0, v));
+    const parse = (hex) => {
+      const norm = hex.replace("#", "");
+      const int = parseInt(norm, 16);
+      return {
+        r: (int >> 16) & 255,
+        g: (int >> 8) & 255,
+        b: int & 255,
+      };
+    };
+    const f = parse(from);
+    const t = parse(to);
+    const r = clamp(Math.round(f.r + (t.r - f.r) * ratio));
+    const g = clamp(Math.round(f.g + (t.g - f.g) * ratio));
+    const b = clamp(Math.round(f.b + (t.b - f.b) * ratio));
+    return `rgb(${r},${g},${b})`;
+  }, []);
+  const getDayBubbleStyle = useCallback(
+    (dayKey) => {
+      const count = readingLogs?.[dayKey]?.length || 0;
+      if (!count) return null;
+      const ratio = Math.min(1, count / maxDayCount);
+      return {
+        backgroundColor: mixColor("#d7eec4", "#608540", ratio),
+        borderColor: mixColor("#9fb37b", "#355619", ratio),
+        borderWidth: 1,
+      };
+    },
+    [readingLogs, maxDayCount, mixColor],
+  );
+  const activeDayLogs = dayModalKey ? readingLogs[dayModalKey] || [] : [];
+  const activeDayNumber = useMemo(() => {
+    if (!dayModalKey) return "";
+    const [, , day] = dayModalKey.split("-");
+    return Number(day || 0);
+  }, [dayModalKey]);
+  const goalAchieved = useMemo(
+    () => goalCount > 0 && readCount >= goalCount,
+    [goalCount, readCount],
+  );
+  const filteredBooks = useMemo(() => {
+    const merged = [...(bookOptions.before || []), ...(bookOptions.reading || [])];
+    const q = bookSearch.trim().toLowerCase();
+    if (!q) return merged;
+    return merged.filter((b) => (b.title || "").toLowerCase().includes(q));
+  }, [bookOptions, bookSearch]);
   const currentYear = useMemo(() => new Date().getFullYear(), []);
   const yearOptions = useMemo(() => {
     const start = Math.max(currentYear, year);
@@ -165,33 +358,279 @@ export default function HomeScreen() {
   const next = () =>
     setMonth((m) => (m === 12 ? (setYear((y) => y + 1), 1) : m + 1));
 
-  const friends = [
-    { name: "닉네임", color: "#f4d7d9" },
-    { name: "닉네임", color: "#d7eec4" },
-    { name: "닉네임", color: "#d7eec4" },
-    { name: "닉네임", color: "#d7eec4" },
-    { name: "닉네임", color: "#d7eec4" },
-  ];
+  const friends =
+    friendList.length > 0
+      ? friendList.map((f) => ({
+          name: f.nickname || "닉네임",
+          avatar: f.profileImageUrl || f.profileUrl || null,
+        }))
+      : [
+          { name: "닉네임", color: "#f4d7d9" },
+          { name: "닉네임", color: "#d7eec4" },
+          { name: "닉네임", color: "#d7eec4" },
+          { name: "닉네임", color: "#d7eec4" },
+          { name: "닉네임", color: "#d7eec4" },
+        ];
 
-  const recs = [
-    {
-      title: "디자인의 디자인",
-      author: "하라 켄야 / 안그라픽스",
-      rating: 0,
-      tags: ["텍스트", "텍스트", "텍스트"],
+  const [recs, setRecs] = useState([]);
+  const [nickname, setNickname] = useState("");
+  const isFocused = useIsFocused();
+  const [recoLoading, setRecoLoading] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const [heartBusyIds, setHeartBusyIds] = useState(new Set());
+  const recoOpacity = useRef(new Animated.Value(1)).current;
+  const [recoDetail, setRecoDetail] = useState(null);
+  const bannerOpacity = useRef(new Animated.Value(0)).current;
+  const [bannerText, setBannerText] = useState("");
+  const bannerTimer = useRef(null);
+  const getCompletionKey = useCallback((book) => {
+    const raw =
+      book?.endDate ||
+      book?.finishedAt ||
+      book?.finishedAtTime ||
+      book?.updatedAt ||
+      book?.createdAt ||
+      book?.enrollAt ||
+      null;
+    if (!raw) return null;
+    const dt = new Date(raw);
+    if (Number.isNaN(dt.getTime())) return null;
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    return { key: `${y}-${m}`, year: y, month: Number(m) };
+  }, []);
+
+  const showBanner = useCallback(
+    (text) => {
+      if (!text) return;
+      if (bannerTimer.current) clearTimeout(bannerTimer.current);
+      setBannerText(text);
+      bannerOpacity.setValue(0);
+      Animated.timing(bannerOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+      bannerTimer.current = setTimeout(() => {
+        Animated.timing(bannerOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }, 4000);
     },
-    {
-      title: "디자인의 디자인",
-      author: "하라 켄야 / 안그라픽스",
-      rating: 0,
-      tags: ["텍스트", "텍스트", "텍스트"],
+    [bannerOpacity],
+  );
+
+  const handleToggleHeart = useCallback(
+    async (book) => {
+      const bookId = book?.bookId || book?.id;
+      if (!bookId || heartBusyIds.has(bookId)) return;
+      setHeartBusyIds((prev) => {
+        const next = new Set(prev);
+        next.add(bookId);
+        return next;
+      });
+      const alreadyLiked = favoriteIds.has(bookId);
+      try {
+        if (alreadyLiked) {
+          await deleteBookFromBookcase(bookId);
+        } else {
+          await addBookToBookcase(bookId, "BEFORE");
+        }
+        setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          if (alreadyLiked) next.delete(bookId);
+          else next.add(bookId);
+          return next;
+        });
+        showBanner(alreadyLiked ? "책을 책장에서 뺐어요" : "책을 책장에 담았어요");
+      } catch (e) {
+        console.warn("책장 토글 실패:", e.response?.data || e.message);
+        showBanner(
+          alreadyLiked
+            ? "책을 책장에서 빼는 데 실패했어요"
+            : "책을 책장에 담는 데 실패했어요",
+        );
+      } finally {
+        setHeartBusyIds((prev) => {
+          const next = new Set(prev);
+          next.delete(bookId);
+          return next;
+        });
+      }
     },
-  ];
+    [favoriteIds, heartBusyIds, showBanner],
+  );
+
+  const loadRecommendations = useCallback(async () => {
+    setRecoLoading(true);
+    Animated.timing(recoOpacity, {
+      toValue: 0.2,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+    try {
+      const [reco, profile, bookcase] = await Promise.all([
+        fetchRecommendedBooks(),
+        fetchUserProfile().catch(() => null),
+        fetchBookcase().catch(() => ({})),
+      ]);
+
+      const preferred = profile?.preferredCategories || [];
+      const goalCountNumber = Number(profile?.goalScore) || 0;
+      setNickname(profile?.nickname || "");
+      setGoalCount(goalCountNumber);
+      setGoalCandidate(goalCountNumber || 1);
+      const ownedIds = new Set(
+        [
+          ...(bookcase?.before || []),
+          ...(bookcase?.reading || []),
+          ...(bookcase?.after || []),
+        ]
+          .map((b) => b.id || b.bookId)
+          .filter(Boolean),
+      );
+
+      const filtered = (Array.isArray(reco) ? reco : []).filter((b) => {
+        const inCategory =
+          preferred.length === 0 || preferred.includes(b.categoryName);
+        const notOwned = !ownedIds.has(b.bookId || b.id);
+        return inCategory && notOwned;
+      });
+
+      // 새로고침 시에도 구성이 바뀌도록 섞어서 상위 2개만 사용
+      const shuffled = filtered.sort(() => Math.random() - 0.5);
+      setRecs(shuffled.slice(0, 2));
+    } catch (e) {
+      console.warn("추천 불러오기 실패:", e.response?.data || e.message);
+    } finally {
+      setRecoLoading(false);
+      Animated.timing(recoOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isFocused) {
+      loadRecommendations();
+    }
+  }, [isFocused, loadRecommendations]);
+
+  useEffect(
+    () => () => {
+      if (bannerTimer.current) {
+        clearTimeout(bannerTimer.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isFocused) return;
+    let cancelled = false;
+    const loadLogs = async () => {
+      try {
+        const list = await fetchReadingLogs({ year, month });
+        if (cancelled) return;
+        const grouped = {};
+        for (const item of list) {
+          const dt = parseReadAt(item?.readAt);
+          if (!dt || Number.isNaN(dt.getTime())) continue;
+          const key = formatDateKey(dt);
+          const entry = {
+            id: `${item.readAt}-${item.title || "book"}`,
+            title: item.title || "제목 없음",
+            cover: item.cover || null,
+            place: placeLabelMap[item.readingPlace] || item.readingPlace || "이동중",
+            time: formatTime(dt),
+          };
+          grouped[key] = grouped[key] ? [...grouped[key], entry] : [entry];
+        }
+        setReadingLogs(grouped);
+      } catch (e) {
+        console.warn("독서 기록 불러오기 실패:", e.response?.data || e.message);
+      }
+    };
+    loadLogs();
+    return () => {
+      cancelled = true;
+    };
+  }, [isFocused, year, month, formatDateKey, formatTime, parseReadAt]);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    let cancelled = false;
+    const loadCompletionCount = async () => {
+      try {
+        const bookcase = await fetchBookcase();
+        if (cancelled) return;
+        const after = bookcase?.after || bookcase?.AFTER || [];
+        const targetKey = `${year}-${String(month).padStart(2, "0")}`;
+        const count = after.filter((b) => getCompletionKey(b)?.key === targetKey)
+          .length;
+        setReadCount(count);
+      } catch (e) {
+        console.warn("완독 카운트 불러오기 실패:", e.response?.data || e.message);
+        setReadCount(0);
+      }
+    };
+    loadCompletionCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [isFocused, year, month, getCompletionKey]);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    let cancelled = false;
+    const loadFriends = async () => {
+      try {
+        const res = await searchFriends("");
+        if (cancelled) return;
+        const onlyFriends = (Array.isArray(res) ? res : []).filter(
+          (f) => f.relationStatus === "FRIENDS",
+        );
+        setFriendList(onlyFriends.slice(0, 6));
+      } catch (e) {
+        console.warn("친구 목록 불러오기 실패:", e.response?.data || e.message);
+        if (!cancelled) setFriendList([]);
+      }
+    };
+    loadFriends();
+    return () => {
+      cancelled = true;
+    };
+  }, [isFocused]);
+
+  const maxGoal = 30;
+  const handleSize = 44;
+  const handleSetGoalByX = (x) => {
+    if (!goalBarWidth) return;
+    const ratio = Math.min(1, Math.max(0, x / goalBarWidth));
+    const val = Math.max(1, Math.round(ratio * maxGoal));
+    setGoalCandidate(val);
+  };
+
+  const saveGoal = async () => {
+    try {
+      await updateProfile({ goalScore: goalCandidate });
+      setGoalCount(goalCandidate);
+      setGoalSetModalVisible(false);
+      showBanner("이번 달 목표를 설정했어요");
+    } catch (e) {
+      console.warn("목표 설정 실패:", e.response?.data || e.message);
+      showBanner("목표 설정에 실패했어요");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -204,7 +643,18 @@ export default function HomeScreen() {
               key={idx}
               style={styles.friendItem}
             >
-              <View style={[styles.avatar, { backgroundColor: f.color }]} />
+              {f.avatar ? (
+                <Image
+                  source={{ uri: f.avatar }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <View style={[styles.avatar, { backgroundColor: f.color || "#d7eec4" }]}>
+                  <Text style={styles.avatarInitial}>
+                    {f.name?.slice(0, 1) || "친"}
+                  </Text>
+                </View>
+              )}
               <Text
                 style={[styles.avatarName, idx === 0 && styles.avatarNameBold]}
               >
@@ -212,56 +662,128 @@ export default function HomeScreen() {
               </Text>
             </View>
           ))}
-          <View style={styles.addCircle}>
+          <Pressable
+            style={styles.addCircle}
+            hitSlop={6}
+            onPress={() => navigation?.navigate("FriendList")}
+          >
             <Text style={styles.addPlus}>＋</Text>
-          </View>
+          </Pressable>
         </View>
 
-        <View style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressPercent}>120%</Text>
-            <View style={styles.goalRow}>
-              <Text style={styles.goalLabel}>n권을 읽었어요</Text>
-              <Text style={styles.goalTarget}>목표 n권</Text>
-            </View>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: "60%" }]} />
-            <View style={styles.progressMarker} />
-          </View>
-        </View>
+        {(() => {
+          const percent =
+            goalCount > 0 ? Math.min(999, Math.round((readCount / goalCount) * 100)) : 0;
+          const fillWidth = Math.min(100, goalCount > 0 ? (readCount / goalCount) * 100 : 0);
+          const markerLeft = Math.min(100, Math.max(0, fillWidth));
+          return (
+            <Pressable
+              onPress={() => {
+                if (goalCount > 0) setGoalModalVisible(true);
+              }}
+              style={styles.progressCard}
+            >
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressPercent}>{`${percent}%`}</Text>
+                <View style={styles.goalRow}>
+                <Text style={styles.goalLabel}>{`이번달 ${readCount}권 완독했어요`}</Text>
+                  <Text style={styles.goalTarget}>
+                    {goalCount > 0 ? `목표 ${goalCount}권` : "목표 없음"}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${fillWidth}%` }]} />
+              </View>
+            </Pressable>
+          );
+        })()}
 
-        <Calendar
-          year={year}
-          month={month}
-          onPrev={prev}
-          onNext={next}
-          onYearChange={(val) => {
-            if (val === "open") {
-              setYearPickerOpen(true);
-              return;
-            }
+      <Calendar
+        year={year}
+        month={month}
+        onPrev={prev}
+        onNext={next}
+        markedDates={markedDates}
+        selectedDayKey={dayModalKey}
+        getDayBubbleStyle={getDayBubbleStyle}
+        onDayPress={(key) => {
+          if (!key) return;
+          const logs = readingLogs[key] || [];
+          if (logs.length === 0) return;
+          setDayModalKey(key);
+        }}
+        onYearChange={(val) => {
+          if (val === "open") {
+            setYearPickerOpen(true);
+            return;
+          }
             setYear(val);
           }}
         />
 
         <View style={styles.section}>
           <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>00님께 추천하는 책이에요</Text>
-            <Text style={styles.sectionHint}>
-              클릭하면 줄거리를 볼 수 있어요
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sectionTitle}>
+                {nickname
+                  ? `${nickname}님께 추천하는 책이에요`
+                  : "추천하는 책이에요"}
+              </Text>
+              <Text style={styles.sectionHint}>
+                클릭하면 독서 노트를 볼 수 있어요
+              </Text>
+            </View>
+            <View style={styles.sectionActions}>
+              <Pressable
+                style={styles.iconButton}
+                hitSlop={8}
+                onPress={loadRecommendations}
+                disabled={recoLoading}
+              >
+                <Ionicons
+                  name="refresh"
+                  size={28}
+                  color="#7a7a7a"
+                />
+              </Pressable>
+            </View>
           </View>
-          <View style={styles.recList}>
-            {recs.map((book, idx) => (
-              <BookCard
-                key={idx}
-                {...book}
-              />
-            ))}
-          </View>
+          <Animated.View style={[styles.recList, { opacity: recoOpacity }]}>
+            {recs.map((book, idx) => {
+              const bookId = book.bookId || book.id || idx;
+              const liked = favoriteIds.has(bookId);
+              return (
+                <RecommendationItem
+                  key={bookId}
+                  title={book.title}
+                  author={`${book.author || ""}${book.publisher ? ` / ${book.publisher}` : ""}`}
+                  rating={book.rate || 0}
+                  totalReview={book.totalReview || 0}
+                  tags={[book.categoryName || book.publisher || "추천"]}
+                  cover={book.cover}
+                  liked={liked}
+                  onToggleHeart={() => handleToggleHeart(book)}
+                  heartDisabled={heartBusyIds.has(bookId)}
+                  onPress={() => setRecoDetail(book)}
+                />
+              );
+            })}
+          </Animated.View>
         </View>
       </ScrollView>
+
+      <Pressable
+        style={styles.fab}
+        onPress={() => setAddModalOpen(true)}
+        hitSlop={6}
+      >
+        <Ionicons
+          name="add"
+          size={24}
+          color="#fff"
+        />
+      </Pressable>
 
       <Modal
         visible={yearPickerOpen}
@@ -314,6 +836,566 @@ export default function HomeScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      <Modal
+        visible={addModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAddModalOpen(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setAddModalOpen(false)}>
+          <View style={styles.addBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.addSheet}>
+                <Text style={styles.addTitle}>독서 장소를 선택해주세요</Text>
+                <View style={styles.addGrid}>
+                  {[
+                    { label: "집" },
+                    { label: "카페" },
+                    { label: "이동중" },
+                    { label: "도서관" },
+                  ].map((opt) => (
+                    <Pressable
+                      key={opt.label}
+                      style={styles.addOption}
+                      onPress={() => {
+                        setPlace(opt.label);
+                        setAddModalOpen(false);
+                        setBookSelectOpen(true);
+                        setSelectedBookId(null);
+                        setLoadingBooks(true);
+                        fetchBookcase()
+                          .then((res) => {
+                            setBookOptions({
+                              before: res.before || res.BEFORE || [],
+                              reading: res.reading || res.READING || [],
+                            });
+                          })
+                          .catch((e) =>
+                            console.warn(
+                              "책장 불러오기 실패:",
+                              e.response?.data || e.message,
+                            ),
+                          )
+                          .finally(() => setLoadingBooks(false));
+                      }}
+                    >
+                      <View style={styles.addThumbPlaceholder} />
+                      <Text style={styles.addOptionLabel}>{opt.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <Modal
+        visible={bookSelectOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBookSelectOpen(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setBookSelectOpen(false)}>
+          <View style={styles.addBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.addSheet, { gap: 20 }]}>
+                <Text style={styles.addTitle}>읽을 책을 선택해주세요</Text>
+                <View style={styles.bookWrap}>
+                  <View style={styles.searchRow}>
+                    <Ionicons
+                      name="search-outline"
+                      size={20}
+                      color="#8A8A8A"
+                    />
+                    <TextInput
+                      placeholder="책장의 책을 검색해보세요"
+                      value={bookSearch}
+                      onChangeText={setBookSearch}
+                      style={styles.bookSearchInput}
+                      placeholderTextColor="#B1B1B1"
+                    />
+                  </View>
+                  <View style={styles.carouselRow}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        bookScrollRef.current?.scrollTo({
+                          x: 0,
+                          animated: true,
+                        });
+                      }}
+                      hitSlop={10}
+                    >
+                      <Ionicons name="chevron-back" size={26} color="#000" />
+                    </TouchableOpacity>
+                    <ScrollView
+                      ref={bookScrollRef}
+                      horizontal
+                      style={{ flex: 1 }}
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.bookRow}
+                    >
+                      {loadingBooks && (
+                        <Text style={styles.bookEmpty}>불러오는 중...</Text>
+                      )}
+                      {!loadingBooks && filteredBooks.length === 0 && (
+                        <Text style={styles.bookEmpty}>책이 없습니다</Text>
+                      )}
+                      {filteredBooks.map((b, idx) => {
+                        const baseId = b.id || b.bookId || b.isbn || "book";
+                        const key = `${baseId}-${idx}`;
+                        return (
+                          <Pressable
+                            key={key}
+                            onPress={() => setSelectedBookId(b.id || b.bookId)}
+                            style={[
+                              styles.coverBox,
+                              selectedBookId === (b.id || b.bookId) &&
+                                styles.coverBoxActive,
+                            ]}
+                          >
+                            <View style={styles.coverThumb}>
+                              {b.cover ? (
+                                <Image
+                                  source={{ uri: b.cover }}
+                                  style={styles.coverImage}
+                                  resizeMode="cover"
+                                />
+                              ) : (
+                                <Text style={styles.coverPlaceholder}>
+                                  {b.title?.slice(0, 2) || "책"}
+                                </Text>
+                              )}
+                            </View>
+                            <Text
+                              numberOfLines={1}
+                              style={styles.coverLabel}
+                            >
+                              {b.title}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                    <TouchableOpacity
+                      onPress={() => {
+                        bookScrollRef.current?.scrollToEnd({ animated: true });
+                      }}
+                      hitSlop={10}
+                    >
+                      <Ionicons name="chevron-forward" size={26} color="#000" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <Pressable
+                  disabled={!selectedBookId}
+                  style={[
+                    styles.startBtn,
+                    !selectedBookId && { backgroundColor: "#9fb37b" },
+                  ]}
+                  onPress={async () => {
+                    if (!selectedBookId) return;
+                    const now = new Date();
+                    const key = formatDateKey(now);
+                    const book =
+                      allBooks.find(
+                        (b) =>
+                          String(b.id || b.bookId) === String(selectedBookId),
+                      ) || {};
+                    const entry = {
+                      id: `${selectedBookId}-${Date.now()}`,
+                      title: book.title || "제목 없음",
+                      cover: book.cover || book.coverUri || null,
+                      place: place || "이동중",
+                      time: formatTime(now),
+                    };
+                    try {
+                      const placeCode = placeKeyMap[place] || "MOVING";
+                      const chosen =
+                        allBooks.find(
+                          (b) =>
+                            String(b.id || b.bookId) === String(selectedBookId),
+                        ) || {};
+
+                      // 백엔드에서 READING 상태만 허용하는 경우가 있어 상태를 먼저 맞춰줍니다.
+                      const stateRaw = chosen.state || chosen.status || chosen.bookStatus;
+                      const isReadingState =
+                        stateRaw === "READING" || stateRaw === "읽는중" || stateRaw === "읽는 중";
+                      if (!isReadingState) {
+                        await updateBookcaseState(Number(selectedBookId), "READING");
+                      }
+
+                      await saveReadingLog({
+                        bookId: Number(selectedBookId),
+                        readingPlace: placeCode,
+                      });
+                      setReadingLogs((prev) => {
+                        const next = { ...prev };
+                        const list = next[key] ? [...next[key]] : [];
+                        list.push(entry);
+                        next[key] = list;
+                        return next;
+                      });
+                      // 서버 시간을 기준으로 보정
+                      try {
+                        const refreshed = await fetchReadingLogs({ year, month });
+                        const grouped = {};
+                        for (const item of refreshed) {
+                          const dt = parseReadAt(item?.readAt);
+                          if (!dt || Number.isNaN(dt.getTime())) continue;
+                          const k = formatDateKey(dt);
+                          const e = {
+                            id: `${item.readAt}-${item.title || "book"}`,
+                            title: item.title || "제목 없음",
+                            cover: item.cover || null,
+                            place:
+                              placeLabelMap[item.readingPlace] ||
+                              item.readingPlace ||
+                              "이동중",
+                            time: formatTime(dt),
+                          };
+                          grouped[k] = grouped[k] ? [...grouped[k], e] : [e];
+                        }
+                        setReadingLogs(grouped);
+                      } catch (err) {
+                        console.warn(
+                          "독서 기록 재조회 실패:",
+                          err.response?.data || err.message,
+                        );
+                      }
+                      showBanner("독서 기록을 저장했어요");
+                    } catch (e) {
+                      const code = e.response?.data?.error?.code;
+                      console.warn("독서 기록 저장 실패:", e.response?.data || e.message);
+                      if (code === "4091") {
+                        showBanner("책장에 담긴 책만 기록할 수 있어요");
+                      } else {
+                        showBanner("독서 기록 저장에 실패했어요");
+                      }
+                    } finally {
+                      setBookSelectOpen(false);
+                      setSelectedBookId(null);
+                    }
+                  }}
+                >
+                  <Text style={styles.startBtnText}>독서 시작</Text>
+                </Pressable>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <Modal
+        visible={!!dayModalKey}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDayModalKey(null)}
+      >
+        <TouchableWithoutFeedback onPress={() => setDayModalKey(null)}>
+          <View style={styles.dayModalBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.daySheet}>
+                <View style={styles.sheetHandle} />
+                <Text style={styles.daySummaryText}>
+                  {activeDayNumber
+                    ? `${activeDayNumber}일에는 책을 ${activeDayLogs.length}번 읽었어요!`
+                    : "읽은 기록이 없어요"}
+                </Text>
+                <View style={styles.dayLogList}>
+                  {activeDayLogs.length === 0 ? (
+                    <Text style={styles.dayEmptyText}>
+                      기록을 추가하려면 달력에서 날짜를 눌러주세요.
+                    </Text>
+                  ) : (
+                    activeDayLogs.map((log) => (
+                      <View
+                        key={log.id}
+                        style={styles.dayLogRow}
+                      >
+                        <View style={styles.dayLogThumb}>
+                          {log.cover ? (
+                            <Image
+                              source={{ uri: log.cover }}
+                              style={styles.dayLogThumbImg}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={styles.dayLogThumbFallback}>
+                              <Text style={styles.dayLogThumbText}>
+                                {log.title?.slice(0, 2) || "책"}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.dayLogMeta}>
+                          <Text style={styles.dayLogTitle}>{log.title}</Text>
+                          <View style={styles.dayLogSubRow}>
+                            <Text style={styles.dayLogTime}>{log.time}</Text>
+                            <View style={styles.dayLogChip}>
+                              <Text style={styles.dayLogChipText}>
+                                {log.place || "이동중"}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <Modal
+        visible={goalModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGoalModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setGoalModalVisible(false)}>
+          <View style={styles.goalModalBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.goalModalCard}>
+                <View style={styles.goalBadge}>
+                  <Text style={styles.goalBadgeText}>캐릭터</Text>
+                </View>
+                <View style={{ alignItems: "center", gap: 10 }}>
+                  <Text style={styles.goalTitle}>
+                    {goalAchieved ? "미션 완료" : "미션 실패"}
+                  </Text>
+                  <Text style={styles.goalTitle}>
+                    {goalAchieved
+                      ? "목표 권수를 달성했어요!"
+                      : "목표 권수를 달성하지 못했어요.."}
+                  </Text>
+                  <Text style={styles.goalSubtitle}>
+                    {goalAchieved
+                      ? "다음달도 즐겁게 독서해볼까요?"
+                      : "다음달은 더 즐겁게 독서해요!"}
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.goalButton}
+                  onPress={() => {
+                    setGoalModalVisible(false);
+                    setGoalSetModalVisible(true);
+                  }}
+                >
+                  <Text style={styles.goalButtonText}>홈에서 새 목표 설정하기</Text>
+                </Pressable>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <Modal
+        visible={goalSetModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGoalSetModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setGoalSetModalVisible(false)}>
+          <View style={styles.goalSetBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.goalSetCard}>
+                <View style={styles.goalSetHeader}>
+                  <Text style={styles.goalSetTitle}>이번 달엔 몇권을 읽어볼까요?</Text>
+                </View>
+                <View style={styles.goalSetSliderWrap}>
+                  <Ionicons name="book-outline" size={26} color="#355619" />
+                  <View
+                    style={styles.goalSetBar}
+                    onLayout={(e) => setGoalBarWidth(e.nativeEvent.layout.width)}
+                    onStartShouldSetResponder={() => true}
+                    onMoveShouldSetResponder={() => true}
+                    onResponderGrant={(e) => handleSetGoalByX(e.nativeEvent.locationX)}
+                    onResponderMove={(e) => handleSetGoalByX(e.nativeEvent.locationX)}
+                  >
+                    <View style={styles.goalSetTrack} />
+                    <View
+                      style={[
+                        styles.goalSetFill,
+                        {
+                          width: goalBarWidth
+                            ? `${Math.min(
+                                100,
+                                Math.max(0, (goalCandidate / maxGoal) * 100),
+                              )}%`
+                            : 0,
+                        },
+                      ]}
+                    />
+                    {(() => {
+                      const handleHalf = handleSize / 2;
+                      const ratio = Math.min(1, Math.max(0, goalCandidate / maxGoal));
+                      const left =
+                        goalBarWidth > 0
+                          ? Math.min(
+                              goalBarWidth - handleSize,
+                              Math.max(0, ratio * goalBarWidth - handleHalf),
+                            )
+                          : 0;
+                      return (
+                        <View
+                          style={[
+                            styles.goalSetHandle,
+                            {
+                              left,
+                              width: handleSize,
+                              height: handleSize,
+                              borderRadius: handleHalf,
+                            },
+                          ]}
+                        >
+                          <Text style={styles.goalSetHandleText}>{goalCandidate}</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                </View>
+                <Pressable
+                  style={styles.goalSetButton}
+                  onPress={saveGoal}
+                >
+                  <Text style={styles.goalSetButtonText}>목표 설정 완료</Text>
+                </Pressable>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <Modal
+        visible={!!recoDetail}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRecoDetail(null)}
+      >
+        <TouchableWithoutFeedback onPress={() => setRecoDetail(null)}>
+          <View style={styles.detailBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.detailCard}>
+                <View style={styles.detailCloseRow}>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() => setRecoDetail(null)}
+                  >
+                    <Ionicons name="close" size={22} color="#555" />
+                  </Pressable>
+                </View>
+                {recoDetail && (
+                  <>
+                    {(() => {
+                      const detailTags = Array.isArray(recoDetail.userHashTag)
+                        ? recoDetail.userHashTag
+                        : Array.isArray(recoDetail.tags)
+                          ? recoDetail.tags
+                          : [recoDetail.categoryName || "추천"];
+                      return (
+                        <View style={styles.detailRow}>
+                          <View style={styles.detailCover}>
+                            {recoDetail.cover ? (
+                              <Image
+                                source={{ uri: recoDetail.cover }}
+                                style={styles.detailCoverImg}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <Text style={styles.coverText}>
+                                {recoDetail.title?.slice(0, 2) || "책"}
+                              </Text>
+                            )}
+                          </View>
+                        <View style={styles.detailMeta}>
+                          {recoDetail.categoryName ? (
+                            <View style={styles.detailChip}>
+                              <Text style={styles.detailChipText}>
+                                {recoDetail.categoryName}
+                                </Text>
+                              </View>
+                            ) : null}
+                            <Text style={styles.detailTitle}>{recoDetail.title}</Text>
+                            <Text style={styles.detailAuthor}>
+                              {`${recoDetail.author || ""}${
+                                recoDetail.publisher ? ` / ${recoDetail.publisher}` : ""
+                              }`}
+                            </Text>
+                            <View style={styles.ratingLine}>
+                              <Rating
+                                value={recoDetail.rate || 0}
+                                color={starGray}
+                                inactiveColor={starGray}
+                              />
+                            <Text style={styles.reviewCount}>
+                              ({recoDetail.totalReview || 0})
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })()}
+                    <View style={styles.detailReviewSection}>
+                      <Text style={styles.detailReviewTitle}>리뷰</Text>
+                      {recoDetail.userComment || recoDetail.comment ? (
+                        <>
+                          <Text style={styles.detailReviewText}>
+                            {recoDetail.userComment || recoDetail.comment}
+                          </Text>
+                          {Array.isArray(
+                            recoDetail.userHashTag || recoDetail.tags,
+                          ) && (
+                            <View style={styles.tagRow}>
+                              {(recoDetail.userHashTag ||
+                                recoDetail.tags ||
+                                []).slice(0, 3).map((tag, idx) => (
+                                <View
+                                  key={`${tag}-${idx}`}
+                                  style={styles.tagPill}
+                                >
+                                  <Text style={styles.tagText}>{tag}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                        </>
+                      ) : (
+                        <Text style={styles.detailReviewEmpty}>
+                          아직 리뷰가 없습니다.
+                        </Text>
+                      )}
+                    </View>
+                  </>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.toast,
+          {
+            opacity: bannerOpacity,
+            transform: [
+              {
+                translateY: bannerOpacity.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [20, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <Text style={styles.toastText}>{bannerText}</Text>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -341,7 +1423,11 @@ const styles = StyleSheet.create({
     width: 49,
     height: 49,
     borderRadius: 24.5,
+    alignItems: "center",
+    justifyContent: "center",
   },
+  avatarImage: { width: 49, height: 49, borderRadius: 24.5 },
+  avatarInitial: { fontSize: 16, fontWeight: "700", color: colors.text },
   avatarName: {
     marginTop: 5,
     fontSize: 12,
@@ -365,13 +1451,13 @@ const styles = StyleSheet.create({
   progressCard: {
     marginHorizontal: 16,
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 12,
+    padding: 12,
     shadowColor: "#000",
     shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   progressHeader: { flexDirection: "column", gap: 8 },
   progressPercent: {
@@ -388,29 +1474,139 @@ const styles = StyleSheet.create({
   goalLabel: { fontSize: 14, fontWeight: "600", color: colors.text },
   goalTarget: { fontSize: 12, color: colors.text },
   progressTrack: {
-    marginTop: 8,
-    backgroundColor: "#e5e5e5",
+    marginTop: 6,
     height: 12,
-    borderRadius: 12,
+    borderRadius: 15,
     overflow: "hidden",
     position: "relative",
+    backgroundColor: "#e5e5e5",
+    borderWidth: 0.5,
+    borderColor: "#ccc",
   },
   progressFill: {
     height: "100%",
     backgroundColor: green,
-    borderRadius: 12,
+    borderRadius: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 3, height: 0 },
   },
-  progressMarker: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#fff",
+  goalModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  goalModalCard: {
+    width: "100%",
+    backgroundColor: "#fafaf5",
+    borderRadius: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    gap: 28,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  goalBadge: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "#d7eec4",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
-    borderColor: green,
-    position: "absolute",
-    right: 12,
-    top: -2,
+    borderColor: "#426b1f",
   },
+  goalBadgeText: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#000",
+  },
+  goalTitle: { fontSize: 26, fontWeight: "700", color: "#000", textAlign: "center" },
+  goalSubtitle: { fontSize: 18, fontWeight: "500", color: "#666", textAlign: "center" },
+  goalButton: {
+    marginTop: 4,
+    backgroundColor: "#426b1f",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignSelf: "stretch",
+    alignItems: "center",
+  },
+  goalButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  goalSetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  goalSetCard: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#b1b1b1",
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    gap: 20,
+  },
+  goalSetHeader: { alignItems: "center" },
+  goalSetTitle: { fontSize: 18, fontWeight: "700", color: "#426b1f", alignSelf: "flex-start" },
+  goalSetSliderWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  goalSetBar: {
+    flex: 1,
+    height: 52,
+    justifyContent: "center",
+    position: "relative",
+  },
+  goalSetTrack: {
+    height: 8,
+    borderRadius: 20,
+    backgroundColor: "#c6c6c6",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 22,
+  },
+  goalSetFill: {
+    height: 8,
+    borderRadius: 20,
+    backgroundColor: "#608540",
+    position: "absolute",
+    left: 0,
+    top: 22,
+  },
+  goalSetHandle: {
+    position: "absolute",
+    top: 8,
+    backgroundColor: "#426b1f",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  goalSetHandleText: { color: "#fff", fontSize: 17, fontWeight: "800" },
+  goalSetButton: {
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#426b1f",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  goalSetButtonText: { fontSize: 16, color: "#fff", fontWeight: "600" },
   calendarCard: {
     marginHorizontal: 16,
     marginTop: 12,
@@ -474,7 +1670,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  dayBubble: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+  },
+  dayBubbleMarked: {
+    backgroundColor: "#d7eec4",
+    borderWidth: 1,
+    borderColor: "#608540",
+  },
+  dayBubbleSelected: {
+    backgroundColor: "#608540",
+  },
   dayText: { color: colors.text, fontWeight: "700", fontSize: 16 },
+  dayTextHighlighted: { color: "#070b03" },
+  dayTextSelected: { color: "#fff" },
   dayTextMuted: { color: "#d1d5db" },
   yearDropdown: {
     display: "none",
@@ -482,11 +1695,29 @@ const styles = StyleSheet.create({
   yearItem: { paddingVertical: 6, paddingHorizontal: 12 },
   yearItemText: { fontSize: 14, color: colors.text },
   section: { marginTop: 14, paddingHorizontal: 16 },
-  sectionHead: { gap: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: colors.text },
-  sectionHint: { fontSize: 12, color: colors.subtext },
+  sectionHead: { gap: 4, flexDirection: "row", alignItems: "center" },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: colors.text,
+  },
+  sectionHint: { fontSize: 14, color: colors.text, marginTop: 2 },
+  sectionActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginLeft: 8,
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   recList: { marginTop: 12, gap: 12 },
-  bookCard: {
+  recCard: {
     flexDirection: "row",
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -494,27 +1725,30 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     shadowColor: "#000",
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   bookCover: {
-    width: 84,
-    height: 113,
-    borderRadius: 6,
+    width: 110,
+    height: 140,
+    borderRadius: 8,
     backgroundColor: "#f1f5f9",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: colors.border,
   },
-  coverText: { fontWeight: "700", fontSize: 16, color: colors.text },
-  bookMeta: { flex: 1, marginLeft: 12, gap: 6 },
-  bookTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
-  bookAuthor: { fontSize: 12, color: colors.subtext },
+  coverText: { fontWeight: "700", fontSize: 18, color: colors.text },
+  bookMeta: { flex: 1, marginLeft: 12, gap: 8 },
+  bookTitle: { fontSize: 18, fontWeight: "800", color: colors.text },
+  bookAuthor: { fontSize: 14, color: colors.subtext },
   ratingRow: { flexDirection: "row", gap: 4 },
   starBox: { width: 20, alignItems: "center" },
   star: { fontSize: 16 },
+  coverImg: { width: "100%", height: "100%", borderRadius: 6 },
+  ratingLine: { flexDirection: "row", alignItems: "center", gap: 6 },
+  reviewCount: { color: "#c6c6c6", fontSize: 14 },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   tagPill: {
     backgroundColor: lightGreen,
@@ -523,12 +1757,88 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   tagText: { fontSize: 12, color: green, fontWeight: "700" },
-  heart: { paddingLeft: 8, paddingTop: 4 },
-  heartText: { fontSize: 18, color: "#c6c6c6" },
+  heartBtn: {
+    position: "absolute",
+    right: 8,
+    bottom: 8,
+  },
+  detailBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  detailCard: {
+    width: "100%",
+    backgroundColor: "#fafaf5",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#b1b1b1",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  detailCloseRow: {
+    alignItems: "flex-end",
+    marginBottom: 6,
+  },
+  detailRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  detailCover: {
+    width: 120,
+    height: 170,
+    borderRadius: 10,
+    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+  },
+  detailCoverImg: { width: "100%", height: "100%" },
+  detailMeta: { flex: 1, gap: 10 },
+  detailChip: {
+    alignSelf: "flex-start",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#888",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  detailChipText: { fontSize: 12, color: "#888" },
+  detailTitle: { fontSize: 22, fontWeight: "800", color: "#355619" },
+  detailAuthor: { fontSize: 13, fontWeight: "600", color: "#355619" },
+  detailReviewSection: { marginTop: 16, gap: 8 },
+  detailReviewTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
+  detailReviewText: { fontSize: 14, color: colors.text, lineHeight: 20 },
+  detailReviewEmpty: { fontSize: 14, color: "#888" },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.2)",
     justifyContent: "flex-end",
+  },
+  dayModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    justifyContent: "flex-end",
+  },
+  daySheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 30,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 6,
+    gap: 20,
   },
   yearSheet: {
     backgroundColor: "#fff",
@@ -557,6 +1867,49 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 8,
   },
+  daySummaryText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#000",
+  },
+  dayLogList: { gap: 14 },
+  dayLogRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  dayLogThumb: {
+    width: 44,
+    height: 60,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#d9d9d9",
+  },
+  dayLogThumbImg: { width: "100%", height: "100%" },
+  dayLogThumbFallback: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#e5e5e5",
+  },
+  dayLogThumbText: { fontWeight: "700", color: "#426b1f" },
+  dayLogMeta: { flex: 1, gap: 4 },
+  dayLogTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
+  dayLogSubRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  dayLogTime: { fontSize: 16, color: "#000" },
+  dayLogChip: {
+    backgroundColor: green,
+    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 60,
+    alignItems: "center",
+  },
+  dayLogChipText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  dayEmptyText: { fontSize: 14, color: "#666" },
   sheetTitle: { fontSize: 18, fontWeight: "600", color: colors.text },
   yearList: { paddingVertical: 8, gap: 14 },
   yearRowItem: {
@@ -571,4 +1924,142 @@ const styles = StyleSheet.create({
   yearCheckPlaceholder: { width: 18 },
   sheetClose: { alignSelf: "center", marginTop: 10 },
   sheetCloseText: { fontSize: 18, fontWeight: "600", color: colors.text },
+  fab: {
+    position: "absolute",
+    right: 24,
+    bottom: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#426b1f",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  addBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  addSheet: {
+    width: "100%",
+    backgroundColor: "#fafaf5",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#b1b1b1",
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    gap: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  addTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#000",
+    textAlign: "center",
+  },
+  addGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  addOption: {
+    width: "47%",
+    alignItems: "center",
+    gap: 12,
+  },
+  addThumbPlaceholder: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 8,
+    backgroundColor: "#e5e5e5",
+    borderWidth: 1,
+    borderColor: "#d7d7d7",
+  },
+  addOptionLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#070b03",
+  },
+  bookWrap: { gap: 14 },
+  bookSection: { gap: 8 },
+  bookSectionTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
+  bookRow: { gap: 8, paddingVertical: 4, paddingHorizontal: 8 },
+  coverBox: { width: 130, alignItems: "center", gap: 6 },
+  coverBoxActive: { borderWidth: 2, borderColor: "#426b1f", borderRadius: 10 },
+  coverThumb: {
+    width: 130,
+    height: 180,
+    borderRadius: 8,
+    backgroundColor: "#e5e5e5",
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coverImage: { width: "100%", height: "100%" },
+  coverTitle: { textAlign: "center", color: "#555", fontWeight: "600" },
+  coverPlaceholder: { fontSize: 16, fontWeight: "700", color: "#949494" },
+  coverLabel: {
+    fontSize: 12,
+    color: "#000",
+    textAlign: "center",
+    width: 130,
+  },
+  bookEmpty: { color: "#8a8a8a", paddingVertical: 6, paddingHorizontal: 4 },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#d7eec4",
+  },
+  bookSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#000",
+  },
+  carouselRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  startBtn: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#426b1f",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  startBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  toast: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 24,
+    backgroundColor: "#426b1f",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+    alignItems: "center",
+  },
+  toastText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });

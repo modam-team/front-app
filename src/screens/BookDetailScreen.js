@@ -2,6 +2,8 @@ import placeholder from "../../assets/icon.png";
 import {
   createReview,
   fetchBookcase,
+  fetchReview,
+  updateReview,
   updateBookcaseState,
 } from "@apis/bookcaseApi";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +15,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Alert,
   Animated,
@@ -29,56 +32,31 @@ import {
   UIManager,
   View,
 } from "react-native";
-import Svg, { ClipPath, Defs, Path, Rect } from "react-native-svg";
-
-const StarIcon = ({ size = 28, color = "#426B1F", variant = "full" }) => {
-  const width = size;
-  const height = size * (31 / 32); // keep original ratio
-  const clipId = useMemo(
-    () => `starHalf-${Math.random().toString(36).slice(2, 8)}`,
-    [],
-  );
-
-  const basePath =
-    "M10.4436 3.69495C12.0444 -1.23178 19.0144 -1.23178 20.6152 3.69495C21.3311 5.89826 23.3843 7.39 25.701 7.39C30.8813 7.39 33.0351 14.0189 28.8442 17.0638C26.97 18.4255 26.1857 20.8392 26.9016 23.0425C28.5024 27.9692 22.8635 32.0661 18.6726 29.0212C16.7984 27.6595 14.2605 27.6595 12.3862 29.0212C8.19529 32.0661 2.55644 27.9692 4.15723 23.0425C4.87313 20.8392 4.08887 18.4255 2.21463 17.0638C-1.9763 14.0189 0.177549 7.39 5.35782 7.39C7.67451 7.39 9.72772 5.89826 10.4436 3.69495Z";
-
-  return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 32 31"
-      fill="none"
-    >
-      <Path
-        d={basePath}
-        fill="#D9D9D9"
+const StarIcon = ({ size = 60, color = "#426B1F", variant = "full" }) => {
+  if (variant === "full") {
+    return (
+      <Ionicons
+        name="star-sharp"
+        size={size}
+        color={color}
       />
-      {variant === "full" && (
-        <Path
-          d={basePath}
-          fill={color}
-        />
-      )}
-      {variant === "half" && (
-        <>
-          <Defs>
-            <ClipPath id={clipId}>
-              <Rect
-                x="0"
-                y="0"
-                width={16}
-                height={31}
-              />
-            </ClipPath>
-          </Defs>
-          <Path
-            d={basePath}
-            fill={color}
-            clipPath={`url(#${clipId})`}
-          />
-        </>
-      )}
-    </Svg>
+    );
+  }
+  if (variant === "half") {
+    return (
+      <Ionicons
+        name="star-half-sharp"
+        size={size}
+        color={color}
+      />
+    );
+  }
+  return (
+    <Ionicons
+      name="star-outline"
+      size={size}
+      color="#D9D9D9"
+    />
   );
 };
 
@@ -108,6 +86,12 @@ export default function BookDetailScreen({ navigation, route }) {
   const [isNoteBack, setIsNoteBack] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [noteRating, setNoteRating] = useState(book.userRate || 0);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
+  const [fetchedReview, setFetchedReview] = useState(null);
+  const [avgRate, setAvgRate] = useState(book.rate || 0);
+  const [totalReviews, setTotalReviews] = useState(book.totalReview || 0);
+  const bookKey = book.id || book.bookId;
   const flipAnim = useRef(new Animated.Value(0)).current;
   const runFlip = useCallback(
     (toValue) => {
@@ -126,17 +110,96 @@ export default function BookDetailScreen({ navigation, route }) {
       runFlip(0);
     }
   }, [status, isNoteBack, runFlip]);
+
+  const loadReview = useCallback(async () => {
+    if (!bookKey) return;
+    setReviewError(null);
+    setReviewLoading(true);
+    try {
+      const data = await fetchReview(bookKey);
+      if (!data) return;
+      if (typeof data.rating === "number") {
+        setRating(data.rating);
+        setNoteRating(data.rating);
+        setAvgRate((prev) => (prev > 0 ? prev : data.rating));
+      }
+      if (Array.isArray(data.hashtag)) {
+        setSelectedTags(data.hashtag);
+      }
+      if (data.comment) {
+        setNoteText(data.comment);
+      }
+      setTotalReviews((prev) =>
+        prev > 0
+          ? prev
+          : data.totalReview || book.totalReview || 1,
+      );
+      setFetchedReview(data);
+      setReviewDone(true);
+      setReviewPosted(true);
+      setCommittedStatus("after");
+    } catch (e) {
+      console.error(
+        "리뷰 조회 실패:",
+        e.response?.status,
+        e.response?.data || e.message,
+      );
+      setReviewError(null);
+    } finally {
+      setReviewLoading(false);
+    }
+  }, [bookKey]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadReview();
+    }, [loadReview]),
+  );
+
+  const handleNoteSave = useCallback(async () => {
+    try {
+      // note 카드 별점을 메인 rating에도 반영
+      setRating(noteRating);
+      await submit({
+        ratingOverride: noteRating,
+        commentOverride: noteText,
+      });
+      runFlip(0);
+    } catch (e) {
+      // submit already alerts on failure
+    }
+  }, [noteRating, noteText, submit, runFlip]);
   const tagCatalog = {
     "감정 키워드": [
       "감동적인",
       "따뜻한",
       "여운이 남는",
-      "웃긴",
       "위로가 되는",
+      "웃긴",
+      "스릴 있는",
+      "무거운",
       "희망적인",
     ],
-    "경험 키워드": ["스릴 있는", "무거운", "몰입감 있는", "도전적인", "설레는"],
-    "문체 키워드": ["간결한", "유머러스한", "시적인", "직설적인", "현대적인"],
+    "경험 키워드": [
+      "잘 읽히는",
+      "어려운",
+      "다시 읽고 싶은",
+      "집중이 필요한",
+      "출퇴근길에 딱",
+      "잠들기 전에 딱",
+      "생각하게 되는",
+      "한 번에 읽은",
+    ],
+    "문체 키워드": [
+      "서정적인",
+      "직설적인",
+      "속도감 있는 전개",
+      "유머러스한",
+      "간결한",
+      "사실적인",
+      "추상적인",
+      "비유적인",
+    ],
   };
   const reviewTagOptions = ["감정 키워드", "경험 키워드", "문체 키워드"];
 
@@ -157,14 +220,17 @@ export default function BookDetailScreen({ navigation, route }) {
     return statusOptions.find((o) => o.value === status)?.label || "읽기 전";
   }, [status]);
 
-  const displayTotalReview = useMemo(() => {
-    const base = book.totalReview || 0;
+  const averageRating = useMemo(() => {
     if (committedStatus === "after") {
-      // 새로 작성한 리뷰가 아직 목록에 반영되지 않았다면 +1
-      if (reviewDone && !reviewPosted) return base + 1;
+      return avgRate || fetchedReview?.rating || book.userRate || book.rate || rating;
     }
+    return book.rate || avgRate || book.userRate || rating;
+  }, [avgRate, fetchedReview?.rating, book.userRate, book.rate, rating, committedStatus]);
+
+  const displayTotalReview = useMemo(() => {
+    const base = totalReviews || book.totalReview || (fetchedReview ? 1 : 0);
     return base;
-  }, [book.totalReview, committedStatus, reviewDone, reviewPosted]);
+  }, [totalReviews, book.totalReview, fetchedReview]);
 
   const toggleTag = (tag) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -176,11 +242,14 @@ export default function BookDetailScreen({ navigation, route }) {
     });
   };
 
-  const submit = async () => {
-    if (!book.id) {
+  const submit = async ({ ratingOverride, commentOverride } = {}) => {
+    const bookKey = book.id || book.bookId;
+    if (!bookKey) {
       navigation.goBack();
       return;
     }
+    if (reviewLoading) return;
+    if (showReviewModal) return;
     if (status === "after" && !reviewDone) {
       setShowReviewModal(true);
       setPendingAfter(true);
@@ -189,22 +258,62 @@ export default function BookDetailScreen({ navigation, route }) {
     try {
       setLoading(true);
       let reviewCreated = false;
-      // 1) 먼저 상태를 서버에 반영
-      const updateRes = await updateBookcaseState(
-        book.id,
-        status.toUpperCase(),
-      );
+      const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const isTransitionToAfter = status === "after" && committedStatus !== "after";
+      const patchDates = isTransitionToAfter
+        ? { startDate: todayStr, endDate: todayStr }
+        : {};
+
+      let updateRes = null;
+      const shouldUpdateState = status !== committedStatus;
+      if (shouldUpdateState) {
+        // 1) 먼저 상태를 서버에 반영 (서버가 전->중->후 순서를 요구할 수 있으므로 중간 상태 보강)
+        if (status === "after" && committedStatus === "before") {
+          try {
+            await updateBookcaseState(bookKey, "READING");
+          } catch (e) {
+            console.warn("중간 상태(READING) 반영 실패:", e.response?.data || e);
+          }
+        }
+        try {
+          updateRes = await updateBookcaseState(
+            bookKey,
+            status.toUpperCase(),
+            patchDates,
+          );
+        } catch (e) {
+          // 상태 전환 제한(예: 4091) 시 한 단계씩 재시도
+          const code = e.response?.data?.error?.code || e.response?.data?.code;
+          if (status === "after" && code === "4091") {
+            try {
+              await updateBookcaseState(bookKey, "READING");
+              updateRes = await updateBookcaseState(
+                bookKey,
+                "AFTER",
+                patchDates,
+              );
+            } catch (err) {
+              throw err;
+            }
+          } else {
+            throw e;
+          }
+        }
+      }
 
       // 1-1) 서버에서 실제 반영된 상태를 재확인 (완독 상태가 아니면 리뷰 생성 중단)
       let isAfterOnServer = false;
       let serverState =
         updateRes?.state?.toLowerCase?.() || updateRes?.status?.toLowerCase?.();
+      if (!shouldUpdateState) {
+        serverState = committedStatus;
+      }
       if (status === "after") {
         if (!serverState) {
           const latest = await fetchBookcase();
           const found =
-            latest?.after?.find?.((b) => b.bookId === book.id) ||
-            latest?.after?.find?.((b) => b.id === book.id);
+            latest?.after?.find?.((b) => b.bookId === bookKey) ||
+            latest?.after?.find?.((b) => b.id === bookKey);
           serverState = found ? "after" : null;
         }
         isAfterOnServer = (serverState || "").toLowerCase() === "after";
@@ -221,18 +330,132 @@ export default function BookDetailScreen({ navigation, route }) {
       }
 
       // 2) 리뷰 생성 (완독 + 리뷰 완료 시, 서버 상태 AFTER 일 때만)
-      if (isAfterOnServer && reviewDone && !reviewPosted) {
+      if (isAfterOnServer && reviewDone) {
         try {
-          await createReview({
-            bookId: book.id,
-            rating,
+          const trimmedComment = ((commentOverride ?? noteText) || "").trim();
+          const finalRating = Number.isFinite(
+            Number(ratingOverride ?? rating),
+          )
+            ? Number(ratingOverride ?? rating)
+            : 0;
+          const hasExistingReview = reviewPosted || fetchedReview;
+          const ratingChanged =
+            typeof fetchedReview?.rating === "number"
+              ? fetchedReview.rating !== finalRating
+            : true;
+          const hashtagChanged = Array.isArray(fetchedReview?.hashtag)
+            ? fetchedReview.hashtag.join(",") !== selectedTags.join(",")
+            : selectedTags.length > 0;
+
+          let appliedRating = finalRating;
+          if (hasExistingReview && !ratingChanged && !hashtagChanged) {
+            // 서버 스펙상 PATCH는 comment만 허용
+            await updateReview({ bookId: bookKey, comment: trimmedComment });
+            appliedRating =
+              fetchedReview?.rating || book.userRate || book.rate || finalRating;
+          } else {
+            // 기존 리뷰가 있으면 코멘트만 수정 (별점/태그 PATCH 미지원)
+            if (hasExistingReview) {
+              try {
+                await updateReview({ bookId: bookKey, comment: trimmedComment });
+                appliedRating =
+                  fetchedReview?.rating ||
+                  book.userRate ||
+                  book.rate ||
+                  finalRating;
+                reviewCreated = false;
+              } catch (err) {
+                throw err;
+              }
+            } else {
+              // 리뷰 생성(첫 작성)으로 별점/태그/코멘트 저장
+              try {
+                await createReview({
+                  bookId: bookKey,
+                  rating: finalRating,
+                  hashtag: selectedTags,
+                  comment: trimmedComment,
+                });
+                reviewCreated = true;
+              } catch (err) {
+                const status = err.response?.status;
+                const code =
+                  err.response?.data?.error?.code || err.response?.data?.code;
+                const msgText =
+                  err.response?.data?.error?.message ||
+                  err.response?.data?.message ||
+                  err.message;
+                if (
+                  status === 409 ||
+                  code === "409" ||
+                  code === "4093" ||
+                  (msgText && /already.*review/i.test(msgText))
+                ) {
+                  // 이미 리뷰가 있으면 코멘트만 패치
+                  await updateReview({ bookId: bookKey, comment: trimmedComment });
+                  appliedRating =
+                    fetchedReview?.rating ||
+                    book.userRate ||
+                    book.rate ||
+                    finalRating;
+                  reviewCreated = false;
+                } else {
+                  throw err;
+                }
+              }
+            }
+          }
+          setFetchedReview({
+            bookId: bookKey,
+            rating: appliedRating,
             hashtag: selectedTags,
-            comment: noteText || "",
+            comment: trimmedComment,
           });
           setReviewPosted(true);
-          reviewCreated = true;
+          // 평균/리뷰 수 갱신 (클라이언트 추정)
+          const prevTotal = totalReviews || book.totalReview || 0;
+          const prevAvg = avgRate || book.rate || 0;
+          const prevUserRating =
+            typeof fetchedReview?.rating === "number"
+              ? fetchedReview.rating
+              : appliedRating;
+          let nextTotal = prevTotal;
+          let nextAvg = prevAvg;
+          if (reviewCreated) {
+            nextTotal = prevTotal + 1;
+            nextAvg =
+              nextTotal > 0
+                ? (prevAvg * prevTotal + appliedRating) / nextTotal
+                : appliedRating;
+          } else if (prevTotal > 0) {
+            nextAvg =
+              (prevAvg * prevTotal - prevUserRating + appliedRating) /
+              prevTotal;
+          }
+          setTotalReviews(nextTotal);
+          setAvgRate(nextAvg);
+          // 서버에 반영된 내용을 다시 불러와 동기화
+          await loadReview();
         } catch (e) {
           console.error("리뷰 작성 실패:", e.response?.data || e.message);
+          const status = e.response?.status;
+          const code = e.response?.data?.error?.code || e.response?.data?.code;
+          const msgText =
+            e.response?.data?.error?.message ||
+            e.response?.data?.message ||
+            e.message;
+          if (
+            status === 409 ||
+            code === "409" ||
+            code === "4093" ||
+            (msgText && /already.*review/i.test(msgText))
+          ) {
+            // 중복이면 코멘트만 패치 스펙을 안내
+            Alert.alert("리뷰 저장 실패", "이미 등록한 리뷰가 있습니다.");
+            await loadReview();
+            setLoading(false);
+            return;
+          }
           const msg =
             e.response?.data?.error?.message ||
             e.response?.data?.message ||
@@ -245,9 +468,12 @@ export default function BookDetailScreen({ navigation, route }) {
       const updatedBook = {
         ...book,
         status,
-        userRate: isAfterOnServer ? rating : book.userRate,
+        userRate: isAfterOnServer
+          ? Number(ratingOverride ?? rating)
+          : book.userRate,
+        rate: isAfterOnServer ? avgRate || book.rate || 0 : book.rate,
         totalReview: isAfterOnServer
-          ? (book.totalReview || 0) + (reviewCreated ? 1 : 0)
+          ? totalReviews || book.totalReview || 0
           : book.totalReview || 0,
       };
 
@@ -395,32 +621,36 @@ export default function BookDetailScreen({ navigation, route }) {
               </View>
 
               <View style={styles.titleWrap}>
-                <Text style={styles.title}>{book.title || "제목 없음"}</Text>
-                <Text style={styles.author}>
+                <Text
+                  style={styles.title}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  {book.title || "제목 없음"}
+                </Text>
+                <View style={styles.titleSpacer} />
+                <Text
+                  style={styles.author}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {book.author || book.publisher || "작가 미상"}
                 </Text>
               </View>
 
               <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map((i) => {
-                  const displayRating =
-                    committedStatus === "after"
-                      ? book.userRate || rating
-                      : rating;
                   const full = i;
                   const half = i - 0.5;
-                  const isFull = displayRating >= full;
-                  const isHalf = !isFull && displayRating >= half;
-                  const canRate = committedStatus !== "after";
+                  const isFull = averageRating >= full;
+                  const isHalf = !isFull && averageRating >= half;
+                  const canRate = false;
                   return (
                     <TouchableOpacity
                       key={i}
                       activeOpacity={0.9}
                       onPress={() => {
                         if (!canRate) return;
-                        if (rating === full) setRating(half);
-                        else if (rating === half) setRating(full);
-                        else setRating(full);
                       }}
                     >
                       <StarIcon
@@ -432,6 +662,7 @@ export default function BookDetailScreen({ navigation, route }) {
                 })}
                 <Text style={styles.voteText}>{displayTotalReview}명</Text>
               </View>
+              <View style={styles.starsRowSpacer} />
             </View>
           </Animated.View>
 
@@ -480,9 +711,16 @@ export default function BookDetailScreen({ navigation, route }) {
                     key={i}
                     activeOpacity={0.9}
                     onPress={() => {
-                      if (noteRating === full) setNoteRating(half);
-                      else if (noteRating === half) setNoteRating(full);
-                      else setNoteRating(full);
+                      if (noteRating === full) {
+                        setNoteRating(half);
+                        setRating(half);
+                      } else if (noteRating === half) {
+                        setNoteRating(full);
+                        setRating(full);
+                      } else {
+                        setNoteRating(full);
+                        setRating(full);
+                      }
                     }}
                   >
                     <StarIcon
@@ -519,19 +757,15 @@ export default function BookDetailScreen({ navigation, route }) {
               activeOpacity={0.9}
               onPress={() => {
                 if (isNoteBack) {
-                  if (noteText.trim().length === 0) return;
-                  runFlip(0);
+                  handleNoteSave();
                 } else {
                   runFlip(1);
                 }
               }}
-              disabled={isNoteBack && noteText.trim().length === 0}
             >
               <Text
                 style={[
                   styles.noteBtnText,
-                  isNoteBack &&
-                    noteText.trim().length === 0 && { opacity: 0.5 },
                 ]}
               >
                 {isNoteBack ? "독서 노트 수정" : "독서 노트 보기"}
@@ -580,7 +814,13 @@ export default function BookDetailScreen({ navigation, route }) {
               <Text style={styles.reviewModalTitle}>리뷰 작성</Text>
               <Text style={styles.reviewModalSubtitle}>
                 완독한 책의 별점을 남기고{"\n"}해시태그를 작성해주세요
+                {reviewLoading ? " (리뷰 불러오는 중...)" : ""}
               </Text>
+              {reviewError && (
+                <Text style={[styles.reviewModalSubtitle, { color: "#D0312D" }]}>
+                  {reviewError}
+                </Text>
+              )}
 
               <View style={styles.reviewModalStarsRow}>
                 {[1, 2, 3, 4, 5].map((i) => {
@@ -605,7 +845,7 @@ export default function BookDetailScreen({ navigation, route }) {
                       }}
                     >
                       <StarIcon
-                        size={28}
+                        size={60}
                         variant={isFull ? "full" : isHalf ? "half" : "empty"}
                         color="#426B1F"
                       />
@@ -699,11 +939,15 @@ export default function BookDetailScreen({ navigation, route }) {
               <TouchableOpacity
                 style={styles.reviewModalCTA}
                 activeOpacity={0.9}
-                onPress={() => {
+                onPress={async () => {
                   setReviewDone(true);
                   setStatus("after");
                   setPendingAfter(false);
                   setShowReviewModal(false);
+                  // 상태 반영 + 리뷰 저장까지 바로 진행
+                  setTimeout(() => {
+                    submit();
+                  }, 0);
                 }}
               >
                 <Text style={styles.reviewModalCTAText}>리뷰 작성 완료</Text>
@@ -712,6 +956,7 @@ export default function BookDetailScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
+
     </SafeAreaView>
   );
 }
@@ -741,6 +986,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F6F6",
     borderRadius: 16,
     padding: 16,
+    paddingBottom: 24,
     shadowColor: "#000",
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 6 },
@@ -749,18 +995,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     width: "100%",
-    height: 560,
+    minHeight: 590,
   },
   backCard: {
     alignItems: "stretch",
     padding: 16,
-    height: 560,
+    minHeight: 590,
   },
   flipContainer: {
     width: "100%",
     alignItems: "center",
     perspective: 1000,
-    height: 560,
+    minHeight: 590,
   },
   noteHeaderRow: {
     flexDirection: "row",
@@ -780,7 +1026,7 @@ const styles = StyleSheet.create({
   },
   info: {
     width: "100%",
-    gap: 12,
+    gap: 14,
   },
   topRow: {
     flexDirection: "row",
@@ -833,11 +1079,33 @@ const styles = StyleSheet.create({
   },
   statusMenuText: { fontSize: 14, color: "#333" },
   statusMenuTextActive: { fontWeight: "700", color: "#426B1F" },
-  titleWrap: { gap: 4 },
-  title: { fontSize: 18, fontWeight: "700", color: "#000" },
-  author: { fontSize: 12, color: "#888" },
+  titleWrap: {
+    gap: 4,
+    width: "100%",
+    flexWrap: "wrap",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#000",
+    flexShrink: 1,
+    flexWrap: "wrap",
+    lineHeight: 24,
+    width: "100%",
+  },
+  author: {
+    fontSize: 12,
+    color: "#888",
+    flexShrink: 1,
+    flexWrap: "wrap",
+    lineHeight: 16,
+    width: "100%",
+  },
   starsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  starsRowSpacer: { height: 8 },
   voteText: { fontSize: 12, color: "#C6C6C6", marginLeft: 6 },
+  // spacing fix when title wraps
+  titleSpacer: { height: 4 },
   cta: {
     marginTop: 0,
     height: 44,
@@ -927,7 +1195,10 @@ const styles = StyleSheet.create({
   reviewModalStarsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "center",
+    gap: 14,
+    marginTop: 18,
+    marginBottom: 18,
   },
   reviewModalCTAWrapper: {
     width: "100%",

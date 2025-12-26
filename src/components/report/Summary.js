@@ -1,4 +1,5 @@
 import Button from "@components/Button";
+import { CHARACTER_ILLUSTRATIONS } from "@constants/characterIllustrations";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { shadow } from "@theme/shadow";
@@ -6,6 +7,7 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import { splitToLines } from "@utils/textSplit";
 import { LinearGradient } from "expo-linear-gradient";
+import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -17,7 +19,11 @@ export default function Summary({
   onPressProfile,
   profileImageUrl,
 }) {
-  const { title, description, percent, isEmpty } = summary;
+  const { title, description, percent, isEmpty, characterKey } = summary;
+  const CharacterIcon =
+    characterKey && CHARACTER_ILLUSTRATIONS[characterKey]
+      ? CHARACTER_ILLUSTRATIONS[characterKey]
+      : null;
 
   const lines = splitToLines(description, 20);
 
@@ -36,7 +42,6 @@ export default function Summary({
     : isCurrentMonth
       ? currentMonthStyle
       : pastMonthStyle;
-  console.log("profileImageUrl:", profileImageUrl);
 
   return (
     <View style={styles.wrap}>
@@ -54,7 +59,7 @@ export default function Summary({
               style={styles.profileImage}
             />
           ) : (
-            <View style={styles.profileFallback} />
+            <ProfilePlaceholder size={49} />
           )}
         </Pressable>
 
@@ -98,7 +103,11 @@ export default function Summary({
 
         {/* 캐릭터 이미지 자리 (지금은 placeholder 박스) */}
         <View style={styles.characterBox}>
-          <Text style={styles.characterLabel}>캐릭터</Text>
+          {CharacterIcon ? (
+            <CharacterIcon width={220} height={220} />
+          ) : (
+            <Text style={styles.characterLabel}>캐릭터</Text>
+          )}
         </View>
 
         <Text style={styles.personaDesc}>

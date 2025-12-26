@@ -184,6 +184,7 @@ function makeEmptyReport({ year, month }) {
       description: "어떤 캐릭터가 나오실 지 궁금해요!",
       percent: 0,
       isEmpty: true,
+      characterKey: "empty",
     },
     monthlyStatus: Array.from({ length: 12 }, (_, i) => ({
       month: i + 1,
@@ -376,6 +377,10 @@ export async function fetchMonthlyReport({ year, month }) {
         : `${title}형은 주로 ${placeLabel}${locParticle(placeLabel)} ${latestTopGenre}${objParticle(
             latestTopGenre,
           )} 읽는 사람이에요.`;
+    const characterKey =
+      latestTotal === 0
+        ? "empty"
+        : (characterName || "default").replace(/\s+/g, "_").toLowerCase();
 
     return {
       summary: {
@@ -384,7 +389,8 @@ export async function fetchMonthlyReport({ year, month }) {
         title,
         description,
         percent: isEmpty ? null : 0,
-        isEmpty: false,
+        isEmpty,
+        characterKey,
       },
       monthlyStatus,
       reviewKeywords,
@@ -396,4 +402,20 @@ export async function fetchMonthlyReport({ year, month }) {
     // 백엔드 500이어도 화면 테스트 가능하게 임시로 열어뒀습니당
     return makeEmptyReport({ year, month });
   }
+}
+
+export async function saveReadingLog({ bookId, readingPlace }) {
+  const res = await client.post("/api/report", {
+    bookId,
+    readingPlace,
+  });
+  return res?.data?.responseDto ?? null;
+}
+
+export async function fetchReadingLogs({ year, month }) {
+  const res = await client.get("/api/report", {
+    params: { year, month },
+  });
+  const list = res?.data?.responseDto ?? [];
+  return Array.isArray(list) ? list : [];
 }

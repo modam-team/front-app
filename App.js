@@ -2,6 +2,7 @@ import BottomTabs from "./src/navigation/BottomTabs";
 import AddEntryScreen from "./src/screens/AddEntryScreen";
 import AuthGateScreen from "./src/screens/AuthGateScreen";
 import BookDetailScreen from "./src/screens/BookDetailScreen";
+import FriendListScreen from "./src/screens/FriendListScreen";
 import EditNameScreen from "./src/screens/EditNameScreen";
 import {
   REPORT_BACKGROUND_MAP,
@@ -67,6 +68,11 @@ export default function App() {
         <Stack.Screen
           name="BookDetail"
           component={BookDetailScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="FriendList"
+          component={FriendListScreen}
           options={{ headerShown: false }}
         />
 

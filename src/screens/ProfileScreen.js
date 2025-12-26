@@ -12,6 +12,7 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import * as ImagePicker from "expo-image-picker";
 import React, { useCallback, useMemo, useState } from "react";
+import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import {
   Modal,
   Pressable,
@@ -30,6 +31,8 @@ export default function ProfileScreen() {
   const [nickname, setNickname] = useState("모담이");
   const [isPublic, setIsPublic] = useState(true);
   const [profileImageUrl, setProfileImageUrl] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // 프로필 사진 변경 bottom sheet 표시 여부
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -46,9 +49,12 @@ export default function ProfileScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") return null;
 
+    const imageType =
+      ImagePicker.MediaType?.Images || ImagePicker.MediaTypeOptions?.Images;
+
     // 갤러리 열기
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: imageType,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -60,33 +66,81 @@ export default function ProfileScreen() {
 
   const onPressChangePhoto = async () => {
     try {
+      if (uploading) return;
+      setUploading(true);
       const asset = await pickImage();
       if (!asset) return;
 
-      // TODO: 백엔드가 url 내려주면 여기서 상태 업데이트
-      // 일단은 임시로 걍 놔뒀습니당
-      // setProfileImageUrl(res.profileImageUrl)
-      setProfileImageUrl(asset.uri);
-
       await uploadProfileImage(asset);
+
+      // 업로드 후 서버 데이터로 동기화
+      try {
+        const refreshed = await fetchUserProfile();
+        setProfileImageUrl(
+          refreshed.profileImageUrl ?? refreshed.imageUrl ?? asset.uri,
+        );
+        setNickname(refreshed.nickname ?? nickname);
+        setIsPublic(
+          refreshed.isPublic ?? refreshed.public ?? refreshed.publicYn ?? true,
+        );
+      } catch (err) {
+        // 서버 응답이 없어도 로컬로 우선 반영
+        setProfileImageUrl(asset.uri);
+        console.error("프로필 재조회 실패:", err);
+      }
 
       setSheetVisible(false);
     } catch (e) {
       console.error("프로필 업로드 실패:", e);
+    } finally {
+      setUploading(false);
     }
   };
 
   const onPressDeletePhoto = async () => {
     try {
+      if (deleting) return;
+      setDeleting(true);
       await deleteProfileImage();
 
-      // 임시로 UI 즉시 반영
-      setProfileImageUrl(null);
+      // 삭제 후 서버 데이터로 동기화
+      try {
+        const refreshed = await fetchUserProfile();
+        setProfileImageUrl(
+          refreshed.profileImageUrl ?? refreshed.imageUrl ?? null,
+        );
+        setNickname(refreshed.nickname ?? nickname);
+        setIsPublic(
+          refreshed.isPublic ?? refreshed.public ?? refreshed.publicYn ?? true,
+        );
+      } catch (err) {
+        setProfileImageUrl(null);
+        console.error("프로필 재조회 실패:", err);
+      }
 
       setSheetVisible(false);
     } catch (e) {
       console.error("프로필 삭제 실패:", e);
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  // 시트 닫은 뒤 실행용 래퍼 (시트 닫기 애니메이션과 충돌 방지)
+  const onPressChangeFromSheet = () => {
+    if (uploading) return;
+    setSheetVisible(false);
+    setTimeout(() => {
+      onPressChangePhoto();
+    }, 220);
+  };
+
+  const onPressDeleteFromSheet = () => {
+    if (deleting) return;
+    setSheetVisible(false);
+    setTimeout(() => {
+      onPressDeletePhoto();
+    }, 220);
   };
 
   const onTogglePublic = async (next) => {
@@ -115,7 +169,9 @@ export default function ProfileScreen() {
           if (!isMounted) return;
 
           setNickname(profile.nickname ?? "모담이");
-          setIsPublic(!!profile.public);
+          setIsPublic(
+            profile.isPublic ?? profile.public ?? profile.publicYn ?? true,
+          );
           setProfileImageUrl(profile.profileImageUrl ?? null);
         } catch (e) {
           console.error("프로필 조회 실패:", e);
@@ -151,11 +207,7 @@ export default function ProfileScreen() {
                 style={styles.avatarImage}
               />
             ) : (
-              <MaterialIcons
-                name="person"
-                size={32}
-                color={colors.mono[400]}
-              />
+              <ProfilePlaceholder size={89} />
             )}
           </Pressable>
 
@@ -215,24 +267,14 @@ export default function ProfileScreen() {
             key: "edit",
             label: "변경하기",
             icon: "edit",
-            onPress: () => {
-              setSheetVisible(false);
-              setTimeout(() => {
-                onPressChangePhoto();
-              }, 250);
-            },
+            onPress: onPressChangeFromSheet,
           },
           {
             key: "delete",
             label: "삭제하기",
             icon: "cancel",
             color: colors.warning.medium,
-            onPress: () => {
-              setSheetVisible(false);
-              setTimeout(() => {
-                onPressDeletePhoto();
-              }, 250);
-            },
+            onPress: onPressDeleteFromSheet,
           },
         ]}
       />
