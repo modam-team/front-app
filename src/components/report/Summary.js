@@ -1,4 +1,5 @@
 import Button from "@components/Button";
+import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import { CHARACTER_ILLUSTRATIONS } from "@constants/characterIllustrations";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
@@ -7,7 +8,6 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import { splitToLines } from "@utils/textSplit";
 import { LinearGradient } from "expo-linear-gradient";
-import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -104,7 +104,10 @@ export default function Summary({
         {/* 캐릭터 이미지 자리 (지금은 placeholder 박스) */}
         <View style={styles.characterBox}>
           {CharacterIcon ? (
-            <CharacterIcon width={220} height={220} />
+            <CharacterIcon
+              width={220}
+              height={220}
+            />
           ) : (
             <Text style={styles.characterLabel}>캐릭터</Text>
           )}

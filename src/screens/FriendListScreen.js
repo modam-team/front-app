@@ -1,3 +1,11 @@
+import {
+  acceptFriendRequest,
+  rejectFriendRequest,
+  searchFriends,
+  sendFriendRequest,
+} from "@apis/friendApi";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@theme/colors";
 import React, { useMemo, useState } from "react";
 import {
   Pressable,
@@ -8,14 +16,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@theme/colors";
-import {
-  acceptFriendRequest,
-  rejectFriendRequest,
-  searchFriends,
-  sendFriendRequest,
-} from "@apis/friendApi";
 
 export default function FriendListScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("friend");
@@ -198,7 +198,11 @@ export default function FriendListScreen({ navigation }) {
             onPress={handleSearch}
             hitSlop={8}
           >
-            <Ionicons name="arrow-forward" size={18} color={colors.primary[500]} />
+            <Ionicons
+              name="arrow-forward"
+              size={18}
+              color={colors.primary[500]}
+            />
           </Pressable>
         </View>
 
@@ -284,7 +288,11 @@ export default function FriendListScreen({ navigation }) {
 
               {sheetTarget.relationStatus === "NOT_FRIENDS" && (
                 <Pressable
-                  style={[styles.actionBtn, styles.actionBtnPrimary, { width: "100%" }]}
+                  style={[
+                    styles.actionBtn,
+                    styles.actionBtnPrimary,
+                    { width: "100%" },
+                  ]}
                   disabled={actionLoading}
                   onPress={() => handleSendRequest(sheetTarget.userId)}
                 >

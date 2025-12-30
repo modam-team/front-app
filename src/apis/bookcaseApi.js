@@ -67,10 +67,7 @@ export async function createReview({
 }
 
 // 리뷰 수정 (코멘트 등)
-export async function updateReview({
-  bookId,
-  comment = "",
-}) {
+export async function updateReview({ bookId, comment = "" }) {
   const payload = { bookId, comment };
   const res = await client.patch("/api/review", payload);
   return res.data?.responseDto;

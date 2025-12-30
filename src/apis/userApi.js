@@ -44,8 +44,7 @@ export async function withdrawUser() {
 export async function uploadProfileImage(asset) {
   const formData = new FormData();
 
-  const mime =
-    asset?.mimeType || asset?.type?.mimeType || "image/jpeg";
+  const mime = asset?.mimeType || asset?.type?.mimeType || "image/jpeg";
   const name = asset?.fileName || "profile.jpg";
 
   formData.append("imageFile", {

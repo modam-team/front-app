@@ -3,6 +3,7 @@ import { fetchUserProfile } from "@apis/userApi";
 import { updateProfile } from "@apis/userApi";
 import ActionBottomSheet from "@components/ActionBottomSheet";
 import AppHeader from "@components/AppHeader";
+import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
@@ -12,7 +13,6 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import * as ImagePicker from "expo-image-picker";
 import React, { useCallback, useMemo, useState } from "react";
-import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import {
   Modal,
   Pressable,
