@@ -3,10 +3,11 @@ import {
   createReview,
   fetchBookcase,
   fetchReview,
-  updateReview,
   updateBookcaseState,
+  updateReview,
 } from "@apis/bookcaseApi";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import React, {
   useCallback,
@@ -15,7 +16,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useFocusEffect } from "@react-navigation/native";
 import {
   Alert,
   Animated,
@@ -32,6 +32,7 @@ import {
   UIManager,
   View,
 } from "react-native";
+
 const StarIcon = ({ size = 60, color = "#426B1F", variant = "full" }) => {
   if (variant === "full") {
     return (
@@ -130,9 +131,7 @@ export default function BookDetailScreen({ navigation, route }) {
         setNoteText(data.comment);
       }
       setTotalReviews((prev) =>
-        prev > 0
-          ? prev
-          : data.totalReview || book.totalReview || 1,
+        prev > 0 ? prev : data.totalReview || book.totalReview || 1,
       );
       setFetchedReview(data);
       setReviewDone(true);
@@ -222,10 +221,19 @@ export default function BookDetailScreen({ navigation, route }) {
 
   const averageRating = useMemo(() => {
     if (committedStatus === "after") {
-      return avgRate || fetchedReview?.rating || book.userRate || book.rate || rating;
+      return (
+        avgRate || fetchedReview?.rating || book.userRate || book.rate || rating
+      );
     }
     return book.rate || avgRate || book.userRate || rating;
-  }, [avgRate, fetchedReview?.rating, book.userRate, book.rate, rating, committedStatus]);
+  }, [
+    avgRate,
+    fetchedReview?.rating,
+    book.userRate,
+    book.rate,
+    rating,
+    committedStatus,
+  ]);
 
   const displayTotalReview = useMemo(() => {
     const base = totalReviews || book.totalReview || (fetchedReview ? 1 : 0);
@@ -259,7 +267,8 @@ export default function BookDetailScreen({ navigation, route }) {
       setLoading(true);
       let reviewCreated = false;
       const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-      const isTransitionToAfter = status === "after" && committedStatus !== "after";
+      const isTransitionToAfter =
+        status === "after" && committedStatus !== "after";
       const patchDates = isTransitionToAfter
         ? { startDate: todayStr, endDate: todayStr }
         : {};
@@ -272,7 +281,10 @@ export default function BookDetailScreen({ navigation, route }) {
           try {
             await updateBookcaseState(bookKey, "READING");
           } catch (e) {
-            console.warn("중간 상태(READING) 반영 실패:", e.response?.data || e);
+            console.warn(
+              "중간 상태(READING) 반영 실패:",
+              e.response?.data || e,
+            );
           }
         }
         try {
@@ -293,6 +305,7 @@ export default function BookDetailScreen({ navigation, route }) {
                 patchDates,
               );
             } catch (err) {
+              console.error("책 상태 재시도 실패", err);
               throw err;
             }
           } else {
@@ -333,16 +346,14 @@ export default function BookDetailScreen({ navigation, route }) {
       if (isAfterOnServer && reviewDone) {
         try {
           const trimmedComment = ((commentOverride ?? noteText) || "").trim();
-          const finalRating = Number.isFinite(
-            Number(ratingOverride ?? rating),
-          )
+          const finalRating = Number.isFinite(Number(ratingOverride ?? rating))
             ? Number(ratingOverride ?? rating)
             : 0;
           const hasExistingReview = reviewPosted || fetchedReview;
           const ratingChanged =
             typeof fetchedReview?.rating === "number"
               ? fetchedReview.rating !== finalRating
-            : true;
+              : true;
           const hashtagChanged = Array.isArray(fetchedReview?.hashtag)
             ? fetchedReview.hashtag.join(",") !== selectedTags.join(",")
             : selectedTags.length > 0;
@@ -352,12 +363,18 @@ export default function BookDetailScreen({ navigation, route }) {
             // 서버 스펙상 PATCH는 comment만 허용
             await updateReview({ bookId: bookKey, comment: trimmedComment });
             appliedRating =
-              fetchedReview?.rating || book.userRate || book.rate || finalRating;
+              fetchedReview?.rating ||
+              book.userRate ||
+              book.rate ||
+              finalRating;
           } else {
             // 기존 리뷰가 있으면 코멘트만 수정 (별점/태그 PATCH 미지원)
             if (hasExistingReview) {
               try {
-                await updateReview({ bookId: bookKey, comment: trimmedComment });
+                await updateReview({
+                  bookId: bookKey,
+                  comment: trimmedComment,
+                });
                 appliedRating =
                   fetchedReview?.rating ||
                   book.userRate ||
@@ -365,6 +382,7 @@ export default function BookDetailScreen({ navigation, route }) {
                   finalRating;
                 reviewCreated = false;
               } catch (err) {
+                console.error("리뷰 수정 실패 실패", err);
                 throw err;
               }
             } else {
@@ -392,7 +410,10 @@ export default function BookDetailScreen({ navigation, route }) {
                   (msgText && /already.*review/i.test(msgText))
                 ) {
                   // 이미 리뷰가 있으면 코멘트만 패치
-                  await updateReview({ bookId: bookKey, comment: trimmedComment });
+                  await updateReview({
+                    bookId: bookKey,
+                    comment: trimmedComment,
+                  });
                   appliedRating =
                     fetchedReview?.rating ||
                     book.userRate ||
@@ -763,11 +784,7 @@ export default function BookDetailScreen({ navigation, route }) {
                 }
               }}
             >
-              <Text
-                style={[
-                  styles.noteBtnText,
-                ]}
-              >
+              <Text style={[styles.noteBtnText]}>
                 {isNoteBack ? "독서 노트 수정" : "독서 노트 보기"}
               </Text>
             </TouchableOpacity>
@@ -817,7 +834,9 @@ export default function BookDetailScreen({ navigation, route }) {
                 {reviewLoading ? " (리뷰 불러오는 중...)" : ""}
               </Text>
               {reviewError && (
-                <Text style={[styles.reviewModalSubtitle, { color: "#D0312D" }]}>
+                <Text
+                  style={[styles.reviewModalSubtitle, { color: "#D0312D" }]}
+                >
                   {reviewError}
                 </Text>
               )}
@@ -956,7 +975,6 @@ export default function BookDetailScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 }

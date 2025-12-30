@@ -1,6 +1,8 @@
 import { client } from "@apis/clientApi";
 import { getToken } from "@utils/secureStore";
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
 // 책 검색: POST /search, 실패 시 GET /search
 export async function searchBooks(query) {
   const trimmed = (query || "").trim();
@@ -38,7 +40,10 @@ export async function searchBooks(query) {
               queryType: payload.queryType,
               ...(payload.query ? { query: payload.query } : {}),
             },
-            headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            headers: {
+              Accept: "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
           });
           return res.data?.responseDto ?? [];
         } catch (err) {
