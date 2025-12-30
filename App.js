@@ -2,8 +2,8 @@ import BottomTabs from "./src/navigation/BottomTabs";
 import AddEntryScreen from "./src/screens/AddEntryScreen";
 import AuthGateScreen from "./src/screens/AuthGateScreen";
 import BookDetailScreen from "./src/screens/BookDetailScreen";
-import FriendListScreen from "./src/screens/FriendListScreen";
 import EditNameScreen from "./src/screens/EditNameScreen";
+import FriendListScreen from "./src/screens/FriendListScreen";
 import {
   REPORT_BACKGROUND_MAP,
   REPORT_BACKGROUND_MAP_PAST,

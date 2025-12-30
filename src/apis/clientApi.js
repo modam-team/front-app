@@ -1,4 +1,4 @@
-import { getToken, saveToken, deleteToken } from "@utils/secureStore";
+import { deleteToken, getToken, saveToken } from "@utils/secureStore";
 import axios from "axios";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -45,17 +45,16 @@ async function reissueToken() {
   try {
     const refreshToken = await getToken("refreshToken");
     if (!refreshToken) throw new Error("no refresh token");
-    const res = await client.post(
-      "/api/v1/auth/reissue",
-      null,
-      {
-        params: { refreshToken },
-        skipAuth: true,
-        headers: { Accept: "application/json" },
-      },
-    );
-    const { accessToken, refreshToken: newRefresh, expiresIn } =
-      res.data?.responseDto || {};
+    const res = await client.post("/api/v1/auth/reissue", null, {
+      params: { refreshToken },
+      skipAuth: true,
+      headers: { Accept: "application/json" },
+    });
+    const {
+      accessToken,
+      refreshToken: newRefresh,
+      expiresIn,
+    } = res.data?.responseDto || {};
     if (!accessToken) throw new Error("reissue failed");
     await Promise.all([
       saveToken("accessToken", accessToken),

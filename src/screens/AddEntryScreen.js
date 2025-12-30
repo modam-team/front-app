@@ -333,7 +333,11 @@ export default function AddEntryScreen({ navigation }) {
                   endDate: endDateText.trim(),
                 }
               : {};
-          await addBookToBookcase(bookIdNum, status.toUpperCase(), payloadDates);
+          await addBookToBookcase(
+            bookIdNum,
+            status.toUpperCase(),
+            payloadDates,
+          );
         }
         closeDetail();
         navigation.navigate("Root", {
@@ -760,7 +764,9 @@ export default function AddEntryScreen({ navigation }) {
                                     onPress={() => {
                                       setStatus(opt.value);
                                       setShowStatusMenu(false);
-                                      setShowReviewPrompt(opt.value === "after");
+                                      setShowReviewPrompt(
+                                        opt.value === "after",
+                                      );
                                     }}
                                     activeOpacity={0.9}
                                   >
@@ -800,7 +806,8 @@ export default function AddEntryScreen({ navigation }) {
                           (detailReview?.rating ||
                             selectedBook.userRate ||
                             selectedBook.rate ||
-                            0) ?? 0,
+                            0) ??
+                            0,
                           20,
                         )}
                         <Text style={styles.voteCount}>
@@ -877,7 +884,13 @@ export default function AddEntryScreen({ navigation }) {
                         </Text>
                         {Array.isArray(detailReview.hashtag) &&
                           detailReview.hashtag.length > 0 && (
-                            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                flexWrap: "wrap",
+                                gap: 6,
+                              }}
+                            >
                               {detailReview.hashtag.map((tag) => (
                                 <View
                                   key={tag}
@@ -894,7 +907,9 @@ export default function AddEntryScreen({ navigation }) {
                     </View>
                   )}
                   {!detailReviewLoading && !detailReview && (
-                    <Text style={styles.helperText}>아직 등록된 리뷰가 없습니다.</Text>
+                    <Text style={styles.helperText}>
+                      아직 등록된 리뷰가 없습니다.
+                    </Text>
                   )}
                 </View>
               </ScrollView>
@@ -966,7 +981,6 @@ export default function AddEntryScreen({ navigation }) {
           </View>
         </Modal>
       )}
-
     </SafeAreaView>
   );
 }

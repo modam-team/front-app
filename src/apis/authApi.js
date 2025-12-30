@@ -47,15 +47,11 @@ export async function reissueToken(refreshTokenParam) {
     throw new Error("refresh token not found");
   }
 
-  const res = await client.post(
-    "/api/v1/auth/reissue",
-    null,
-    {
-      params: { refreshToken },
-      skipAuth: true,
-      headers: { Accept: "application/json" },
-    },
-  );
+  const res = await client.post("/api/v1/auth/reissue", null, {
+    params: { refreshToken },
+    skipAuth: true,
+    headers: { Accept: "application/json" },
+  });
 
   const data = res.data;
   if (!data?.success) {

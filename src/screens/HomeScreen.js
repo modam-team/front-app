@@ -1,7 +1,26 @@
 import colors from "../theme/legacyColors";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  addBookToBookcase,
+  deleteBookFromBookcase,
+  fetchBookcase,
+  fetchRecommendedBooks,
+  updateBookcaseState,
+} from "@apis/bookcaseApi";
+import { searchFriends } from "@apis/friendApi";
+import { fetchReadingLogs, saveReadingLog } from "@apis/reportApi";
+import { fetchUserProfile, updateProfile } from "@apis/userApi";
+import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
+  Image,
   Modal,
   Pressable,
   SafeAreaView,
@@ -11,21 +30,8 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  Image,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useIsFocused } from "@react-navigation/native";
-import {
-  addBookToBookcase,
-  deleteBookFromBookcase,
-  fetchBookcase,
-  fetchRecommendedBooks,
-  updateBookcaseState,
-} from "@apis/bookcaseApi";
-import { fetchReadingLogs, saveReadingLog } from "@apis/reportApi";
-import { fetchUserProfile, updateProfile } from "@apis/userApi";
-import { searchFriends } from "@apis/friendApi";
 
 const green = "#608540";
 const lightGreen = "#fafaf5";
@@ -106,7 +112,11 @@ function RecommendationItem({
         <Text style={styles.bookTitle}>{title}</Text>
         <Text style={styles.bookAuthor}>{author}</Text>
         <View style={styles.ratingLine}>
-          <Rating value={rating} color={starGray} inactiveColor={starGray} />
+          <Rating
+            value={rating}
+            color={starGray}
+            inactiveColor={starGray}
+          />
           <Text style={styles.reviewCount}>({totalReview})</Text>
         </View>
       </View>
@@ -342,7 +352,10 @@ export default function HomeScreen({ navigation }) {
     [goalCount, readCount],
   );
   const filteredBooks = useMemo(() => {
-    const merged = [...(bookOptions.before || []), ...(bookOptions.reading || [])];
+    const merged = [
+      ...(bookOptions.before || []),
+      ...(bookOptions.reading || []),
+    ];
     const q = bookSearch.trim().toLowerCase();
     if (!q) return merged;
     return merged.filter((b) => (b.title || "").toLowerCase().includes(q));
@@ -444,7 +457,9 @@ export default function HomeScreen({ navigation }) {
           else next.add(bookId);
           return next;
         });
-        showBanner(alreadyLiked ? "책을 책장에서 뺐어요" : "책을 책장에 담았어요");
+        showBanner(
+          alreadyLiked ? "책을 책장에서 뺐어요" : "책을 책장에 담았어요",
+        );
       } catch (e) {
         console.warn("책장 토글 실패:", e.response?.data || e.message);
         showBanner(
@@ -545,7 +560,8 @@ export default function HomeScreen({ navigation }) {
             id: `${item.readAt}-${item.title || "book"}`,
             title: item.title || "제목 없음",
             cover: item.cover || null,
-            place: placeLabelMap[item.readingPlace] || item.readingPlace || "이동중",
+            place:
+              placeLabelMap[item.readingPlace] || item.readingPlace || "이동중",
             time: formatTime(dt),
           };
           grouped[key] = grouped[key] ? [...grouped[key], entry] : [entry];
@@ -570,11 +586,15 @@ export default function HomeScreen({ navigation }) {
         if (cancelled) return;
         const after = bookcase?.after || bookcase?.AFTER || [];
         const targetKey = `${year}-${String(month).padStart(2, "0")}`;
-        const count = after.filter((b) => getCompletionKey(b)?.key === targetKey)
-          .length;
+        const count = after.filter(
+          (b) => getCompletionKey(b)?.key === targetKey,
+        ).length;
         setReadCount(count);
       } catch (e) {
-        console.warn("완독 카운트 불러오기 실패:", e.response?.data || e.message);
+        console.warn(
+          "완독 카운트 불러오기 실패:",
+          e.response?.data || e.message,
+        );
         setReadCount(0);
       }
     };
@@ -649,7 +669,12 @@ export default function HomeScreen({ navigation }) {
                   style={styles.avatarImage}
                 />
               ) : (
-                <View style={[styles.avatar, { backgroundColor: f.color || "#d7eec4" }]}>
+                <View
+                  style={[
+                    styles.avatar,
+                    { backgroundColor: f.color || "#d7eec4" },
+                  ]}
+                >
                   <Text style={styles.avatarInitial}>
                     {f.name?.slice(0, 1) || "친"}
                   </Text>
@@ -673,8 +698,13 @@ export default function HomeScreen({ navigation }) {
 
         {(() => {
           const percent =
-            goalCount > 0 ? Math.min(999, Math.round((readCount / goalCount) * 100)) : 0;
-          const fillWidth = Math.min(100, goalCount > 0 ? (readCount / goalCount) * 100 : 0);
+            goalCount > 0
+              ? Math.min(999, Math.round((readCount / goalCount) * 100))
+              : 0;
+          const fillWidth = Math.min(
+            100,
+            goalCount > 0 ? (readCount / goalCount) * 100 : 0,
+          );
           const markerLeft = Math.min(100, Math.max(0, fillWidth));
           return (
             <Pressable
@@ -686,38 +716,42 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.progressHeader}>
                 <Text style={styles.progressPercent}>{`${percent}%`}</Text>
                 <View style={styles.goalRow}>
-                <Text style={styles.goalLabel}>{`이번달 ${readCount}권 완독했어요`}</Text>
+                  <Text
+                    style={styles.goalLabel}
+                  >{`이번달 ${readCount}권 완독했어요`}</Text>
                   <Text style={styles.goalTarget}>
                     {goalCount > 0 ? `목표 ${goalCount}권` : "목표 없음"}
                   </Text>
                 </View>
               </View>
               <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${fillWidth}%` }]} />
+                <View
+                  style={[styles.progressFill, { width: `${fillWidth}%` }]}
+                />
               </View>
             </Pressable>
           );
         })()}
 
-      <Calendar
-        year={year}
-        month={month}
-        onPrev={prev}
-        onNext={next}
-        markedDates={markedDates}
-        selectedDayKey={dayModalKey}
-        getDayBubbleStyle={getDayBubbleStyle}
-        onDayPress={(key) => {
-          if (!key) return;
-          const logs = readingLogs[key] || [];
-          if (logs.length === 0) return;
-          setDayModalKey(key);
-        }}
-        onYearChange={(val) => {
-          if (val === "open") {
-            setYearPickerOpen(true);
-            return;
-          }
+        <Calendar
+          year={year}
+          month={month}
+          onPrev={prev}
+          onNext={next}
+          markedDates={markedDates}
+          selectedDayKey={dayModalKey}
+          getDayBubbleStyle={getDayBubbleStyle}
+          onDayPress={(key) => {
+            if (!key) return;
+            const logs = readingLogs[key] || [];
+            if (logs.length === 0) return;
+            setDayModalKey(key);
+          }}
+          onYearChange={(val) => {
+            if (val === "open") {
+              setYearPickerOpen(true);
+              return;
+            }
             setYear(val);
           }}
         />
@@ -927,7 +961,11 @@ export default function HomeScreen({ navigation }) {
                       }}
                       hitSlop={10}
                     >
-                      <Ionicons name="chevron-back" size={26} color="#000" />
+                      <Ionicons
+                        name="chevron-back"
+                        size={26}
+                        color="#000"
+                      />
                     </TouchableOpacity>
                     <ScrollView
                       ref={bookScrollRef}
@@ -984,7 +1022,11 @@ export default function HomeScreen({ navigation }) {
                       }}
                       hitSlop={10}
                     >
-                      <Ionicons name="chevron-forward" size={26} color="#000" />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={26}
+                        color="#000"
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1019,11 +1061,17 @@ export default function HomeScreen({ navigation }) {
                         ) || {};
 
                       // 백엔드에서 READING 상태만 허용하는 경우가 있어 상태를 먼저 맞춰줍니다.
-                      const stateRaw = chosen.state || chosen.status || chosen.bookStatus;
+                      const stateRaw =
+                        chosen.state || chosen.status || chosen.bookStatus;
                       const isReadingState =
-                        stateRaw === "READING" || stateRaw === "읽는중" || stateRaw === "읽는 중";
+                        stateRaw === "READING" ||
+                        stateRaw === "읽는중" ||
+                        stateRaw === "읽는 중";
                       if (!isReadingState) {
-                        await updateBookcaseState(Number(selectedBookId), "READING");
+                        await updateBookcaseState(
+                          Number(selectedBookId),
+                          "READING",
+                        );
                       }
 
                       await saveReadingLog({
@@ -1039,7 +1087,10 @@ export default function HomeScreen({ navigation }) {
                       });
                       // 서버 시간을 기준으로 보정
                       try {
-                        const refreshed = await fetchReadingLogs({ year, month });
+                        const refreshed = await fetchReadingLogs({
+                          year,
+                          month,
+                        });
                         const grouped = {};
                         for (const item of refreshed) {
                           const dt = parseReadAt(item?.readAt);
@@ -1067,7 +1118,10 @@ export default function HomeScreen({ navigation }) {
                       showBanner("독서 기록을 저장했어요");
                     } catch (e) {
                       const code = e.response?.data?.error?.code;
-                      console.warn("독서 기록 저장 실패:", e.response?.data || e.message);
+                      console.warn(
+                        "독서 기록 저장 실패:",
+                        e.response?.data || e.message,
+                      );
                       if (code === "4091") {
                         showBanner("책장에 담긴 책만 기록할 수 있어요");
                       } else {
@@ -1185,7 +1239,9 @@ export default function HomeScreen({ navigation }) {
                     setGoalSetModalVisible(true);
                   }}
                 >
-                  <Text style={styles.goalButtonText}>홈에서 새 목표 설정하기</Text>
+                  <Text style={styles.goalButtonText}>
+                    홈에서 새 목표 설정하기
+                  </Text>
                 </Pressable>
               </View>
             </TouchableWithoutFeedback>
@@ -1204,17 +1260,29 @@ export default function HomeScreen({ navigation }) {
             <TouchableWithoutFeedback>
               <View style={styles.goalSetCard}>
                 <View style={styles.goalSetHeader}>
-                  <Text style={styles.goalSetTitle}>이번 달엔 몇권을 읽어볼까요?</Text>
+                  <Text style={styles.goalSetTitle}>
+                    이번 달엔 몇권을 읽어볼까요?
+                  </Text>
                 </View>
                 <View style={styles.goalSetSliderWrap}>
-                  <Ionicons name="book-outline" size={26} color="#355619" />
+                  <Ionicons
+                    name="book-outline"
+                    size={26}
+                    color="#355619"
+                  />
                   <View
                     style={styles.goalSetBar}
-                    onLayout={(e) => setGoalBarWidth(e.nativeEvent.layout.width)}
+                    onLayout={(e) =>
+                      setGoalBarWidth(e.nativeEvent.layout.width)
+                    }
                     onStartShouldSetResponder={() => true}
                     onMoveShouldSetResponder={() => true}
-                    onResponderGrant={(e) => handleSetGoalByX(e.nativeEvent.locationX)}
-                    onResponderMove={(e) => handleSetGoalByX(e.nativeEvent.locationX)}
+                    onResponderGrant={(e) =>
+                      handleSetGoalByX(e.nativeEvent.locationX)
+                    }
+                    onResponderMove={(e) =>
+                      handleSetGoalByX(e.nativeEvent.locationX)
+                    }
                   >
                     <View style={styles.goalSetTrack} />
                     <View
@@ -1232,7 +1300,10 @@ export default function HomeScreen({ navigation }) {
                     />
                     {(() => {
                       const handleHalf = handleSize / 2;
-                      const ratio = Math.min(1, Math.max(0, goalCandidate / maxGoal));
+                      const ratio = Math.min(
+                        1,
+                        Math.max(0, goalCandidate / maxGoal),
+                      );
                       const left =
                         goalBarWidth > 0
                           ? Math.min(
@@ -1252,7 +1323,9 @@ export default function HomeScreen({ navigation }) {
                             },
                           ]}
                         >
-                          <Text style={styles.goalSetHandleText}>{goalCandidate}</Text>
+                          <Text style={styles.goalSetHandleText}>
+                            {goalCandidate}
+                          </Text>
                         </View>
                       );
                     })()}
@@ -1285,7 +1358,11 @@ export default function HomeScreen({ navigation }) {
                     hitSlop={8}
                     onPress={() => setRecoDetail(null)}
                   >
-                    <Ionicons name="close" size={22} color="#555" />
+                    <Ionicons
+                      name="close"
+                      size={22}
+                      color="#555"
+                    />
                   </Pressable>
                 </View>
                 {recoDetail && (
@@ -1311,18 +1388,22 @@ export default function HomeScreen({ navigation }) {
                               </Text>
                             )}
                           </View>
-                        <View style={styles.detailMeta}>
-                          {recoDetail.categoryName ? (
-                            <View style={styles.detailChip}>
-                              <Text style={styles.detailChipText}>
-                                {recoDetail.categoryName}
+                          <View style={styles.detailMeta}>
+                            {recoDetail.categoryName ? (
+                              <View style={styles.detailChip}>
+                                <Text style={styles.detailChipText}>
+                                  {recoDetail.categoryName}
                                 </Text>
                               </View>
                             ) : null}
-                            <Text style={styles.detailTitle}>{recoDetail.title}</Text>
+                            <Text style={styles.detailTitle}>
+                              {recoDetail.title}
+                            </Text>
                             <Text style={styles.detailAuthor}>
                               {`${recoDetail.author || ""}${
-                                recoDetail.publisher ? ` / ${recoDetail.publisher}` : ""
+                                recoDetail.publisher
+                                  ? ` / ${recoDetail.publisher}`
+                                  : ""
                               }`}
                             </Text>
                             <View style={styles.ratingLine}>
@@ -1331,14 +1412,14 @@ export default function HomeScreen({ navigation }) {
                                 color={starGray}
                                 inactiveColor={starGray}
                               />
-                            <Text style={styles.reviewCount}>
-                              ({recoDetail.totalReview || 0})
-                            </Text>
+                              <Text style={styles.reviewCount}>
+                                ({recoDetail.totalReview || 0})
+                              </Text>
+                            </View>
                           </View>
                         </View>
-                      </View>
-                    );
-                  })()}
+                      );
+                    })()}
                     <View style={styles.detailReviewSection}>
                       <Text style={styles.detailReviewTitle}>리뷰</Text>
                       {recoDetail.userComment || recoDetail.comment ? (
@@ -1350,16 +1431,16 @@ export default function HomeScreen({ navigation }) {
                             recoDetail.userHashTag || recoDetail.tags,
                           ) && (
                             <View style={styles.tagRow}>
-                              {(recoDetail.userHashTag ||
-                                recoDetail.tags ||
-                                []).slice(0, 3).map((tag, idx) => (
-                                <View
-                                  key={`${tag}-${idx}`}
-                                  style={styles.tagPill}
-                                >
-                                  <Text style={styles.tagText}>{tag}</Text>
-                                </View>
-                              ))}
+                              {(recoDetail.userHashTag || recoDetail.tags || [])
+                                .slice(0, 3)
+                                .map((tag, idx) => (
+                                  <View
+                                    key={`${tag}-${idx}`}
+                                    style={styles.tagPill}
+                                  >
+                                    <Text style={styles.tagText}>{tag}</Text>
+                                  </View>
+                                ))}
                             </View>
                           )}
                         </>
@@ -1528,8 +1609,18 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#000",
   },
-  goalTitle: { fontSize: 26, fontWeight: "700", color: "#000", textAlign: "center" },
-  goalSubtitle: { fontSize: 18, fontWeight: "500", color: "#666", textAlign: "center" },
+  goalTitle: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#000",
+    textAlign: "center",
+  },
+  goalSubtitle: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#666",
+    textAlign: "center",
+  },
   goalButton: {
     marginTop: 4,
     backgroundColor: "#426b1f",
@@ -1558,7 +1649,12 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   goalSetHeader: { alignItems: "center" },
-  goalSetTitle: { fontSize: 18, fontWeight: "700", color: "#426b1f", alignSelf: "flex-start" },
+  goalSetTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#426b1f",
+    alignSelf: "flex-start",
+  },
   goalSetSliderWrap: {
     flexDirection: "row",
     alignItems: "center",

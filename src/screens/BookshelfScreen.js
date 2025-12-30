@@ -1,11 +1,11 @@
 import placeholder from "../../assets/icon.png";
+import SortLatestIcon from "../../assets/icons/sort-latest.svg";
 import {
   deleteBookFromBookcase,
   fetchBookcase,
   searchBookcase,
 } from "@apis/bookcaseApi";
 import { Ionicons } from "@expo/vector-icons";
-import SortLatestIcon from "../../assets/icons/sort-latest.svg";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { LinearGradient } from "expo-linear-gradient";
@@ -205,8 +205,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
   }, [afterMonthOptions, afterMonthKey]);
   const tabBooks = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const listFromSearch =
-      q && searchResults[tab] ? searchResults[tab] : null;
+    const listFromSearch = q && searchResults[tab] ? searchResults[tab] : null;
     const baseList = listFromSearch ?? books[tab] ?? [];
     let filtered = listFromSearch
       ? baseList
@@ -323,8 +322,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
       const data = await fetchBookcase();
       if (!data) return;
       const mapBook = (b, fallbackStatus = "before") => {
-        const status =
-          (b.status || fallbackStatus || "before").toLowerCase();
+        const status = (b.status || fallbackStatus || "before").toLowerCase();
         return {
           id: b.bookId,
           title: b.title,
@@ -333,11 +331,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
           status,
           rate: typeof b.userRate === "number" ? b.userRate : b.rate || 0,
           categoryName:
-            b.categoryName ||
-            b.category ||
-            b.genre ||
-            b.genreName ||
-            "기타",
+            b.categoryName || b.category || b.genre || b.genreName || "기타",
           enrollAt: b.enrollAt,
           startedAt: b.startDate || b.startedAt,
           finishedAt: b.endDate || b.finishedAt || b.finishedAtTime,
@@ -541,11 +535,11 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
 
       {/* 검색 */}
       <View style={styles.searchWrap}>
-      <View style={styles.searchBox}>
-        <Ionicons
-          name="search-outline"
-          size={22}
-          color="#8A8A8A"
+        <View style={styles.searchBox}>
+          <Ionicons
+            name="search-outline"
+            size={22}
+            color="#8A8A8A"
           />
           <TextInput
             style={styles.searchInput}
@@ -584,14 +578,22 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                       setMonthDropdownOpen(false);
                     }}
                   >
-                    <Text style={styles.monthDropdownItemText}>{opt.label}</Text>
+                    <Text style={styles.monthDropdownItemText}>
+                      {opt.label}
+                    </Text>
                     {afterMonthKey === opt.key && (
-                      <Ionicons name="checkmark" size={16} color="#426B1F" />
+                      <Ionicons
+                        name="checkmark"
+                        size={16}
+                        color="#426B1F"
+                      />
                     )}
                   </Pressable>
                 ))}
                 {afterMonthOptions.length === 0 && (
-                  <Text style={styles.monthDropdownEmpty}>완독 기록이 없어요</Text>
+                  <Text style={styles.monthDropdownEmpty}>
+                    완독 기록이 없어요
+                  </Text>
                 )}
               </View>
             )}
@@ -604,7 +606,10 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
           onPress={() => setShowSortSheet(true)}
           hitSlop={8}
         >
-          <SortLatestIcon width={12} height={12} />
+          <SortLatestIcon
+            width={12}
+            height={12}
+          />
           <Text style={styles.sortText}>
             {sortBy === "rating" ? "별점 높은순" : "최신순"}
             {searchLoading ? " · 검색중" : ""}
@@ -622,7 +627,6 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
           return false;
         }}
       >
-
         <View style={styles.swipeContainer}>
           <Animated.View
             style={[
