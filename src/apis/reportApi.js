@@ -174,7 +174,7 @@ function locParticle(placeLabel = "") {
   return "에서";
 }
 
-// 백엔드 수정 전까지 임시로 500일 때도 화면 테스트 가능하도록 처리해뒀습니당
+// RR404면 빈 리포트 보여주기
 function makeEmptyReport({ year, month }) {
   return {
     summary: {
@@ -250,7 +250,7 @@ export async function fetchMonthlyReport({ year, month }) {
       ? reportMonthlyApiMock
       : (await client.get("/api/report/monthly")).data;
 
-    // 임시로 success = false 거나 responseDto가 null이어도 throw하지 않고 빈 레포트가 보이도록 해뒀습니당
+    // 404 & RR404일 땐 빈 리포트, 그 외 에러는 진짜 에러
     if (!body?.success || !body?.responseDto) {
       return makeEmptyReport({ year, month });
     }
@@ -391,6 +391,7 @@ export async function fetchMonthlyReport({ year, month }) {
         percent: isEmpty ? null : 0,
         isEmpty,
         characterKey,
+        placeKey: manyPlace,
       },
       monthlyStatus,
       reviewKeywords,
@@ -399,8 +400,16 @@ export async function fetchMonthlyReport({ year, month }) {
       readingPlaces,
     };
   } catch (e) {
-    // 백엔드 500이어도 화면 테스트 가능하게 임시로 열어뒀습니당
-    return makeEmptyReport({ year, month });
+    const status = e?.response?.status;
+    const code = e?.response?.data?.error?.code;
+
+    // 리포트 없음은 정상 플로우
+    if (status === 404 && code === "RR404") {
+      return makeEmptyReport({ year, month });
+    }
+
+    // 진짜 에러만 로그
+    console.error("리포트 조회 실패:", status, e?.response?.data, e);
   }
 }
 

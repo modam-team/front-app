@@ -1,6 +1,10 @@
 import Button from "@components/Button";
 import ProfilePlaceholder from "@components/ProfilePlaceholder";
-import { CHARACTER_ILLUSTRATIONS } from "@constants/characterIllustrations";
+import {
+  PERSONA_SLUG_MAP,
+  PLACE_SLUG_MAP,
+  REPORT_CHARACTER_ILLUSTRATION_MAP,
+} from "@constants/reportCharacterIllustrations";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { shadow } from "@theme/shadow";
@@ -9,7 +13,14 @@ import { typography } from "@theme/typography";
 import { splitToLines } from "@utils/textSplit";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  ImageBackground,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 export default function Summary({
   summary,
@@ -19,10 +30,19 @@ export default function Summary({
   onPressProfile,
   profileImageUrl,
 }) {
-  const { title, description, percent, isEmpty, characterKey } = summary;
-  const CharacterIcon =
-    characterKey && CHARACTER_ILLUSTRATIONS[characterKey]
-      ? CHARACTER_ILLUSTRATIONS[characterKey]
+  const { title, description, percent, isEmpty, characterKey, placeKey } =
+    summary;
+
+  const personaKey = title?.trim().split(/\s+/).pop();
+
+  // slug 변환
+  const placeSlug = placeKey ? PLACE_SLUG_MAP[placeKey] : null;
+  const personaSlug = personaKey ? PERSONA_SLUG_MAP[personaKey] : null;
+
+  // 합쳐진 SVG 선택
+  const CombinedSvg =
+    !isEmpty && placeSlug && personaSlug
+      ? (REPORT_CHARACTER_ILLUSTRATION_MAP?.[placeSlug]?.[personaSlug] ?? null)
       : null;
 
   const lines = splitToLines(description, 20);
@@ -97,16 +117,16 @@ export default function Summary({
         </Text>
         <Text style={styles.personaSub}>
           {isEmpty
-            ? "다음 달에 알 수 있어요"
+            ? "지난달에 아직 독서를 하지 않았어요"
             : `모담 회원 중 ${percent}% 유형이에요`}
         </Text>
 
-        {/* 캐릭터 이미지 자리 (지금은 placeholder 박스) */}
+        {/* 캐릭터 이미지 자리 */}
         <View style={styles.characterBox}>
-          {CharacterIcon ? (
-            <CharacterIcon
-              width={220}
-              height={220}
+          {CombinedSvg ? (
+            <CombinedSvg
+              width="100%"
+              height="100%"
             />
           ) : (
             <Text style={styles.characterLabel}>캐릭터</Text>
@@ -195,8 +215,8 @@ const styles = StyleSheet.create({
     color: colors.mono[950],
   },
   personaTitleEmpty: {
-    fontSize: 32,
-    fontWeight: "600",
+    fontSize: 28,
+    fontWeight: "500",
     color: colors.mono[950],
   },
   personaSub: {
@@ -207,13 +227,16 @@ const styles = StyleSheet.create({
 
   // 임시 캐릭터 이미지 부분
   characterBox: {
-    height: 250,
+    height: 248,
     borderRadius: radius[400],
     backgroundColor: colors.mono[0],
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
+    overflow: "hidden",
+    position: "relative",
   },
+
   characterLabel: {
     ...typography["body-1-bold"],
     color: colors.mono[950],
