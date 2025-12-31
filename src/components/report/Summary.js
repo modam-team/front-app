@@ -1,3 +1,4 @@
+import BasicCharacter from "@assets/report/character/basic.svg";
 import Button from "@components/Button";
 import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import {
@@ -11,16 +12,8 @@ import { shadow } from "@theme/shadow";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import { splitToLines } from "@utils/textSplit";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import {
-  Image,
-  ImageBackground,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function Summary({
   summary,
@@ -40,8 +33,9 @@ export default function Summary({
   const personaSlug = personaKey ? PERSONA_SLUG_MAP[personaKey] : null;
 
   // 합쳐진 SVG 선택
-  const CombinedSvg =
-    !isEmpty && placeSlug && personaSlug
+  const CombinedSvg = isEmpty
+    ? BasicCharacter
+    : placeSlug && personaSlug
       ? (REPORT_CHARACTER_ILLUSTRATION_MAP?.[placeSlug]?.[personaSlug] ?? null)
       : null;
 
@@ -123,17 +117,13 @@ export default function Summary({
 
         {/* 캐릭터 이미지 자리 */}
         <View style={styles.characterBox}>
-          {CombinedSvg ? (
-            <CombinedSvg
-              width="100%"
-              height="100%"
-            />
-          ) : (
-            <Text style={styles.characterLabel}>캐릭터</Text>
-          )}
+          <CombinedSvg
+            width="100%"
+            height="100%"
+          />
         </View>
 
-        <Text style={styles.personaDesc}>
+        <Text style={[styles.personaDesc, isEmpty && styles.personaEmptyDesc]}>
           {lines.map((line, i) => (
             <Text key={i}>
               {line}
@@ -147,13 +137,22 @@ export default function Summary({
 }
 
 const styles = StyleSheet.create({
+  // 전체 섹션 래퍼
+  wrap: {
+    marginBottom: spacing.sectionGap,
+  },
+
+  /* ================================== */
+
+  // 프사랑 프로필 편집 버튼
   headerTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: spacing.xs,
   },
 
+  // 프사 동그라미
   profileCircle: {
     width: 49,
     height: 49,
@@ -161,44 +160,39 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mono[0],
     overflow: "hidden",
   },
+
+  // 프사 이미지
   profileImage: {
     width: "100%",
     height: "100%",
   },
-  profileFallback: {
-    flex: 1,
-    backgroundColor: colors.mono[200],
-  },
 
-  // 전체 섹션 래퍼
-  wrap: {
-    marginBottom: spacing.sectionGap,
-  },
-
-  // 각 섹션의 타이틀은 bold로 설정 (ex. 독서 기록, 독서 통계, 취향 분석 요 부분)
-  sectionTitle: {
-    fontWeight: "700",
-  },
+  /* ================================== */
 
   // 헤더 영역
   header: {
-    marginBottom: 28,
+    marginBottom: 26,
   },
+
+  // 'ㅇㅇ님의' 텍스트
   headerLine1: {
     fontSize: 28,
-    fontWeight: 400,
-    color: "white",
+    fontWeight: 500,
   },
+
+  // '이번 달 or 지난 달' 텍스트
   headerMonth: {
     fontWeight: "700",
-    fontSize: 28,
-    color: "white",
+    fontSize: 30,
   },
+
+  // '결과예요' 텍스트
   headerLine2: {
     fontSize: 28,
-    fontWeight: 400,
-    color: "white",
+    fontWeight: 500,
   },
+
+  /* ================================== */
 
   // 카드
   card: {
@@ -206,44 +200,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.l,
     paddingVertical: 20,
     borderRadius: radius[500],
-    ...shadow[0],
-    backgroundColor: "white",
+    backgroundColor: colors.mono[0],
   },
+
+  // 어떤 유형인지 텍스트
   personaTitle: {
     fontSize: 36,
     fontWeight: "600",
     color: colors.mono[950],
   },
+
+  // '아직 측정되지 않았어요' 텍스트
   personaTitleEmpty: {
     fontSize: 28,
     fontWeight: "500",
     color: colors.mono[950],
   },
+
+  // 유형 아래의 캡션 텍스트
   personaSub: {
     ...typography["body-1-regular"],
     color: colors.mono[950],
     marginBottom: 12,
   },
 
-  // 임시 캐릭터 이미지 부분
+  // 캐릭터 이미지 부분
   characterBox: {
     height: 248,
     borderRadius: radius[400],
     backgroundColor: colors.mono[0],
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
     overflow: "hidden",
     position: "relative",
   },
 
-  characterLabel: {
-    ...typography["body-1-bold"],
+  // 캐릭터 하단 문구
+  personaDesc: {
+    ...typography["heading-4-medium"],
     color: colors.mono[950],
   },
 
-  personaDesc: {
-    ...typography["heading-4-medium"],
+  // 유형이 측정되지 않았을 때의 캐릭터 하단 문구
+  personaEmptyDesc: {
+    ...typography["heading-3-medium"],
     color: colors.mono[950],
   },
 });
