@@ -1,4 +1,12 @@
-## 🚀 실행 방법
+# Member
+| [김소연](https://github.com/soyeon1806) | [손상준](https://github.com/sangjoonson) |
+| --- | --- |
+| <a href="https://github.com/soyeon1806"><img src="https://avatars.githubusercontent.com/u/102381857?v=4" width="100px;" alt=""/></a> | <a href="https://github.com/sangjoonson"><img src="https://avatars.githubusercontent.com/sangjoonson" width="100px;" alt=""/></a> |
+| 회원가입/로그인<br>온보딩<br>리포트<br>설정 | 책장<br>리뷰<br>친구 추가<br> |
+
+<br><br>
+
+# 🚀 실행 방법
 
 1️⃣ 설치
 프로젝트 클론 후 필요한 패키지를 설치합니다.
@@ -7,10 +15,11 @@
 git clone https://github.com/modam-team/front-app.git
 cd front-app
 npm install
+```
+<br>
 
 2️⃣ 실행 (개발 모드)
-bash
-코드 복사
+```
 npx expo start
 iOS 시뮬레이터 → i
 
@@ -22,10 +31,11 @@ Android 에뮬레이터 → a
 
 ⚙️ 네트워크 이슈 있을 땐
 npx expo start --tunnel 명령으로 실행하면 외부에서도 접속 가능합니다.
+```
+<br>
 
 🧩 폴더 구조
-bash
-코드 복사
+```
 front-app/
 ├── App.js                 # 앱 진입점
 ├── src/
