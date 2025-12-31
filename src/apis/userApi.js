@@ -40,6 +40,12 @@ export async function withdrawUser() {
   return res.data; // 200 OK
 }
 
+// 탈퇴한 회원이 돌아오면 복구
+export async function activateUser() {
+  const res = await client.patch("/api/user/activate");
+  return res.data;
+}
+
 // 프로필 사진 업로드
 export async function uploadProfileImage(asset) {
   const formData = new FormData();
