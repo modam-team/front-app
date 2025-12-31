@@ -1,20 +1,24 @@
-import ModamLogoGreen from "@assets/icons/modam-green.svg";
-import ModamLogo from "@assets/icons/modam.svg";
 import { MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ReportTopHeader({
   onPressSettings,
   variant = "light",
 }) {
-  const Logo = variant === "green" ? ModamLogoGreen : ModamLogo;
+  const isGreen = variant === "green";
   return (
     <View style={styles.wrap}>
-      <Logo />
-
+      <Text
+        style={[
+          styles.logo,
+          { color: isGreen ? colors.primary[500] : colors.mono[0] },
+        ]}
+      >
+        modam
+      </Text>
       <TouchableOpacity
         onPress={onPressSettings}
         hitSlop={10}
@@ -36,5 +40,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 62,
+  },
+
+  logo: {
+    fontSize: 16,
+    fontWeight: 600,
   },
 });
