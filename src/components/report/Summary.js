@@ -97,7 +97,7 @@ export default function Summary({
         </Text>
         <Text style={styles.personaSub}>
           {isEmpty
-            ? "다음 달에 알 수 있어요"
+            ? "지난달에 아직 독서를 하지 않았어요"
             : `모담 회원 중 ${percent}% 유형이에요`}
         </Text>
 
@@ -195,8 +195,8 @@ const styles = StyleSheet.create({
     color: colors.mono[950],
   },
   personaTitleEmpty: {
-    fontSize: 32,
-    fontWeight: "600",
+    fontSize: 28,
+    fontWeight: "500",
     color: colors.mono[950],
   },
   personaSub: {
