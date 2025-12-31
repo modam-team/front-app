@@ -1,4 +1,4 @@
-# Member
+# 👥 Member
 | [김소연](https://github.com/soyeon1806) | [손상준](https://github.com/sangjoonson) |
 | --- | --- |
 | <a href="https://github.com/soyeon1806"><img src="https://avatars.githubusercontent.com/u/102381857?v=4" width="100px;" alt=""/></a> | <a href="https://github.com/sangjoonson"><img src="https://avatars.githubusercontent.com/sangjoonson" width="100px;" alt=""/></a> |
