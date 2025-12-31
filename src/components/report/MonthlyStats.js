@@ -98,31 +98,32 @@ export default function MonthlyStats({
       {/* 섹션 헤더 */}
       <View style={styles.header}>
         <View style={styles.titleBlock}>
-          {/* 선택된 연도 및 월 표시 */}
-          <Text style={[styles.dateText, { color: styleSet.dateColor }]}>
-            {year}년 {month}월
-          </Text>
+          {/* 날짜 및 드롭다운 */}
+          <View style={styles.dateRow}>
+            {/* 선택된 연도 및 월 */}
+            <Text style={[styles.dateText, { color: styleSet.dateColor }]}>
+              {year}년 {month}월
+            </Text>
 
-          {/* 제목 + 연도 드롭다운 */}
+            <TouchableOpacity
+              onPress={onOpenPicker}
+              activeOpacity={0.7}
+              style={styles.dateIconButton}
+            >
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={24}
+                color={styleSet.dateColor}
+                style={{ transform: [{ rotate: "90deg" }] }}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* 제목 */}
           <View style={styles.titleRow}>
             <Text style={[styles.sectionTitle, { color: styleSet.textColor }]}>
               독서 통계
             </Text>
-            <TouchableOpacity
-              style={styles.yearButton}
-              onPress={onOpenPicker}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.yearText, { color: styleSet.textColor }]}>
-                {year}년
-              </Text>
-              <MaterialIcons
-                name="arrow-forward-ios"
-                size={17}
-                color={styleSet.iconColor}
-                style={{ marginLeft: 4, transform: [{ rotate: "90deg" }] }} // 아래 방향처럼 보이게 회전
-              />
-            </TouchableOpacity>
           </View>
 
           {/* 캡션 */}
@@ -220,12 +221,18 @@ const styles = StyleSheet.create({
   titleBlock: {
     flexShrink: 1,
   },
+
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   dateText: {
     fontSize: 28,
     fontWeight: "600",
-    marginBottom: spacing.s,
   },
   titleRow: {
+    marginTop: spacing.s,
     flexDirection: "row",
     alignItems: "baseline",
   },
@@ -233,15 +240,7 @@ const styles = StyleSheet.create({
     ...typography["heading-1-medium"],
     fontWeight: "600",
   },
-  yearButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 12,
-  },
-  yearText: {
-    ...typography["heading-1-medium"],
-    fontWeight: "600",
-  },
+
   caption: {
     ...typography["body-1-regular"],
   },
