@@ -71,8 +71,10 @@ function getButtonStyle({ variant, tone, size, disabled }) {
 
   // 기본값들
   let baseContainer = {
-    height: sizeSet.height,
+    ...(sizeSet.height != null ? { height: sizeSet.height } : {}),
+    ...(sizeSet.minHeight != null ? { minHeight: sizeSet.minHeight } : {}),
     paddingHorizontal: sizeSet.px,
+    ...(sizeSet.py != null ? { paddingVertical: sizeSet.py } : {}),
     borderRadius: sizeSet.borderRadius, // pill
   };
 
@@ -157,6 +159,7 @@ function getButtonStyle({ variant, tone, size, disabled }) {
       },
       pressed: {
         backgroundColor: palette.outlinePressedBg,
+        borderColor: palette.outlinePressedBorder,
       },
     };
   }
@@ -181,9 +184,10 @@ function getSizeSet(size) {
   switch (size) {
     case "small":
       return {
-        height: 24,
-        borderRadius: 999,
+        minHeight: 24,
+        borderRadius: radius[400],
         px: spacing.s,
+        py: 2,
         text: typography["body-2-regular"],
       };
     case "large":

@@ -1,3 +1,4 @@
+import { activateUser } from "../apis/userApi";
 import { fetchOnboardingStatus, fetchUserProfile } from "@apis/userApi";
 import { colors } from "@theme/colors";
 import { clearAuth } from "@utils/auth";
@@ -31,11 +32,38 @@ export default function AuthGateScreen({ navigation }) {
               {
                 text: "네, 돌아올게요",
                 onPress: async () => {
-                  // (선택) 복구 API 있으면 여기서 호출
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Root" }],
-                  });
+                  try {
+                    await activateUser(); // 상태를 ACTIVE로 변경
+
+                    // 기존의 온보딩 상태에 따라 분기
+                    const onboarding = await fetchOnboardingStatus();
+                    navigation.reset({
+                      index: 0,
+                      routes: [
+                        {
+                          name: onboarding.onboardingCompleted
+                            ? "Root"
+                            : "OnboardingFlow",
+                        },
+                      ],
+                    });
+                  } catch (e) {
+                    console.error(
+                      "계정 복구 실패",
+                      e?.response?.status,
+                      e?.response?.data,
+                      e,
+                    );
+                    Alert.alert(
+                      "복구 실패",
+                      "계정 복구에 실패했어요.\n다시 로그인해 주세요.",
+                    );
+                    await clearAuth();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "LoginScreen" }],
+                    });
+                  }
                 },
               },
             ],
