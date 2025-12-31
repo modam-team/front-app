@@ -14,7 +14,7 @@ export default function ReportTopHeader({
       <Text
         style={[
           styles.logo,
-          { color: isGreen ? colors.primary[500] : colors.mono[0] },
+          { color: isGreen ? colors.primary[400] : colors.mono[0] },
         ]}
       >
         modam
@@ -26,7 +26,7 @@ export default function ReportTopHeader({
         <MaterialIcons
           name="settings"
           size={24}
-          color={variant === "green" ? colors.primary[500] : colors.mono[0]}
+          color={variant === "green" ? colors.primary[400] : colors.mono[0]}
         />
       </TouchableOpacity>
     </View>
