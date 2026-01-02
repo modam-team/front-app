@@ -92,7 +92,7 @@ function getButtonStyle({ variant, tone, size, disabled }) {
         },
         text: {
           ...baseText,
-          color: withOpacity(palette.onFill, 0.32),
+          color: palette.onFill,
         },
         pressed: {},
       };
