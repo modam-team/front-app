@@ -68,19 +68,20 @@ export default function OnboardingFlowScreen({ navigation, route }) {
   const setNickname = useOnboardingStore((s) => s.setNickname);
 
   const [nicknameInput, setNicknameInput] = useState(nickname || "");
-  const isValidNickname = nicknameInput.trim().length > 0;
 
   // 닉네임 중복 체크 관련
   const [checking, setChecking] = useState(false); // 요청 중
   const [nicknameChecked, setNicknameChecked] = useState(false); // 확인 여부
   const [isAvailable, setIsAvailable] = useState(null); // true | false | null
 
-  // 버튼 텍스트
-  const nextButtonLabel = step === 3 ? "독서 시작하기" : "다음";
-
   // 닉네임 중복확인 버튼 variant 조건
   const nicknameButtonVariant =
     nicknameChecked && isAvailable === false ? "error" : "primary";
+
+  // 닉네임 글자수 제한 (3~8자만 허용)
+  const trimmedNickname = nicknameInput.trim();
+  const isValidNickname =
+    trimmedNickname.length >= 3 && trimmedNickname.length <= 8;
 
   // 버튼 라벨
   const nicknameButtonLabel = nicknameChecked
@@ -88,6 +89,9 @@ export default function OnboardingFlowScreen({ navigation, route }) {
       ? "사용 가능한 닉네임이에요"
       : "중복된 닉네임이에요"
     : "중복 확인";
+
+  // 버튼 텍스트
+  const nextButtonLabel = step === 3 ? "독서 시작하기" : "다음";
 
   // 이전 버튼
   const handlePrev = () => {
@@ -255,7 +259,7 @@ export default function OnboardingFlowScreen({ navigation, route }) {
                 <View style={styles.nicknameField}>
                   <TextField
                     label="닉네임"
-                    placeholder="닉네임을 입력해 주세요."
+                    placeholder="닉네임을 입력해 주세요. (3~8자 이내)"
                     value={nicknameInput}
                     onChangeText={handleNicknameChange}
                   />
@@ -265,7 +269,7 @@ export default function OnboardingFlowScreen({ navigation, route }) {
                     tone="outline"
                     size="medium"
                     fullWidth // 가로 꽉
-                    disabled={!nicknameInput?.trim()} // 닉네임 없으면 비활성화
+                    disabled={!isValidNickname || checking} // 글자수가 맞지 않거나 이미 중복 확인 중이면 비활성화
                     onPress={handleCheckNickname}
                     style={{ marginTop: 8 }}
                   />
