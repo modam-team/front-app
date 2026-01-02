@@ -1,7 +1,7 @@
-import { completeOnboarding } from "@apis/userApi";
+import { checkNicknameAvailable, completeOnboarding } from "@apis/userApi";
 import AppHeader from "@components/AppHeader";
+import Button from "@components/Button";
 import Chip from "@components/Chip";
-import OnboardingButton from "@components/OnboardingButton";
 import ProgressBar from "@components/ProgressBar";
 import TextField from "@components/TextField";
 import { GENRES } from "@constants/genres";
@@ -68,7 +68,27 @@ export default function OnboardingFlowScreen({ navigation, route }) {
   const setNickname = useOnboardingStore((s) => s.setNickname);
 
   const [nicknameInput, setNicknameInput] = useState(nickname || "");
-  const isValidNickname = nicknameInput.trim().length > 0;
+
+  // 닉네임 중복 체크 관련
+  const [checking, setChecking] = useState(false); // 요청 중
+  const [nicknameChecked, setNicknameChecked] = useState(false); // 확인 여부
+  const [isAvailable, setIsAvailable] = useState(null); // true | false | null
+
+  // 닉네임 중복확인 버튼 variant 조건
+  const nicknameButtonVariant =
+    nicknameChecked && isAvailable === false ? "error" : "primary";
+
+  // 닉네임 글자수 제한 (3~8자만 허용)
+  const trimmedNickname = nicknameInput.trim();
+  const isValidNickname =
+    trimmedNickname.length >= 3 && trimmedNickname.length <= 8;
+
+  // 버튼 라벨
+  const nicknameButtonLabel = nicknameChecked
+    ? isAvailable
+      ? "사용 가능한 닉네임이에요"
+      : "중복된 닉네임이에요"
+    : "중복 확인";
 
   // 버튼 텍스트
   const nextButtonLabel = step === 3 ? "독서 시작하기" : "다음";
@@ -115,7 +135,33 @@ export default function OnboardingFlowScreen({ navigation, route }) {
   const isNextDisabled =
     (step === 1 && !isValidGoal) ||
     (step === 2 && !isValidCategory) ||
-    (step === 3 && !isValidNickname);
+    (step === 3 && (!isValidNickname || !nicknameChecked || !isAvailable));
+
+  // 중복 확인 버튼 핸들러
+  const handleCheckNickname = async () => {
+    const trimmed = nicknameInput.trim();
+    if (!trimmed) return;
+
+    try {
+      setChecking(true);
+      setNicknameChecked(false);
+
+      const res = await checkNicknameAvailable(trimmed);
+      setIsAvailable(res.available);
+      setNicknameChecked(true);
+    } catch (e) {
+      console.error("닉네임 중복 확인 실패", e);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  // 닉네임 입력 시 확인 상태 리셋하기
+  const handleNicknameChange = (text) => {
+    setNicknameInput(text);
+    setNicknameChecked(false);
+    setIsAvailable(null);
+  };
 
   return (
     <SafeAreaView
@@ -213,9 +259,19 @@ export default function OnboardingFlowScreen({ navigation, route }) {
                 <View style={styles.nicknameField}>
                   <TextField
                     label="닉네임"
-                    placeholder="닉네임을 입력해 주세요."
+                    placeholder="닉네임을 입력해 주세요. (3~8자 이내)"
                     value={nicknameInput}
-                    onChangeText={setNicknameInput}
+                    onChangeText={handleNicknameChange}
+                  />
+                  <Button
+                    label={nicknameButtonLabel}
+                    variant={nicknameButtonVariant}
+                    tone="outline"
+                    size="medium"
+                    fullWidth // 가로 꽉
+                    disabled={!isValidNickname || checking} // 글자수가 맞지 않거나 이미 중복 확인 중이면 비활성화
+                    onPress={handleCheckNickname}
+                    style={{ marginTop: 8 }}
                   />
                 </View>
               </View>
@@ -224,9 +280,13 @@ export default function OnboardingFlowScreen({ navigation, route }) {
 
           {/* 하단 버튼 */}
           <View style={styles.button}>
-            <OnboardingButton
+            <Button
               label={nextButtonLabel}
               onPress={handleNext}
+              variant="primary"
+              tone="fill"
+              size="large"
+              fullWidth
               disabled={isNextDisabled}
             />
           </View>
