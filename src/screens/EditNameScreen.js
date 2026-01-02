@@ -34,6 +34,9 @@ export default function EditNameScreen() {
   const trimmed = value.trim();
   const isValidLength = trimmed.length >= MIN && trimmed.length <= MAX;
 
+  // 닉네임 변경이 이루어졌는지 확인
+  const isSameAsInitial = trimmed === initial;
+
   // 중복 체크 상태
   const [checking, setChecking] = useState(false);
   const [nicknameChecked, setNicknameChecked] = useState(false);
@@ -76,7 +79,11 @@ export default function EditNameScreen() {
     : "중복 확인";
 
   // 저장 가능 조건: 길이 OK + 중복확인 완료 + available = true
-  const canSave = isValidLength && nicknameChecked && isAvailable === true;
+  const canSave =
+    isValidLength &&
+    !isSameAsInitial &&
+    nicknameChecked &&
+    isAvailable === true;
 
   const handleSave = async () => {
     const next = value.trim();
@@ -119,10 +126,7 @@ export default function EditNameScreen() {
               ]}
             >
               <Text
-                style={[
-                  styles.saveText,
-                  !isValidLength && styles.saveTextDisabled,
-                ]}
+                style={[styles.saveText, !canSave && styles.saveTextDisabled]}
               >
                 저장
               </Text>
@@ -147,7 +151,7 @@ export default function EditNameScreen() {
               size="medium"
               fullWidth
               onPress={handleCheckNickname}
-              disabled={!isValidLength || checking}
+              disabled={!isValidLength || checking || isSameAsInitial}
               style={{ marginTop: 8 }}
             />
           </View>
