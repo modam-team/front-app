@@ -1,6 +1,7 @@
 import TextField from "../components/TextField";
-import { updateProfile } from "@apis/userApi";
+import { checkNicknameAvailable, updateProfile } from "@apis/userApi";
 import AppHeader from "@components/AppHeader";
+import Button from "@components/Button";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
@@ -32,6 +33,50 @@ export default function EditNameScreen() {
   // 닉네임 길이 체크
   const trimmed = value.trim();
   const isValidLength = trimmed.length >= MIN && trimmed.length <= MAX;
+
+  // 중복 체크 상태
+  const [checking, setChecking] = useState(false);
+  const [nicknameChecked, setNicknameChecked] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(null); // true | false | null
+
+  // 입력 변경 시 중복 확인 상태 리셋
+  const handleChange = (text) => {
+    setValue(text);
+    setNicknameChecked(false);
+    setIsAvailable(null);
+  };
+
+  // 중복 확인 버튼
+  const handleCheckNickname = async () => {
+    const next = trimmed;
+    if (!isValidLength) return;
+
+    try {
+      setChecking(true);
+      setNicknameChecked(false);
+
+      const res = await checkNicknameAvailable(next);
+      setIsAvailable(res.available);
+      setNicknameChecked(true);
+    } catch (e) {
+      console.error("닉네임 중복 확인 실패:", e);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  // 버튼 라벨/variant
+  const nicknameButtonVariant =
+    nicknameChecked && isAvailable === false ? "error" : "primary";
+
+  const nicknameButtonLabel = nicknameChecked
+    ? isAvailable
+      ? "사용 가능한 닉네임이에요"
+      : "중복된 닉네임이에요"
+    : "중복 확인";
+
+  // 저장 가능 조건: 길이 OK + 중복확인 완료 + available = true
+  const canSave = isValidLength && nicknameChecked && isAvailable === true;
 
   const handleSave = async () => {
     const next = value.trim();
@@ -65,12 +110,12 @@ export default function EditNameScreen() {
             />
             <Pressable
               onPress={handleSave}
-              disabled={!isValidLength}
+              disabled={!canSave}
               hitSlop={10}
               style={({ pressed }) => [
                 styles.save,
-                pressed && isValidLength && styles.pressed,
-                !isValidLength && styles.saveDisabled,
+                pressed && canSave && styles.pressed,
+                !canSave && styles.saveDisabled,
               ]}
             >
               <Text
@@ -91,7 +136,19 @@ export default function EditNameScreen() {
               showCount
               maxLength={MAX}
               value={value}
-              onChangeText={setValue}
+              onChangeText={handleChange}
+            />
+
+            {/* 중복확인 버튼 */}
+            <Button
+              label={nicknameButtonLabel}
+              variant={nicknameButtonVariant}
+              tone="outline"
+              size="medium"
+              fullWidth
+              onPress={handleCheckNickname}
+              disabled={!isValidLength || checking}
+              style={{ marginTop: 8 }}
             />
           </View>
         </View>
