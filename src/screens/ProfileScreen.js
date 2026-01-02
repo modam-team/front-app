@@ -168,7 +168,7 @@ export default function ProfileScreen() {
 
           if (!isMounted) return;
 
-          setNickname(profile.nickname ?? "모담이");
+          setNickname(profile.nickname);
           setIsPublic(
             profile.isPublic ?? profile.public ?? profile.publicYn ?? true,
           );
