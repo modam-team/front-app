@@ -7,15 +7,18 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { useMemo, useState } from "react";
 import {
+  Keyboard,
   Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 
-const MAX = 30;
+const MIN = 3;
+const MAX = 8;
 
 export default function EditNameScreen() {
   const navigation = useNavigation();
@@ -26,11 +29,13 @@ export default function EditNameScreen() {
 
   const [value, setValue] = useState(initial);
 
-  const countText = useMemo(() => `${value.length}/${MAX}`, [value]);
+  // 닉네임 길이 체크
+  const trimmed = value.trim();
+  const isValidLength = trimmed.length >= MIN && trimmed.length <= MAX;
 
   const handleSave = async () => {
     const next = value.trim();
-    if (!next) return;
+    if (next.length < MIN || next.length > MAX) return;
 
     try {
       // 서버에 저장
@@ -47,31 +52,50 @@ export default function EditNameScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.headerRow}>
-        <AppHeader
-          title="이름"
-          showBack
-          onPressBack={() => navigation.goBack()}
-        />
-        <Pressable
-          onPress={handleSave}
-          hitSlop={10}
-          style={({ pressed }) => [styles.save, pressed && styles.pressed]}
-        >
-          <Text style={styles.saveText}>저장</Text>
-        </Pressable>
-      </View>
+      <TouchableWithoutFeedback
+        onPress={Keyboard.dismiss}
+        accessible={false}
+      >
+        <View style={{ flex: 1 }}>
+          <View style={styles.headerRow}>
+            <AppHeader
+              title="이름"
+              showBack
+              onPressBack={() => navigation.goBack()}
+            />
+            <Pressable
+              onPress={handleSave}
+              disabled={!isValidLength}
+              hitSlop={10}
+              style={({ pressed }) => [
+                styles.save,
+                pressed && isValidLength && styles.pressed,
+                !isValidLength && styles.saveDisabled,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.saveText,
+                  !isValidLength && styles.saveTextDisabled,
+                ]}
+              >
+                저장
+              </Text>
+            </Pressable>
+          </View>
 
-      <View style={styles.body}>
-        <TextField
-          label="닉네임"
-          placeholder="최대 50자"
-          showCount
-          maxLength={50}
-          value={value}
-          onChangeText={setValue}
-        />
-      </View>
+          <View style={styles.body}>
+            <TextField
+              label="닉네임"
+              placeholder="3~8자로 입력해 주세요."
+              showCount
+              maxLength={MAX}
+              value={value}
+              onChangeText={setValue}
+            />
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -94,6 +118,13 @@ const styles = StyleSheet.create({
     color: colors.mono[950],
   },
   pressed: { opacity: 0.6 },
+
+  saveDisabled: {
+    opacity: 0.3,
+  },
+  saveTextDisabled: {
+    color: colors.mono[400],
+  },
 
   body: {
     paddingHorizontal: spacing.layoutMargin,
