@@ -77,6 +77,7 @@ export default function AuthGateScreen({ navigation }) {
         if (onboarding.onboardingCompleted) {
           navigation.reset({
             index: 0,
+            // 이미 온보딩 완료 했었어도 온보딩 화면 테스트 하고 싶으면 이거 OnboardingFlow로 바꾸면 됩니당
             routes: [{ name: "Root" }],
           });
         } else {
