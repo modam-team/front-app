@@ -266,12 +266,16 @@ function getPalette(variant) {
   const error = {
     fill: colors.warning.medium,
     onFill: colors.mono[0],
+    fillPressed: colors.warning.medium, // 변화 없게 맞춰 두기만 함
 
-    border: colors.warning.medium,
-    text: colors.warning.medium,
     outlineBg: colors.warning.light,
+    outlineBorder: colors.warning.medium,
+    outlineText: colors.warning.medium,
+    outlinePressedBg: colors.warning.light, // 변화 없게 맞춰 두기만 함
+    outlinePressedBorder: colors.warning.medium, // 변화 없게 맞춰 두기만 함
 
     ghostText: colors.warning.medium,
+    ghostPressedBg: "transparent", // 변화 없게 맞춰 두기만 함
   };
 
   if (variant === "secondary") return secondary;
