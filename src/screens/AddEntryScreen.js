@@ -3,12 +3,13 @@ import placeholder from "../../assets/icon.png";
 import { requestBookRegistration, searchBooks } from "@apis/bookApi";
 import { addBookToBookcase, fetchReview } from "@apis/bookcaseApi";
 import { Ionicons } from "@expo/vector-icons";
+import StarIcon from "@components/StarIcon";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
   Modal,
-  SafeAreaView,
+  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const bestsellers = [
   {
@@ -59,6 +61,7 @@ const bestsellers = [
     votes: 22,
   },
 ];
+const DETAIL_TOP_BAR_HEIGHT = 38;
 
 export default function AddEntryScreen({ navigation }) {
   const [query, setQuery] = useState("");
@@ -122,12 +125,12 @@ export default function AddEntryScreen({ navigation }) {
     return (
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         {[...Array(5)].map((_, idx) => (
-          <Ionicons
+          <StarIcon
             key={idx}
-            name="star-sharp"
             size={size}
-            color={idx < count ? color : "#C6C6C6"}
-            style={{ marginRight: 2 }}
+            color={color}
+            emptyColor="#C6C6C6"
+            variant={idx < count ? "full" : "empty"}
           />
         ))}
       </View>
@@ -183,6 +186,22 @@ export default function AddEntryScreen({ navigation }) {
     setDetailReview(null);
     setDetailReviewLoading(false);
   };
+
+  const detailPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gesture) => {
+          const { dx, dy } = gesture;
+          return dx > 20 && Math.abs(dx) > Math.abs(dy);
+        },
+        onPanResponderRelease: (_, gesture) => {
+          if (gesture.dx > 50) {
+            closeDetail();
+          }
+        },
+      }),
+    [closeDetail],
+  );
 
   const getCoverUri = (book) =>
     book?.cover ||
@@ -345,6 +364,7 @@ export default function AddEntryScreen({ navigation }) {
           params: {
             addedBooks: [newBook],
             refreshKey: Date.now(),
+            forceReload: Date.now(),
             focusTab: status,
           },
         });
@@ -552,6 +572,7 @@ export default function AddEntryScreen({ navigation }) {
       >
         <SafeAreaView
           style={localAddOnly ? styles.manualSafe : styles.detailSafe}
+          {...(selectedBook ? detailPanResponder.panHandlers : {})}
         >
           {localAddOnly ? (
             <>
@@ -677,24 +698,25 @@ export default function AddEntryScreen({ navigation }) {
             </>
           ) : (
             <>
+              <View style={styles.detailTopBar}>
+                <TouchableOpacity
+                  onPress={closeDetail}
+                  style={styles.backBtn}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={24}
+                    color="#000"
+                  />
+                </TouchableOpacity>
+              </View>
+              {/* spacer to keep content below fixed top bar */}
+              <View style={{ height: DETAIL_TOP_BAR_HEIGHT }} />
               <ScrollView
                 contentContainerStyle={styles.detailContent}
                 showsVerticalScrollIndicator={false}
               >
-                <View style={styles.detailHeaderRow}>
-                  <TouchableOpacity
-                    onPress={closeDetail}
-                    style={styles.backBtn}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons
-                      name="chevron-back"
-                      size={24}
-                      color="#000"
-                    />
-                  </TouchableOpacity>
-                </View>
-
                 {/* 책 상세 카드 */}
                 {selectedBook && (
                   <View style={styles.detailCard}>
@@ -953,11 +975,11 @@ export default function AddEntryScreen({ navigation }) {
                     onPress={() => setReviewPromptRating(i)}
                     activeOpacity={0.8}
                   >
-                    <Ionicons
-                      name={reviewPromptRating >= i ? "star" : "star-outline"}
+                    <StarIcon
                       size={24}
                       color="#426B1F"
-                      style={{ marginHorizontal: 2 }}
+                      emptyColor="#C6C6C6"
+                      variant={reviewPromptRating >= i ? "full" : "empty"}
                     />
                   </TouchableOpacity>
                 ))}
@@ -1082,14 +1104,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F6F6",
     position: "relative",
   },
-  detailContent: {
-    padding: 16,
-    paddingBottom: 170, // 아래 고정 버튼 높이만큼 여유
+  detailTopBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: DETAIL_TOP_BAR_HEIGHT,
+    paddingHorizontal: 16,
+    paddingTop: 68,
+    paddingBottom: 12,
+    backgroundColor: "#F6F6F6",
+    zIndex: 2,
   },
-  detailHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
+  detailContent: {
+    paddingTop: DETAIL_TOP_BAR_HEIGHT + 12,
+    paddingHorizontal: 16,
+    paddingBottom: 170, // 아래 고정 버튼 높이만큼 여유
   },
   backBtn: {
     width: 32,

@@ -38,8 +38,8 @@ export default function App() {
 
   return (
     <NavigationContainer theme={navTheme}>
-      {/* 앱이 처음 켜질 때 OnboardingIntro부터 보이도록 ! */}
-      <Stack.Navigator initialRouteName="OnboardingIntro">
+      {/* 개발 편의: 로그인 없이도 앱 진입 */}
+      <Stack.Navigator initialRouteName="Root">
         <Stack.Screen
           name="OnboardingIntro"
           component={OnboardingIntroScreen}

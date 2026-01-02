@@ -20,6 +20,13 @@ export async function searchBooks(query) {
     : [{ queryType: "Bestseller" }];
 
   const token = await getToken("accessToken");
+  if (!token) {
+    const err = new Error("로그인이 필요합니다. 다시 로그인해 주세요.");
+    err.code = "NO_TOKEN";
+    err.status = 401;
+    throw err;
+  }
+
   const headers = {
     "Content-Type": "application/json",
     Accept: "application/json",

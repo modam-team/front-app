@@ -14,7 +14,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +21,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const AUTH_BYPASS =
   (process.env.EXPO_PUBLIC_AUTH_BYPASS || "").toLowerCase() === "true";

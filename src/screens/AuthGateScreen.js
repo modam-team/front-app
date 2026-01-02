@@ -61,7 +61,7 @@ export default function AuthGateScreen({ navigation }) {
                     await clearAuth();
                     navigation.reset({
                       index: 0,
-                      routes: [{ name: "LoginScreen" }],
+                      routes: [{ name: "OnboardingLogin" }],
                     });
                   }
                 },
@@ -91,7 +91,7 @@ export default function AuthGateScreen({ navigation }) {
         await clearAuth();
         navigation.reset({
           index: 0,
-          routes: [{ name: "LoginScreen" }],
+          routes: [{ name: "OnboardingLogin" }],
         });
       }
     };

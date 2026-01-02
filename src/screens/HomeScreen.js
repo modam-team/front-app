@@ -10,7 +10,10 @@ import { searchFriends } from "@apis/friendApi";
 import { fetchReadingLogs, saveReadingLog } from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import { Ionicons } from "@expo/vector-icons";
+import ReportCharacterBasic from "../../assets/report/character/basic.svg";
+import Svg, { Path } from "react-native-svg";
 import { useIsFocused } from "@react-navigation/native";
+import StarIcon from "@components/StarIcon";
 import React, {
   useCallback,
   useEffect,
@@ -18,12 +21,13 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   Animated,
   Image,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -63,16 +67,12 @@ function Rating({ value, color = green, inactiveColor = starGray }) {
             key={star}
             style={styles.starBox}
           >
-            <Text
-              style={[
-                styles.star,
-                {
-                  color: isFull ? color : isHalf ? mutedGreen : inactiveColor,
-                },
-              ]}
-            >
-              ★
-            </Text>
+            <StarIcon
+              size={16}
+              color={color}
+              emptyColor={inactiveColor}
+              variant={isFull ? "full" : isHalf ? "half" : "empty"}
+            />
           </View>
         );
       })}
@@ -171,7 +171,11 @@ function Calendar({
           hitSlop={8}
         >
           <Text style={styles.yearText}>{year}</Text>
-          <Text style={styles.caretText}>⌄</Text>
+          <Ionicons
+            name="chevron-down"
+            size={18}
+            color="#191919"
+          />
         </TouchableOpacity>
       </View>
       <View style={styles.monthRow}>
@@ -179,14 +183,22 @@ function Calendar({
           onPress={onPrev}
           hitSlop={12}
         >
-          <Text style={styles.calNav}>{"<"}</Text>
+          <Ionicons
+            name="chevron-back-outline"
+            size={28}
+            color="#000"
+          />
         </TouchableOpacity>
         <Text style={styles.calTitle}>{`${month}월`}</Text>
         <TouchableOpacity
           onPress={onNext}
           hitSlop={12}
         >
-          <Text style={styles.calNav}>{">"}</Text>
+          <Ionicons
+            name="chevron-forward-outline"
+            size={28}
+            color="#000"
+          />
         </TouchableOpacity>
       </View>
       <View style={styles.weekRow}>
@@ -254,8 +266,10 @@ function Calendar({
 }
 
 const now = new Date();
+const TAB_BAR_HEIGHT = 52;
 
 export default function HomeScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
@@ -276,6 +290,11 @@ export default function HomeScreen({ navigation }) {
   const [goalCandidate, setGoalCandidate] = useState(1);
   const [goalBarWidth, setGoalBarWidth] = useState(0);
   const [friendList, setFriendList] = useState([]);
+  const [progressWidth, setProgressWidth] = useState(0);
+  const selectedMonthKey = useMemo(
+    () => `${year}-${String(month).padStart(2, "0")}`,
+    [year, month],
+  );
   const formatDateKey = useCallback((dateObj) => {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -361,6 +380,7 @@ export default function HomeScreen({ navigation }) {
     return merged.filter((b) => (b.title || "").toLowerCase().includes(q));
   }, [bookOptions, bookSearch]);
   const currentYear = useMemo(() => new Date().getFullYear(), []);
+  const currentMonth = useMemo(() => new Date().getMonth() + 1, []);
   const yearOptions = useMemo(() => {
     const start = Math.max(currentYear, year);
     return Array.from({ length: 4 }, (_, idx) => start - idx);
@@ -546,6 +566,8 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     if (!isFocused) return;
+    setReadingLogs({});
+    setDayModalKey(null);
     let cancelled = false;
     const loadLogs = async () => {
       try {
@@ -579,15 +601,15 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     if (!isFocused) return;
+    setReadCount(0);
     let cancelled = false;
     const loadCompletionCount = async () => {
       try {
         const bookcase = await fetchBookcase();
         if (cancelled) return;
         const after = bookcase?.after || bookcase?.AFTER || [];
-        const targetKey = `${year}-${String(month).padStart(2, "0")}`;
         const count = after.filter(
-          (b) => getCompletionKey(b)?.key === targetKey,
+          (b) => getCompletionKey(b)?.key === selectedMonthKey,
         ).length;
         setReadCount(count);
       } catch (e) {
@@ -602,7 +624,7 @@ export default function HomeScreen({ navigation }) {
     return () => {
       cancelled = true;
     };
-  }, [isFocused, year, month, getCompletionKey]);
+  }, [isFocused, year, month, getCompletionKey, selectedMonthKey]);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -697,15 +719,16 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {(() => {
+          const rawRatio = goalCount > 0 ? readCount / goalCount : 0;
           const percent =
-            goalCount > 0
-              ? Math.min(999, Math.round((readCount / goalCount) * 100))
-              : 0;
-          const fillWidth = Math.min(
-            100,
-            goalCount > 0 ? (readCount / goalCount) * 100 : 0,
+            goalCount > 0 ? Math.min(100, Math.round(rawRatio * 100)) : 0;
+          const fillRatio = Math.min(1, Math.max(0, rawRatio));
+          const fillWidth = fillRatio * 100;
+          const markerLeftPx = Math.min(
+            progressWidth,
+            Math.max(0, fillRatio * progressWidth),
           );
-          const markerLeft = Math.min(100, Math.max(0, fillWidth));
+          const isCurrentMonth = year === currentYear && month === currentMonth;
           return (
             <Pressable
               onPress={() => {
@@ -713,21 +736,58 @@ export default function HomeScreen({ navigation }) {
               }}
               style={styles.progressCard}
             >
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressPercent}>{`${percent}%`}</Text>
-                <View style={styles.goalRow}>
-                  <Text
-                    style={styles.goalLabel}
-                  >{`이번달 ${readCount}권 완독했어요`}</Text>
-                  <Text style={styles.goalTarget}>
-                    {goalCount > 0 ? `목표 ${goalCount}권` : "목표 없음"}
-                  </Text>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressPercent}>{`${percent}%`}</Text>
+            <View style={styles.progressTrack}>
+              <LinearGradient
+                colors={["#e5e5e5", "#e5e5e5", "#999"]}
+                locations={[0, 0.5385, 0.8846]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 15 }]}
+              />
+              <View
+                style={[styles.progressFill, { width: `${fillWidth}%` }]}
+              />
+                  <View
+                    style={[
+                      styles.progressIndicator,
+                      { left: markerLeftPx },
+                    ]}
+                  >
+                    <ReportCharacterBasic
+                      width={36}
+                      height={34}
+                    />
+                  </View>
+                  <View
+                    style={styles.progressShadow}
+                    pointerEvents="none"
+                  />
                 </View>
               </View>
-              <View style={styles.progressTrack}>
-                <View
-                  style={[styles.progressFill, { width: `${fillWidth}%` }]}
-                />
+                <View style={styles.goalRow}>
+                  <View style={styles.goalLeft}>
+                    <Svg
+                      width={15}
+                      height={17}
+                      viewBox="0 0 15 17"
+                      fill="none"
+                    >
+                      <Path
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                        d="M15 12.6096C14.9989 12.6514 14.9949 12.6931 14.988 12.7343C15.0061 12.829 15.0033 12.9265 14.98 13.0199C14.9567 13.1134 14.9133 13.2004 14.853 13.2748C14.7927 13.3492 14.717 13.4091 14.6313 13.4503C14.5456 13.4914 14.4519 13.5128 14.3571 13.5128H2.35714C2.21644 13.5128 2.07712 13.541 1.94712 13.5958C1.81713 13.6505 1.69902 13.7308 1.59953 13.832C1.50004 13.9332 1.42112 14.0533 1.36727 14.1855C1.31343 14.3178 1.28571 14.4595 1.28571 14.6026C1.28571 14.7457 1.31343 14.8874 1.36727 15.0196C1.42112 15.1518 1.50004 15.2719 1.59953 15.3731C1.69902 15.4743 1.81713 15.5546 1.94712 15.6094C2.07712 15.6641 2.21644 15.6923 2.35714 15.6923H14.3571C14.5276 15.6923 14.6912 15.7612 14.8117 15.8838C14.9323 16.0064 15 16.1727 15 16.3462C15 16.5196 14.9323 16.6859 14.8117 16.8085C14.6912 16.9311 14.5276 17 14.3571 17H2.35714C1.73199 17 1.13244 16.7474 0.690391 16.2978C0.248341 15.8482 0 15.2384 0 14.6026V2.39744C0 1.7616 0.248341 1.1518 0.690391 0.702193C1.13244 0.252586 1.73199 0 2.35714 0H13.8429C14.4823 0 15 0.526564 15 1.17692V12.6096ZM4.92857 3.48718C4.75808 3.48718 4.59456 3.55607 4.474 3.67869C4.35344 3.80131 4.28571 3.96761 4.28571 4.14103C4.28571 4.31444 4.35344 4.48074 4.474 4.60336C4.59456 4.72598 4.75808 4.79487 4.92857 4.79487H10.0714C10.2419 4.79487 10.4054 4.72598 10.526 4.60336C10.6466 4.48074 10.7143 4.31444 10.7143 4.14103C10.7143 3.96761 10.6466 3.80131 10.526 3.67869C10.4054 3.55607 10.2419 3.48718 10.0714 3.48718H4.92857Z"
+                        fill="black"
+                      />
+                    </Svg>
+                    <Text
+                      style={styles.goalLabel}
+                    >{`${isCurrentMonth ? "이번달" : `${month}월`} ${readCount}권을 읽었어요`}</Text>
+                  </View>
+                <Text style={styles.goalTarget}>
+                  {goalCount > 0 ? `목표 ${goalCount}권` : "목표 없음"}
+                </Text>
               </View>
             </Pressable>
           );
@@ -808,7 +868,10 @@ export default function HomeScreen({ navigation }) {
       </ScrollView>
 
       <Pressable
-        style={styles.fab}
+        style={[
+          styles.fab,
+          { bottom: TAB_BAR_HEIGHT + insets.bottom + 16 },
+        ]}
         onPress={() => setAddModalOpen(true)}
         hitSlop={6}
       >
@@ -1485,11 +1548,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
   header: {
-    paddingTop: 24,
-    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingHorizontal: 20,
     paddingBottom: 8,
+    alignItems: "flex-start",
   },
-  logo: { color: green, fontSize: 20, fontWeight: "800" },
+  logo: { color: "#608540", fontSize: 16, fontWeight: "600" },
   friendsStrip: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1533,17 +1597,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     backgroundColor: "#fff",
     borderRadius: 12,
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  progressHeader: { flexDirection: "column", gap: 8 },
+  progressHeader: { flexDirection: "column", gap: 4 },
   progressPercent: {
     alignSelf: "flex-end",
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "700",
     color: colors.text,
   },
@@ -1551,16 +1616,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginTop: 8,
   },
-  goalLabel: { fontSize: 14, fontWeight: "600", color: colors.text },
-  goalTarget: { fontSize: 12, color: colors.text },
+  goalLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+  },
+  goalLabel: { fontSize: 14, fontWeight: "500", color: "#000" },
+  goalTarget: { fontSize: 12, color: "#000" },
   progressTrack: {
     marginTop: 6,
-    height: 12,
+    height: 12.04,
+    width: 332,
+    alignSelf: "center",
     borderRadius: 15,
-    overflow: "hidden",
+    overflow: "visible",
     position: "relative",
-    backgroundColor: "#e5e5e5",
+    backgroundColor: "transparent",
     borderWidth: 0.5,
     borderColor: "#ccc",
   },
@@ -1572,6 +1645,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     shadowOffset: { width: 3, height: 0 },
+  },
+  progressIndicator: {
+    position: "absolute",
+    top: -12,
+    width: 36,
+    height: 34,
+    transform: [{ translateX: -18 }],
+    zIndex: 3,
+  },
+  progressShadow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    shadowOffset: { width: 3, height: 0 },
+    zIndex: 1,
+    pointerEvents: "none",
   },
   goalModalBackdrop: {
     flex: 1,
@@ -1709,7 +1803,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 16,
     paddingVertical: 20,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -1719,17 +1813,18 @@ const styles = StyleSheet.create({
   yearRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginBottom: 10,
+    gap: 5,
+    marginBottom: 12,
+    alignSelf: "flex-start",
+    paddingHorizontal: 6,
   },
-  yearText: { fontSize: 16, fontWeight: "600", color: colors.text },
-  yearButton: { flexDirection: "row", alignItems: "center", gap: 6 },
-  caretText: { fontSize: 14, color: colors.text, marginTop: 2 },
+  yearText: { fontSize: 16, fontWeight: "600", color: "#000" },
+  yearButton: { flexDirection: "row", alignItems: "center", gap: 5 },
   monthRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 18,
     paddingHorizontal: 6,
     width: 328,
     alignSelf: "center",
@@ -1741,37 +1836,42 @@ const styles = StyleSheet.create({
     width: 60,
     textAlign: "center",
   },
-  calNav: {
-    fontSize: 24,
-    color: colors.text,
-    fontWeight: "500",
-    paddingHorizontal: 4,
-  },
+  calNav: { fontSize: 28, color: "#000", fontWeight: "600", padding: 4 },
   weekRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignSelf: "center",
+    width: 328,
+    marginBottom: 12,
     paddingHorizontal: 4,
   },
-  weekLabel: { width: 32, textAlign: "center", color: colors.text },
+  weekLabel: {
+    width: 28,
+    textAlign: "center",
+    color: "#000",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   dayRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
+    alignSelf: "center",
+    width: 328,
+    marginBottom: 20,
     paddingHorizontal: 2,
   },
   dayCell: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
   },
   dayBubble: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 16,
+    borderRadius: 14,
   },
   dayBubbleMarked: {
     backgroundColor: "#d7eec4",

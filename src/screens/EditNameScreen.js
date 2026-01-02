@@ -10,13 +10,13 @@ import React, { useMemo, useState } from "react";
 import {
   Keyboard,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const MIN = 3;
 const MAX = 8;

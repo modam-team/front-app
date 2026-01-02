@@ -31,6 +31,7 @@ export default function BottomTabs({ navigation }) {
   return (
     <TabBarThemeProvider>
       <Tab.Navigator
+        initialRouteName="홈"
         screenOptions={{
           headerTitleAlign: "left",
           headerTitleStyle: {

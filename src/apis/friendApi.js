@@ -1,7 +1,11 @@
 import { client } from "@apis/clientApi";
+import { getToken } from "@utils/secureStore";
 
 // 닉네임으로 친구 검색
 export async function searchFriends(nickname) {
+  const token = await getToken("accessToken");
+  if (!token) return [];
+
   const res = await client.get("/api/friend/search", {
     params: { nickname },
   });
@@ -10,18 +14,27 @@ export async function searchFriends(nickname) {
 
 // 친구 요청 보내기
 export async function sendFriendRequest(targetUserId) {
+  const token = await getToken("accessToken");
+  if (!token) throw new Error("no access token");
+
   const res = await client.post("/api/friend/request", { targetUserId });
   return res.data; // 200 OK
 }
 
 // 친구 요청 수락
 export async function acceptFriendRequest(targetUserId) {
+  const token = await getToken("accessToken");
+  if (!token) throw new Error("no access token");
+
   const res = await client.post("/api/friend/request/accept", { targetUserId });
   return res.data; // 200 OK
 }
 
 // 친구 요청 거절
 export async function rejectFriendRequest(targetUserId) {
+  const token = await getToken("accessToken");
+  if (!token) throw new Error("no access token");
+
   const res = await client.post("/api/friend/request/reject", { targetUserId });
   return res.data; // 200 OK
 }

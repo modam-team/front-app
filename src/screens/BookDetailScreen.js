@@ -8,6 +8,7 @@ import {
 } from "@apis/bookcaseApi";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import StarIcon from "@components/StarIcon";
 import { colors } from "@theme/colors";
 import React, {
   useCallback,
@@ -23,7 +24,6 @@ import {
   LayoutAnimation,
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,34 +32,7 @@ import {
   UIManager,
   View,
 } from "react-native";
-
-const StarIcon = ({ size = 60, color = "#426B1F", variant = "full" }) => {
-  if (variant === "full") {
-    return (
-      <Ionicons
-        name="star-sharp"
-        size={size}
-        color={color}
-      />
-    );
-  }
-  if (variant === "half") {
-    return (
-      <Ionicons
-        name="star-half-sharp"
-        size={size}
-        color={color}
-      />
-    );
-  }
-  return (
-    <Ionicons
-      name="star-outline"
-      size={size}
-      color="#D9D9D9"
-    />
-  );
-};
+import { SafeAreaView } from "react-native-safe-area-context";
 
 if (
   Platform.OS === "android" &&
@@ -83,10 +56,12 @@ export default function BookDetailScreen({ navigation, route }) {
   const [selectedTags, setSelectedTags] = useState([]);
   const [reviewDone, setReviewDone] = useState(initialStatus === "after");
   const [reviewPosted, setReviewPosted] = useState(initialStatus === "after");
+  const [reviewBlocked, setReviewBlocked] = useState(false);
   const [pendingAfter, setPendingAfter] = useState(false);
   const [isNoteBack, setIsNoteBack] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [noteRating, setNoteRating] = useState(book.userRate || 0);
+  const NOTE_MAX = 1000;
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState(null);
   const [fetchedReview, setFetchedReview] = useState(null);
@@ -143,6 +118,8 @@ export default function BookDetailScreen({ navigation, route }) {
         e.response?.status,
         e.response?.data || e.message,
       );
+      // 서버에서 review null로 500을 주는 경우 이후 저장 시도도 우회
+      setReviewBlocked(true);
       setReviewError(null);
     } finally {
       setReviewLoading(false);
@@ -200,6 +177,17 @@ export default function BookDetailScreen({ navigation, route }) {
       "비유적인",
     ],
   };
+  const allowedTagsSet = useMemo(() => {
+    const set = new Set();
+    Object.values(tagCatalog).forEach((arr) => {
+      (arr || []).forEach((t) => set.add(t));
+    });
+    return set;
+  }, []);
+  const canSubmitReviewModal = useMemo(
+    () => rating > 0 && (selectedTags?.length || 0) > 0,
+    [rating, selectedTags],
+  );
   const reviewTagOptions = ["감정 키워드", "경험 키워드", "문체 키워드"];
 
   if (
@@ -218,6 +206,39 @@ export default function BookDetailScreen({ navigation, route }) {
   const statusLabel = useMemo(() => {
     return statusOptions.find((o) => o.value === status)?.label || "읽기 전";
   }, [status]);
+
+  // 원본 비교용 스냅샷
+  const initialRating = useMemo(() => {
+    if (typeof fetchedReview?.rating === "number") return fetchedReview.rating;
+    if (typeof book.userRate === "number") return book.userRate;
+    if (typeof book.rate === "number") return book.rate;
+    return 0;
+  }, [fetchedReview?.rating, book.userRate, book.rate]);
+  const initialComment = useMemo(
+    () => (fetchedReview?.comment || "").trim(),
+    [fetchedReview?.comment],
+  );
+  const initialTags = useMemo(
+    () => (Array.isArray(fetchedReview?.hashtag) ? fetchedReview.hashtag : []),
+    [fetchedReview?.hashtag],
+  );
+  const hasChanges = useMemo(() => {
+    const tagsChanged =
+      initialTags.join(",") !== (selectedTags || []).join(",");
+    const commentChanged = (noteText || "").trim() !== initialComment;
+    const ratingChanged = noteRating !== initialRating;
+    const statusChanged = status !== committedStatus;
+    return tagsChanged || commentChanged || ratingChanged || statusChanged;
+  }, [
+    initialTags,
+    selectedTags,
+    noteText,
+    initialComment,
+    noteRating,
+    initialRating,
+    status,
+    committedStatus,
+  ]);
 
   const averageRating = useMemo(() => {
     if (committedStatus === "after") {
@@ -265,6 +286,9 @@ export default function BookDetailScreen({ navigation, route }) {
     }
     try {
       setLoading(true);
+      const sanitizedTags = (selectedTags || []).filter((t) =>
+        allowedTagsSet.has(t),
+      );
       let reviewCreated = false;
       const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
       const isTransitionToAfter =
@@ -343,34 +367,53 @@ export default function BookDetailScreen({ navigation, route }) {
       }
 
       // 2) 리뷰 생성 (완독 + 리뷰 완료 시, 서버 상태 AFTER 일 때만)
-      if (isAfterOnServer && reviewDone) {
+      if (isAfterOnServer && reviewDone && !reviewBlocked) {
         try {
           const trimmedComment = ((commentOverride ?? noteText) || "").trim();
           const finalRating = Number.isFinite(Number(ratingOverride ?? rating))
             ? Number(ratingOverride ?? rating)
             : 0;
-          const hasExistingReview = reviewPosted || fetchedReview;
-          const ratingChanged =
-            typeof fetchedReview?.rating === "number"
-              ? fetchedReview.rating !== finalRating
-              : true;
-          const hashtagChanged = Array.isArray(fetchedReview?.hashtag)
-            ? fetchedReview.hashtag.join(",") !== selectedTags.join(",")
-            : selectedTags.length > 0;
+          const hasExistingReview =
+            reviewPosted || (fetchedReview && fetchedReview.bookId === bookKey);
 
           let appliedRating = finalRating;
-          if (hasExistingReview && !ratingChanged && !hashtagChanged) {
-            // 서버 스펙상 PATCH는 comment만 허용
-            await updateReview({ bookId: bookKey, comment: trimmedComment });
+          if (hasExistingReview) {
+            // 서버 스펙: PATCH는 comment만, 별점/태그 수정 불가
+            await updateReview({
+              bookId: bookKey,
+              comment: trimmedComment,
+            });
             appliedRating =
               fetchedReview?.rating ||
               book.userRate ||
               book.rate ||
               finalRating;
+            reviewCreated = false;
           } else {
-            // 기존 리뷰가 있으면 코멘트만 수정 (별점/태그 PATCH 미지원)
-            if (hasExistingReview) {
-              try {
+            // 리뷰 생성(첫 작성)으로 별점/태그/코멘트 저장
+            try {
+              await createReview({
+                bookId: bookKey,
+                rating: finalRating,
+                hashtag: sanitizedTags,
+                comment: trimmedComment,
+              });
+              reviewCreated = true;
+            } catch (err) {
+              const status = err.response?.status;
+              const code =
+                err.response?.data?.error?.code || err.response?.data?.code;
+              const msgText =
+                err.response?.data?.error?.message ||
+                err.response?.data?.message ||
+                err.message;
+              if (
+                status === 409 ||
+                code === "409" ||
+                code === "4093" ||
+                (msgText && /already.*review/i.test(msgText))
+              ) {
+                // 이미 리뷰가 있으면 코멘트만 패치
                 await updateReview({
                   bookId: bookKey,
                   comment: trimmedComment,
@@ -381,55 +424,15 @@ export default function BookDetailScreen({ navigation, route }) {
                   book.rate ||
                   finalRating;
                 reviewCreated = false;
-              } catch (err) {
-                console.error("리뷰 수정 실패 실패", err);
+              } else {
                 throw err;
-              }
-            } else {
-              // 리뷰 생성(첫 작성)으로 별점/태그/코멘트 저장
-              try {
-                await createReview({
-                  bookId: bookKey,
-                  rating: finalRating,
-                  hashtag: selectedTags,
-                  comment: trimmedComment,
-                });
-                reviewCreated = true;
-              } catch (err) {
-                const status = err.response?.status;
-                const code =
-                  err.response?.data?.error?.code || err.response?.data?.code;
-                const msgText =
-                  err.response?.data?.error?.message ||
-                  err.response?.data?.message ||
-                  err.message;
-                if (
-                  status === 409 ||
-                  code === "409" ||
-                  code === "4093" ||
-                  (msgText && /already.*review/i.test(msgText))
-                ) {
-                  // 이미 리뷰가 있으면 코멘트만 패치
-                  await updateReview({
-                    bookId: bookKey,
-                    comment: trimmedComment,
-                  });
-                  appliedRating =
-                    fetchedReview?.rating ||
-                    book.userRate ||
-                    book.rate ||
-                    finalRating;
-                  reviewCreated = false;
-                } else {
-                  throw err;
-                }
               }
             }
           }
           setFetchedReview({
             bookId: bookKey,
             rating: appliedRating,
-            hashtag: selectedTags,
+            hashtag: sanitizedTags,
             comment: trimmedComment,
           });
           setReviewPosted(true);
@@ -477,12 +480,9 @@ export default function BookDetailScreen({ navigation, route }) {
             setLoading(false);
             return;
           }
-          const msg =
-            e.response?.data?.error?.message ||
-            e.response?.data?.message ||
-            "리뷰 저장에 실패했습니다. 네트워크 연결 또는 상태(완독) 여부를 확인해주세요.";
-          Alert.alert("리뷰 저장 실패", msg);
-          throw e;
+          // 서버에서 review null로 500을 내려주는 경우: 리뷰 저장을 건너뛰고 상태만 반영
+          setReviewBlocked(true);
+          console.warn("리뷰 저장 건너뜀(서버 오류)");
         }
       }
 
@@ -745,7 +745,7 @@ export default function BookDetailScreen({ navigation, route }) {
                     }}
                   >
                     <StarIcon
-                      size={28}
+                      size={60}
                       variant={isFull ? "full" : isHalf ? "half" : "empty"}
                       color="#426B1F"
                     />
@@ -755,7 +755,13 @@ export default function BookDetailScreen({ navigation, route }) {
             </View>
 
             <View style={styles.noteTextareaWrap}>
-              <Text style={styles.noteTextareaLabel}>독서록</Text>
+              <View style={styles.noteHeaderRow}>
+                <Text style={styles.noteTextareaLabel}>독서록</Text>
+                <Text style={styles.noteCount}>{`${Math.min(
+                  NOTE_MAX,
+                  noteText.length,
+                )}/${NOTE_MAX}`}</Text>
+              </View>
               <TextInput
                 style={styles.noteTextarea}
                 multiline
@@ -790,10 +796,13 @@ export default function BookDetailScreen({ navigation, route }) {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.cta, loading && { opacity: 0.7 }]}
+              style={[
+                styles.cta,
+                (loading || !hasChanges) && { opacity: 0.5 },
+              ]}
               activeOpacity={0.9}
               onPress={submit}
-              disabled={loading}
+              disabled={loading || !hasChanges}
             >
               <Text style={styles.ctaText}>
                 {loading ? "저장 중..." : "수정 완료"}
@@ -864,7 +873,7 @@ export default function BookDetailScreen({ navigation, route }) {
                       }}
                     >
                       <StarIcon
-                        size={60}
+                        size={44}
                         variant={isFull ? "full" : isHalf ? "half" : "empty"}
                         color="#426B1F"
                       />
@@ -920,7 +929,7 @@ export default function BookDetailScreen({ navigation, route }) {
                   </View>
                 )}
 
-                {selectedReviewTag && (
+                {selectedReviewTag && !showReviewTagDropdown && (
                   <View style={styles.reviewModalChipWrap}>
                     {(tagCatalog[selectedReviewTag] || []).map((tag) => {
                       const active = selectedTags.includes(tag);
@@ -956,9 +965,14 @@ export default function BookDetailScreen({ navigation, route }) {
 
             <View style={styles.reviewModalCTAWrapper}>
               <TouchableOpacity
-                style={styles.reviewModalCTA}
+                style={[
+                  styles.reviewModalCTA,
+                  !canSubmitReviewModal && styles.reviewModalCTADisabled,
+                ]}
                 activeOpacity={0.9}
+                disabled={!canSubmitReviewModal}
                 onPress={async () => {
+                  if (!canSubmitReviewModal) return;
                   setReviewDone(true);
                   setStatus("after");
                   setPendingAfter(false);
@@ -1153,8 +1167,8 @@ const styles = StyleSheet.create({
   },
   footerBtnWrap: {
     width: "100%",
-    marginTop: 90,
-    marginBottom: 70,
+    marginTop: 36,
+    marginBottom: 24,
   },
   reviewOverlay: {
     flex: 1,
@@ -1214,7 +1228,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 14,
+    gap: 10,
     marginTop: 18,
     marginBottom: 18,
   },
@@ -1229,6 +1243,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#426B1F",
     alignItems: "center",
     justifyContent: "center",
+  },
+  reviewModalCTADisabled: {
+    backgroundColor: "#9FB37B",
   },
   reviewModalCTAText: {
     fontSize: 16,
@@ -1280,9 +1297,18 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 6,
   },
+  noteHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   noteTextareaLabel: {
     fontSize: 14,
     color: "#888",
+  },
+  noteCount: {
+    fontSize: 13,
+    color: "#666",
   },
   noteTextarea: {
     minHeight: 320,
@@ -1316,10 +1342,12 @@ const styles = StyleSheet.create({
   },
   reviewModalDropdownText: { fontSize: 15, color: "#333", flex: 1 },
   reviewModalTagList: {
+    marginTop: 6,
     borderWidth: 1,
     borderColor: "#C6C6C6",
     borderRadius: 10,
     overflow: "hidden",
+    backgroundColor: "#FFF",
   },
   reviewModalTagLine: {
     height: 32,

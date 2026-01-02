@@ -7,6 +7,7 @@ import {
 } from "@apis/bookcaseApi";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import StarIcon from "@components/StarIcon";
 import { colors } from "@theme/colors";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
@@ -23,7 +24,6 @@ import {
   Modal,
   PanResponder,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -31,6 +31,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const tabs = [
   { label: "읽고 싶은", value: "before" },
@@ -179,12 +180,14 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
       setAfterMonthKey(null);
       return;
     }
-    // 기본값: 최신 달
-    setAfterMonthKey((prev) =>
-      prev && afterMonthOptions.some((o) => o.key === prev)
-        ? prev
-        : afterMonthOptions[0].key,
-    );
+    // 기본값/업데이트: 가장 최신 달로 맞추되, 선택값이 사라졌을 때만 갱신
+    const latestKey = afterMonthOptions[0]?.key;
+    setAfterMonthKey((prev) => {
+      const exists = prev && afterMonthOptions.some((o) => o.key === prev);
+      if (!exists) return latestKey;
+      if (latestKey && latestKey !== prev) return latestKey;
+      return prev;
+    });
   }, [afterMonthOptions]);
 
   useEffect(() => {
@@ -372,7 +375,12 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
           setTab(nextTab);
         }
       }
-    }, [loadBookcase, route?.params?.refreshKey, route?.params?.focusTab]),
+    }, [
+      loadBookcase,
+      route?.params?.refreshKey,
+      route?.params?.focusTab,
+      route?.params?.forceReload,
+    ]),
   );
 
   // 새로 추가된 책을 책장에 반영
@@ -395,6 +403,18 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
       });
       return next;
     });
+
+    // 새로 추가된 완독 도서는 해당 월로 바로 필터링
+    const afterAdded = addedList.find(
+      (b) => (b.status || "").toLowerCase() === "after",
+    );
+    if (afterAdded) {
+      const info = getCompletionKey(afterAdded);
+      if (info?.key) {
+        setAfterMonthKey(info.key);
+      }
+      setTab("after");
+    }
   }, [route?.params?.addedBook, route?.params?.addedBooks]);
 
   const switchTab = (nextIndex) => {
@@ -499,7 +519,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
     >
       {/* 상단 영역 */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>책장</Text>
+        <Text style={styles.headerTitle}>modam</Text>
         <TouchableOpacity
           style={styles.addButton}
           activeOpacity={0.85}
@@ -810,10 +830,11 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
               }}
             >
               <View style={styles.sortOptionLeft}>
-                <Ionicons
-                  name="star-outline"
+                <StarIcon
                   size={18}
                   color="#191919"
+                  emptyColor="#191919"
+                  variant="empty"
                 />
                 <Text style={styles.sortOptionLabel}>별점 높은순</Text>
               </View>
@@ -880,17 +901,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAF5",
   },
   header: {
-    height: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#FAFAF5",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#000",
+    fontWeight: "600",
+    color: "#608540",
   },
   addButton: {
     width: 36,

@@ -9,13 +9,13 @@ import { colors } from "@theme/colors";
 import React, { useMemo, useState } from "react";
 import {
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function FriendListScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("friend");
@@ -166,7 +166,7 @@ export default function FriendListScreen({ navigation }) {
                   : styles.tabTextInactive,
               ]}
             >
-              requst
+              request
             </Text>
           </Pressable>
           <View

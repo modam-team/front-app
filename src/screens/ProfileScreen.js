@@ -16,13 +16,13 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Switch,
   Text,
   View,
 } from "react-native";
 import { Image } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
