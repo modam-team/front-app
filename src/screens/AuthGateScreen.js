@@ -2,6 +2,7 @@ import { activateUser } from "../apis/userApi";
 import { fetchOnboardingStatus, fetchUserProfile } from "@apis/userApi";
 import { colors } from "@theme/colors";
 import { clearAuth } from "@utils/auth";
+import { getToken } from "@utils/secureStore";
 import { useEffect } from "react";
 import { ActivityIndicator, Alert, View } from "react-native";
 
@@ -9,6 +10,18 @@ export default function AuthGateScreen({ navigation }) {
   useEffect(() => {
     const bootstrap = async () => {
       try {
+        // 토큰 존재 확인 (없으면 API 호출하지 말고 바로 로그인)
+        const accessToken = await getToken("accessToken");
+        const refreshToken = await getToken("refreshToken");
+
+        if (!accessToken && !refreshToken) {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "OnboardingLogin" }],
+          });
+          return;
+        }
+
         // 유저 프로필 조회
         const profile = await fetchUserProfile();
 

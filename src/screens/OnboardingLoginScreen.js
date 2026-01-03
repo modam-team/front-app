@@ -12,7 +12,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 const KAKAO_REST_API_KEY = process.env.EXPO_PUBLIC_KAKAO_REST_API_KEY;
@@ -30,6 +33,9 @@ export default function OnboardingLoginScreen({ navigation }) {
   // Kakao OAuth 요청 설정
   const [showWebView, setShowWebView] = useState(false);
   const webViewRef = useRef(null);
+
+  // 화면 상단 짤림
+  const insets = useSafeAreaInsets();
 
   const handleKakaoLogin = () => {
     if (AUTH_BYPASS) {
@@ -145,10 +151,11 @@ export default function OnboardingLoginScreen({ navigation }) {
         <SafeAreaView style={{ flex: 1 }}>
           <View
             style={{
-              height: 48,
+              height: insets.top + 48,
               flexDirection: "row",
               alignItems: "center",
               paddingHorizontal: spacing.l,
+              paddingTop: insets.top,
               borderBottomWidth: StyleSheet.hairlineWidth,
               justifyContent: "space-between",
             }}
