@@ -1,6 +1,5 @@
-import BasicCharacter from "@assets/report/character/basic.svg";
+import BasicCharacter from "@assets/basic-profile.svg";
 import Button from "@components/Button";
-import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import {
   PERSONA_SLUG_MAP,
   PLACE_SLUG_MAP,
