@@ -6,9 +6,9 @@ import {
   updateBookcaseState,
   updateReview,
 } from "@apis/bookcaseApi";
+import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import StarIcon from "@components/StarIcon";
 import { colors } from "@theme/colors";
 import React, {
   useCallback,
@@ -796,10 +796,7 @@ export default function BookDetailScreen({ navigation, route }) {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[
-                styles.cta,
-                (loading || !hasChanges) && { opacity: 0.5 },
-              ]}
+              style={[styles.cta, (loading || !hasChanges) && { opacity: 0.5 }]}
               activeOpacity={0.9}
               onPress={submit}
               disabled={loading || !hasChanges}
@@ -1044,6 +1041,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    justifyContent: "space-between",
   },
   coverWrap: {
     width: 264,
@@ -1296,11 +1294,6 @@ const styles = StyleSheet.create({
   noteTextareaWrap: {
     width: "100%",
     gap: 6,
-  },
-  noteHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
   },
   noteTextareaLabel: {
     fontSize: 14,

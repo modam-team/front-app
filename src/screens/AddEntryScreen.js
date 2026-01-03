@@ -2,8 +2,8 @@
 import placeholder from "../../assets/icon.png";
 import { requestBookRegistration, searchBooks } from "@apis/bookApi";
 import { addBookToBookcase, fetchReview } from "@apis/bookcaseApi";
-import { Ionicons } from "@expo/vector-icons";
 import StarIcon from "@components/StarIcon";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
