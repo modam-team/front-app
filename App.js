@@ -38,8 +38,7 @@ export default function App() {
 
   return (
     <NavigationContainer theme={navTheme}>
-      {/* 개발 편의: 로그인 없이도 앱 진입 */}
-      <Stack.Navigator initialRouteName="Root">
+      <Stack.Navigator initialRouteName="OnboardingIntro">
         <Stack.Screen
           name="OnboardingIntro"
           component={OnboardingIntroScreen}
