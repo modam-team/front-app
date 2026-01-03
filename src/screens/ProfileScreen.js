@@ -1,6 +1,7 @@
 import { deleteProfileImage, uploadProfileImage } from "@apis/userApi";
 import { fetchUserProfile } from "@apis/userApi";
 import { updateProfile } from "@apis/userApi";
+import BasicCharacter from "@assets/basic-profile.svg";
 import ActionBottomSheet from "@components/ActionBottomSheet";
 import AppHeader from "@components/AppHeader";
 import ProfilePlaceholder from "@components/ProfilePlaceholder";
@@ -20,7 +21,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function ProfileScreen() {
   const navigation = useNavigation();
 
-  // TODO: 실제 프로필 데이터로 교체
   const [nickname, setNickname] = useState("모담이");
   const [isPublic, setIsPublic] = useState(true);
   const [profileImageUrl, setProfileImageUrl] = useState(null);
@@ -200,7 +200,12 @@ export default function ProfileScreen() {
                 style={styles.avatarImage}
               />
             ) : (
-              <ProfilePlaceholder size={89} />
+              <View style={styles.basicAvatar}>
+                <BasicCharacter
+                  width={89}
+                  height={89}
+                />
+              </View>
             )}
           </Pressable>
 
@@ -305,6 +310,13 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: "100%",
     height: "100%",
+  },
+  // 기본 프사 캐릭터
+  basicAvatar: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   changeTextWrap: {
