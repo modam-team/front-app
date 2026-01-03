@@ -4,7 +4,6 @@ import { updateProfile } from "@apis/userApi";
 import BasicCharacter from "@assets/basic-profile.svg";
 import ActionBottomSheet from "@components/ActionBottomSheet";
 import AppHeader from "@components/AppHeader";
-import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
