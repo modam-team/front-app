@@ -653,12 +653,6 @@ export default function HomeScreen({ navigation }) {
 
   const maxGoal = 30;
   const handleSize = 44;
-  const handleSetGoalByX = (x) => {
-    if (!goalBarWidth) return;
-    const ratio = Math.min(1, Math.max(0, x / goalBarWidth));
-    const val = Math.max(1, Math.round(ratio * maxGoal));
-    setGoalCandidate(val);
-  };
 
   const saveGoal = async () => {
     try {
@@ -670,6 +664,26 @@ export default function HomeScreen({ navigation }) {
       console.warn("목표 설정 실패:", e.response?.data || e.message);
       showBanner("목표 설정에 실패했어요");
     }
+  };
+
+  const barRef = useRef(null);
+  const [barLeft, setBarLeft] = useState(0);
+
+  const measureBar = useCallback(() => {
+    requestAnimationFrame(() => {
+      barRef.current?.measureInWindow((x) => {
+        setBarLeft(x);
+      });
+    });
+  }, []);
+
+  const handleSetGoalByPageX = (pageX) => {
+    if (!goalBarWidth) return;
+
+    const x = pageX - barLeft; // bar 내부 좌표로 변환
+    const ratio = Math.min(1, Math.max(0, x / goalBarWidth));
+    const val = Math.max(1, Math.round(ratio * maxGoal));
+    setGoalCandidate(val);
   };
 
   return (
@@ -1330,22 +1344,28 @@ export default function HomeScreen({ navigation }) {
                     size={26}
                     color="#355619"
                   />
+
+                  {/* 목표 설정 막대 */}
                   <View
+                    ref={barRef}
                     style={styles.goalSetBar}
-                    onLayout={(e) =>
-                      setGoalBarWidth(e.nativeEvent.layout.width)
-                    }
-                    onStartShouldSetResponder={() => true}
-                    onMoveShouldSetResponder={() => true}
-                    onResponderGrant={(e) =>
-                      handleSetGoalByX(e.nativeEvent.locationX)
-                    }
-                    onResponderMove={(e) =>
-                      handleSetGoalByX(e.nativeEvent.locationX)
-                    }
+                    onLayout={(e) => {
+                      setGoalBarWidth(e.nativeEvent.layout.width);
+                      measureBar(); // barLeft 갱신
+                    }}
+                    onStartShouldSetResponderCapture={() => true}
+                    onMoveShouldSetResponderCapture={() => true}
+                    onResponderGrant={(e) => {
+                      measureBar(); // 시작할 때도 한번 재측정 하기
+                      handleSetGoalByPageX(e.nativeEvent.pageX);
+                    }}
+                    onResponderMove={(e) => {
+                      handleSetGoalByPageX(e.nativeEvent.pageX);
+                    }}
                   >
                     <View style={styles.goalSetTrack} />
                     <View
+                      pointerEvents="none"
                       style={[
                         styles.goalSetFill,
                         {
@@ -1373,6 +1393,7 @@ export default function HomeScreen({ navigation }) {
                           : 0;
                       return (
                         <View
+                          pointerEvents="none"
                           style={[
                             styles.goalSetHandle,
                             {
