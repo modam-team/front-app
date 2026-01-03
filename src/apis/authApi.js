@@ -1,5 +1,5 @@
-import { getToken, saveToken } from "../utils/secureStore";
 import { client } from "@apis/clientApi";
+import { getToken, saveToken } from "@utils/secureStore";
 
 // 카카오 인증코드로 JWT 발급 요청
 export async function kakaoLogin(code) {
