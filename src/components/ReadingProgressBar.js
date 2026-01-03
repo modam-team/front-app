@@ -8,8 +8,8 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 const INDICATOR_W = 36; // 캐릭터 가로 사이즈
-const INDICATOR_HALF = INDICATOR_W / 2;
-const EDGE_PAD = 12; // 100%인 경우 박스 끝에 붙는 게 아니라 살짝 왼쪽으로 밀어주는 여백
+const TRACK_BORDER = 4; // 테두리보다 살짝 여유있게
+const INDICATOR_HALF = INDICATOR_W / 2 - TRACK_BORDER;
 
 /**
  * Props
@@ -39,15 +39,22 @@ export default function ReadingProgressCard({
     // fillRatio도 0 ~ 1 범위로 clamp
     const fillRatio = Math.min(1, Math.max(0, rawRatio));
 
-    // 진행바 채우는 너비는 %로 처리 (ex. 0.35 -> 35%)
-    const fw = fillRatio * 100;
+    // progressWidth 없을 땐 fw를 쓰지 말고 0으로 리턴
+    if (!progressWidth) {
+      return { percent: p, fillWidth: 0, markerLeftPx: 0 };
+    }
 
-    // 캐릭터 left 위치는 "진행바 가로 길이(px) * 비율"
-    const left = Math.min(
-      progressWidth - INDICATOR_HALF - EDGE_PAD,
-      Math.max(INDICATOR_HALF + EDGE_PAD, fillRatio * progressWidth),
-    );
-    return { percent: p, fillWidth: fw, markerLeftPx: left };
+    const innerWidth = Math.max(0, progressWidth - TRACK_BORDER * 2);
+    const fw = fillRatio * innerWidth;
+
+    const rawCenter = fillRatio * innerWidth + TRACK_BORDER;
+
+    const min = TRACK_BORDER + INDICATOR_HALF;
+    const max = TRACK_BORDER + innerWidth - INDICATOR_HALF;
+
+    const leftCenter = Math.min(max, Math.max(min, rawCenter));
+
+    return { percent: p, fillWidth: fw, markerLeftPx: leftCenter };
   }, [goalCount, readCount, progressWidth]);
 
   return (
@@ -76,10 +83,15 @@ export default function ReadingProgressCard({
           />
 
           {/* 초록색으로 채워진 진행바 부분 */}
-          <View style={[styles.progressFill, { width: `${fillWidth}%` }]} />
+          <View style={[styles.progressFill, { width: fillWidth }]} />
 
           {/* 캐릭터 표시 영역 */}
-          <View style={[styles.progressIndicator, { left: markerLeftPx }]}>
+          <View
+            style={[
+              styles.progressIndicator,
+              { left: markerLeftPx - INDICATOR_HALF },
+            ]}
+          >
             <Image
               source={characterSource}
               style={{ width: 36, height: 34 }}
