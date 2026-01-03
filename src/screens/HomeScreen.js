@@ -1,5 +1,4 @@
-import ReportCharacterBasic from "../../assets/report/character/basic.svg";
-import colors from "../theme/legacyColors";
+import ProgressBarCharacter from "../../assets/progress-bar-img.png";
 import {
   addBookToBookcase,
   deleteBookFromBookcase,
@@ -10,9 +9,12 @@ import {
 import { searchFriends } from "@apis/friendApi";
 import { fetchReadingLogs, saveReadingLog } from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
+import ReadingProgressCard from "@components/ReadingProgressBar";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
+import { colors } from "@theme/colors";
+import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
@@ -736,77 +738,14 @@ export default function HomeScreen({ navigation }) {
           </Pressable>
         </View>
 
-        {(() => {
-          const rawRatio = goalCount > 0 ? readCount / goalCount : 0;
-          const percent =
-            goalCount > 0 ? Math.min(100, Math.round(rawRatio * 100)) : 0;
-          const fillRatio = Math.min(1, Math.max(0, rawRatio));
-          const fillWidth = fillRatio * 100;
-          const markerLeftPx = Math.min(
-            progressWidth,
-            Math.max(0, fillRatio * progressWidth),
-          );
-          const isCurrentMonth = year === currentYear && month === currentMonth;
-          return (
-            <Pressable
-              onPress={() => {
-                if (goalCount > 0) setGoalModalVisible(true);
-              }}
-              style={styles.progressCard}
-            >
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressPercent}>{`${percent}%`}</Text>
-                <View style={styles.progressTrack}>
-                  <LinearGradient
-                    colors={["#e5e5e5", "#e5e5e5", "#999"]}
-                    locations={[0, 0.5385, 0.8846]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={[StyleSheet.absoluteFill, { borderRadius: 15 }]}
-                  />
-                  <View
-                    style={[styles.progressFill, { width: `${fillWidth}%` }]}
-                  />
-                  <View
-                    style={[styles.progressIndicator, { left: markerLeftPx }]}
-                  >
-                    <ReportCharacterBasic
-                      width={36}
-                      height={34}
-                    />
-                  </View>
-                  <View
-                    style={styles.progressShadow}
-                    pointerEvents="none"
-                  />
-                </View>
-              </View>
-              <View style={styles.goalRow}>
-                <View style={styles.goalLeft}>
-                  <Svg
-                    width={15}
-                    height={17}
-                    viewBox="0 0 15 17"
-                    fill="none"
-                  >
-                    <Path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M15 12.6096C14.9989 12.6514 14.9949 12.6931 14.988 12.7343C15.0061 12.829 15.0033 12.9265 14.98 13.0199C14.9567 13.1134 14.9133 13.2004 14.853 13.2748C14.7927 13.3492 14.717 13.4091 14.6313 13.4503C14.5456 13.4914 14.4519 13.5128 14.3571 13.5128H2.35714C2.21644 13.5128 2.07712 13.541 1.94712 13.5958C1.81713 13.6505 1.69902 13.7308 1.59953 13.832C1.50004 13.9332 1.42112 14.0533 1.36727 14.1855C1.31343 14.3178 1.28571 14.4595 1.28571 14.6026C1.28571 14.7457 1.31343 14.8874 1.36727 15.0196C1.42112 15.1518 1.50004 15.2719 1.59953 15.3731C1.69902 15.4743 1.81713 15.5546 1.94712 15.6094C2.07712 15.6641 2.21644 15.6923 2.35714 15.6923H14.3571C14.5276 15.6923 14.6912 15.7612 14.8117 15.8838C14.9323 16.0064 15 16.1727 15 16.3462C15 16.5196 14.9323 16.6859 14.8117 16.8085C14.6912 16.9311 14.5276 17 14.3571 17H2.35714C1.73199 17 1.13244 16.7474 0.690391 16.2978C0.248341 15.8482 0 15.2384 0 14.6026V2.39744C0 1.7616 0.248341 1.1518 0.690391 0.702193C1.13244 0.252586 1.73199 0 2.35714 0H13.8429C14.4823 0 15 0.526564 15 1.17692V12.6096ZM4.92857 3.48718C4.75808 3.48718 4.59456 3.55607 4.474 3.67869C4.35344 3.80131 4.28571 3.96761 4.28571 4.14103C4.28571 4.31444 4.35344 4.48074 4.474 4.60336C4.59456 4.72598 4.75808 4.79487 4.92857 4.79487H10.0714C10.2419 4.79487 10.4054 4.72598 10.526 4.60336C10.6466 4.48074 10.7143 4.31444 10.7143 4.14103C10.7143 3.96761 10.6466 3.80131 10.526 3.67869C10.4054 3.55607 10.2419 3.48718 10.0714 3.48718H4.92857Z"
-                      fill="black"
-                    />
-                  </Svg>
-                  <Text
-                    style={styles.goalLabel}
-                  >{`${isCurrentMonth ? "이번달" : `${month}월`} ${readCount}권을 읽었어요`}</Text>
-                </View>
-                <Text style={styles.goalTarget}>
-                  {goalCount > 0 ? `목표 ${goalCount}권` : "목표 없음"}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        })()}
+        <ReadingProgressCard
+          goalCount={goalCount}
+          readCount={readCount}
+          onPress={() => {
+            if (goalCount > 0) setGoalModalVisible(true);
+          }}
+          characterSource={ProgressBarCharacter}
+        />
 
         <Calendar
           year={year}
@@ -1564,7 +1503,7 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: colors.background.DEFAULT },
 
   header: {
     paddingTop: 12,
@@ -1591,12 +1530,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarImage: { width: 49, height: 49, borderRadius: 24.5 },
-  avatarInitial: { fontSize: 16, fontWeight: "700", color: colors.text },
+  avatarInitial: { fontSize: 16, fontWeight: "700", color: colors.mono[950] },
   avatarName: {
     marginTop: 5,
     fontSize: 12,
     fontWeight: "500",
-    color: colors.text,
+    color: colors.mono[950],
     textAlign: "center",
     width: 49,
   },
@@ -1629,7 +1568,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     fontSize: 12,
     fontWeight: "700",
-    color: colors.text,
+    color: colors.mono[950],
   },
   goalRow: {
     flexDirection: "row",
@@ -1644,26 +1583,33 @@ const styles = StyleSheet.create({
   },
   goalLabel: { fontSize: 14, fontWeight: "500", color: "#000" },
   goalTarget: { fontSize: 12, color: "#000" },
+
+  // 진행바 길이
   progressTrack: {
     marginTop: 6,
     height: 12.04,
-    width: 332,
-    alignSelf: "center",
+    width: "100%",
+    alignSelf: "stretch",
     borderRadius: 15,
     overflow: "visible",
     position: "relative",
     backgroundColor: "transparent",
     borderWidth: 0.5,
-    borderColor: "#ccc",
+    borderColor: colors.mono[200],
   },
+
+  // 진행바 채워진 막대 영역 (초록색으로 채워지는 거)
   progressFill: {
     height: "100%",
-    backgroundColor: green,
+    backgroundColor: colors.primary[400],
     borderRadius: 15,
+
     shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
     shadowOffset: { width: 3, height: 0 },
+
+    elevation: 4,
   },
   progressIndicator: {
     position: "absolute",
@@ -1860,7 +1806,7 @@ const styles = StyleSheet.create({
   calTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.text,
+    color: colors.mono[950],
     width: 60,
     textAlign: "center",
   },
@@ -1909,7 +1855,7 @@ const styles = StyleSheet.create({
   dayBubbleSelected: {
     backgroundColor: "#608540",
   },
-  dayText: { color: colors.text, fontWeight: "700", fontSize: 16 },
+  dayText: { color: colors.mono[950], fontWeight: "700", fontSize: 16 },
   dayTextHighlighted: { color: "#070b03" },
   dayTextSelected: { color: "#fff" },
   dayTextMuted: { color: "#d1d5db" },
@@ -1917,15 +1863,15 @@ const styles = StyleSheet.create({
     display: "none",
   },
   yearItem: { paddingVertical: 6, paddingHorizontal: 12 },
-  yearItemText: { fontSize: 14, color: colors.text },
+  yearItemText: { fontSize: 14, color: colors.mono[950] },
   section: { marginTop: 14, paddingHorizontal: 16 },
   sectionHead: { gap: 4, flexDirection: "row", alignItems: "center" },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: colors.text,
+    color: colors.mono[950],
   },
-  sectionHint: { fontSize: 14, color: colors.text, marginTop: 2 },
+  sectionHint: { fontSize: 14, color: colors.mono[950], marginTop: 2 },
   sectionActions: {
     flexDirection: "row",
     alignItems: "center",
@@ -1960,13 +1906,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  coverText: { fontWeight: "700", fontSize: 18, color: colors.text },
+  coverText: { fontWeight: "700", fontSize: 18, color: colors.mono[950] },
   bookMeta: { flex: 1, marginLeft: 12, gap: 8 },
-  bookTitle: { fontSize: 18, fontWeight: "800", color: colors.text },
-  bookAuthor: { fontSize: 14, color: colors.subtext },
+  bookTitle: { fontSize: 18, fontWeight: "800", color: colors.mono[950] },
+  bookAuthor: { fontSize: 14, color: colors.mono[600] },
   ratingRow: { flexDirection: "row", gap: 4 },
   starBox: { width: 20, alignItems: "center" },
   star: { fontSize: 16 },
@@ -2018,8 +1962,7 @@ const styles = StyleSheet.create({
     height: 170,
     borderRadius: 10,
     backgroundColor: "#f1f5f9",
-    borderWidth: 1,
-    borderColor: colors.border,
+
     overflow: "hidden",
   },
   detailCoverImg: { width: "100%", height: "100%" },
@@ -2037,8 +1980,12 @@ const styles = StyleSheet.create({
   detailTitle: { fontSize: 22, fontWeight: "800", color: "#355619" },
   detailAuthor: { fontSize: 13, fontWeight: "600", color: "#355619" },
   detailReviewSection: { marginTop: 16, gap: 8 },
-  detailReviewTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
-  detailReviewText: { fontSize: 14, color: colors.text, lineHeight: 20 },
+  detailReviewTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.mono[950],
+  },
+  detailReviewText: { fontSize: 14, color: colors.mono[950], lineHeight: 20 },
   detailReviewEmpty: { fontSize: 14, color: "#888" },
   modalBackdrop: {
     flex: 1,
@@ -2134,7 +2081,7 @@ const styles = StyleSheet.create({
   },
   dayLogChipText: { color: "#fff", fontSize: 10, fontWeight: "700" },
   dayEmptyText: { fontSize: 14, color: "#666" },
-  sheetTitle: { fontSize: 18, fontWeight: "600", color: colors.text },
+  sheetTitle: { fontSize: 18, fontWeight: "600", color: colors.mono[950] },
   yearList: { paddingVertical: 8, gap: 14 },
   yearRowItem: {
     flexDirection: "row",
@@ -2142,12 +2089,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 4,
   },
-  yearOptionText: { fontSize: 16, color: colors.text },
+  yearOptionText: { fontSize: 16, color: colors.mono[950] },
   yearOptionTextActive: { color: green, fontWeight: "700" },
   yearCheck: { fontSize: 18, color: green, fontWeight: "700" },
   yearCheckPlaceholder: { width: 18 },
   sheetClose: { alignSelf: "center", marginTop: 10 },
-  sheetCloseText: { fontSize: 18, fontWeight: "600", color: colors.text },
+  sheetCloseText: { fontSize: 18, fontWeight: "600", color: colors.mono[950] },
   fab: {
     position: "absolute",
     right: 24,
