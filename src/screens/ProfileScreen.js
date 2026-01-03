@@ -13,14 +13,7 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import * as ImagePicker from "expo-image-picker";
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
+import { Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 

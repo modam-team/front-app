@@ -1,5 +1,5 @@
-import { client } from "@apis/clientApi";
 import { reissueToken } from "@apis/authApi";
+import { client } from "@apis/clientApi";
 import { getToken } from "@utils/secureStore";
 
 // 온보딩 완료 여부 조회

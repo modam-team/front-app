@@ -5,9 +5,9 @@ import {
   fetchBookcase,
   searchBookcase,
 } from "@apis/bookcaseApi";
+import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import StarIcon from "@components/StarIcon";
 import { colors } from "@theme/colors";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {

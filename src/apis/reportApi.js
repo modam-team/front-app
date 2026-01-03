@@ -1,7 +1,7 @@
 import { client } from "@apis/clientApi";
-import { getToken } from "@utils/secureStore";
 import { PLACE_MOOD_MAP } from "@constants/placeMoodMap";
 import { READING_TENDENCY_MAP } from "@constants/readingTendencyMap";
+import { getToken } from "@utils/secureStore";
 
 const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
 

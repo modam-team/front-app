@@ -7,13 +7,7 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import { clearAuth } from "@utils/auth";
 import React, { useMemo } from "react";
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
