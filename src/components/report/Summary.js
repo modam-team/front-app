@@ -31,10 +31,9 @@ export default function Summary({
   const placeSlug = placeKey ? PLACE_SLUG_MAP[placeKey] : null;
   const personaSlug = personaKey ? PERSONA_SLUG_MAP[personaKey] : null;
 
-  // 합쳐진 SVG 선택
-  const CombinedSvg = isEmpty
-    ? BasicCharacter
-    : placeSlug && personaSlug
+  // 캐릭터 png
+  const characterPng =
+    placeSlug && personaSlug
       ? (REPORT_CHARACTER_ILLUSTRATION_MAP?.[placeSlug]?.[personaSlug] ?? null)
       : null;
 
@@ -121,10 +120,18 @@ export default function Summary({
 
         {/* 캐릭터 이미지 자리 */}
         <View style={styles.characterBox}>
-          <CombinedSvg
-            width="100%"
-            height="100%"
-          />
+          {isEmpty ? (
+            <BasicCharacter
+              width="100%"
+              height="100%"
+            />
+          ) : characterPng ? (
+            <Image
+              source={characterPng}
+              style={styles.characterImage}
+              resizeMode="contain"
+            />
+          ) : null}
         </View>
 
         <Text style={[styles.personaDesc, isEmpty && styles.personaEmptyDesc]}>
@@ -245,6 +252,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     overflow: "hidden",
     position: "relative",
+  },
+
+  // 캐릭터 이미지
+  characterImage: {
+    width: "100%",
+    height: "100%",
   },
 
   // 캐릭터 하단 문구
