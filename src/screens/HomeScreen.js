@@ -9,6 +9,7 @@ import {
 import { searchFriends } from "@apis/friendApi";
 import { fetchReadingLogs, saveReadingLog } from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
+import GoalCountSlider from "@components/GoalCountSlider";
 import ReadingProgressCard from "@components/ReadingProgressBar";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
@@ -1274,89 +1275,30 @@ export default function HomeScreen({ navigation }) {
             <TouchableWithoutFeedback>
               <View style={styles.goalSetCard}>
                 <View style={styles.goalSetHeader}>
-                  <Text style={styles.goalSetTitle}>
-                    이번 달엔 몇권을 읽어볼까요?
-                  </Text>
+                  <Text style={styles.goalSetTitle}>이번 달 목표 권수</Text>
                 </View>
-                <View style={styles.goalSetSliderWrap}>
-                  <Ionicons
-                    name="book-outline"
-                    size={26}
-                    color="#355619"
-                  />
 
-                  {/* 목표 설정 막대 */}
-                  <View
-                    ref={barRef}
-                    style={styles.goalSetBar}
-                    onLayout={(e) => {
-                      setGoalBarWidth(e.nativeEvent.layout.width);
-                      measureBar(); // barLeft 갱신
-                    }}
-                    onStartShouldSetResponderCapture={() => true}
-                    onMoveShouldSetResponderCapture={() => true}
-                    onResponderGrant={(e) => {
-                      measureBar(); // 시작할 때도 한번 재측정 하기
-                      handleSetGoalByPageX(e.nativeEvent.pageX);
-                    }}
-                    onResponderMove={(e) => {
-                      handleSetGoalByPageX(e.nativeEvent.pageX);
-                    }}
-                  >
-                    <View style={styles.goalSetTrack} />
-                    <View
-                      pointerEvents="none"
-                      style={[
-                        styles.goalSetFill,
-                        {
-                          width: goalBarWidth
-                            ? `${Math.min(
-                                100,
-                                Math.max(0, (goalCandidate / maxGoal) * 100),
-                              )}%`
-                            : 0,
-                        },
-                      ]}
-                    />
-                    {(() => {
-                      const handleHalf = handleSize / 2;
-                      const ratio = Math.min(
-                        1,
-                        Math.max(0, goalCandidate / maxGoal),
-                      );
-                      const left =
-                        goalBarWidth > 0
-                          ? Math.min(
-                              goalBarWidth - handleSize,
-                              Math.max(0, ratio * goalBarWidth - handleHalf),
-                            )
-                          : 0;
-                      return (
-                        <View
-                          pointerEvents="none"
-                          style={[
-                            styles.goalSetHandle,
-                            {
-                              left,
-                              width: handleSize,
-                              height: handleSize,
-                              borderRadius: handleHalf,
-                            },
-                          ]}
-                        >
-                          <Text style={styles.goalSetHandleText}>
-                            {goalCandidate}
-                          </Text>
-                        </View>
-                      );
-                    })()}
-                  </View>
+                <View style={styles.goalSetSliderWrap}>
+                  <GoalCountSlider
+                    value={goalCandidate}
+                    onChange={setGoalCandidate}
+                    max={maxGoal}
+                    handleSize={handleSize}
+                    icon={
+                      <Ionicons
+                        name="book-outline"
+                        size={26}
+                        color="#355619"
+                      />
+                    }
+                  />
                 </View>
+
                 <Pressable
                   style={styles.goalSetButton}
                   onPress={saveGoal}
                 >
-                  <Text style={styles.goalSetButtonText}>목표 설정 완료</Text>
+                  <Text style={styles.goalSetButtonText}>목표 저장</Text>
                 </Pressable>
               </View>
             </TouchableWithoutFeedback>
@@ -1551,25 +1493,7 @@ const styles = StyleSheet.create({
     borderColor: "#3f5d2c",
   },
   addPlus: { color: "#fff", fontSize: 24, fontWeight: "700" },
-  progressCard: {
-    marginHorizontal: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  progressHeader: { flexDirection: "column", gap: 4 },
-  progressPercent: {
-    alignSelf: "flex-end",
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.mono[950],
-  },
+
   goalRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1584,54 +1508,6 @@ const styles = StyleSheet.create({
   goalLabel: { fontSize: 14, fontWeight: "500", color: "#000" },
   goalTarget: { fontSize: 12, color: "#000" },
 
-  // 진행바 길이
-  progressTrack: {
-    marginTop: 6,
-    height: 12.04,
-    width: "100%",
-    alignSelf: "stretch",
-    borderRadius: 15,
-    overflow: "visible",
-    position: "relative",
-    backgroundColor: "transparent",
-    borderWidth: 0.5,
-    borderColor: colors.mono[200],
-  },
-
-  // 진행바 채워진 막대 영역 (초록색으로 채워지는 거)
-  progressFill: {
-    height: "100%",
-    backgroundColor: colors.primary[400],
-    borderRadius: 15,
-
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    shadowOffset: { width: 3, height: 0 },
-
-    elevation: 4,
-  },
-  progressIndicator: {
-    position: "absolute",
-    top: -12,
-    width: 36,
-    height: 34,
-    transform: [{ translateX: -18 }],
-    zIndex: 3,
-  },
-  progressShadow: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    shadowOffset: { width: 3, height: 0 },
-    zIndex: 1,
-    pointerEvents: "none",
-  },
   goalModalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.2)",
