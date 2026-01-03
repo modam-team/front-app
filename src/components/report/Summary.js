@@ -1,6 +1,5 @@
-import BasicCharacter from "@assets/report/character/basic.svg";
+import BasicCharacter from "@assets/basic-profile.svg";
 import Button from "@components/Button";
-import ProfilePlaceholder from "@components/ProfilePlaceholder";
 import {
   PERSONA_SLUG_MAP,
   PLACE_SLUG_MAP,
@@ -73,7 +72,12 @@ export default function Summary({
               style={styles.profileImage}
             />
           ) : (
-            <ProfilePlaceholder size={49} />
+            <View style={styles.basicAvatar}>
+              <BasicCharacter
+                width={49}
+                height={49}
+              />
+            </View>
           )}
         </Pressable>
 
@@ -157,7 +161,6 @@ const styles = StyleSheet.create({
     width: 49,
     height: 49,
     borderRadius: 999,
-    backgroundColor: colors.mono[0],
     overflow: "hidden",
   },
 
@@ -165,6 +168,14 @@ const styles = StyleSheet.create({
   profileImage: {
     width: "100%",
     height: "100%",
+  },
+
+  // 기본 프사 캐릭터
+  basicAvatar: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   /* ================================== */
