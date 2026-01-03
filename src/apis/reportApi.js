@@ -415,11 +415,6 @@ export async function fetchMonthlyReport({ year, month }) {
 }
 
 export async function saveReadingLog({ bookId, readingPlace }) {
-  const token = await getToken("accessToken");
-  if (!token) {
-    throw new Error("no access token");
-  }
-
   const res = await client.post("/api/report", {
     bookId,
     readingPlace,
@@ -428,11 +423,6 @@ export async function saveReadingLog({ bookId, readingPlace }) {
 }
 
 export async function fetchReadingLogs({ year, month }) {
-  const token = await getToken("accessToken");
-  if (!token) {
-    return [];
-  }
-
   const res = await client.get("/api/report", {
     params: { year, month },
   });

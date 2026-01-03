@@ -12,21 +12,6 @@ export async function fetchOnboardingStatus() {
 
 // 유저 프로필 조회
 export async function fetchUserProfile() {
-  // 토큰이 없으면 리프레시로 재발급을 시도하고, 그래도 없으면 에러
-  let token = await getToken("accessToken");
-  if (!token) {
-    try {
-      const issued = await reissueToken();
-      token = issued?.accessToken;
-    } catch (e) {
-      // 토큰이 없다면 로그인 화면으로 분기할 수 있도록 null 반환
-      const err = new Error("no access token");
-      err.cause = e;
-      err.code = "NO_TOKEN";
-      throw err;
-    }
-  }
-
   const res = await client.get("/api/user/profile");
 
   // { userId, name, nickname, goalScore, preferredCategories, onboardingCompleted } 형태
