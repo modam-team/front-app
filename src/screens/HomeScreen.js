@@ -13,6 +13,7 @@ import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
+import { typography } from "@theme/typography";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
   useCallback,
@@ -1795,16 +1796,25 @@ const styles = StyleSheet.create({
     left: 0,
     top: 22,
   },
+
+  // 슬라이더에서 동그라미 + 숫자의 컨테이너
   goalSetHandle: {
     position: "absolute",
     top: 8,
     backgroundColor: "#426b1f",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 6,
   },
-  goalSetHandleText: { color: "#fff", fontSize: 17, fontWeight: "800" },
+
+  // 목표 설정 슬라이더 숫자 텍스트
+  goalSetHandleText: {
+    ...typography["body-1-bold"],
+    color: "#fff",
+  },
+
+  // 목표 설정 완료 버튼
   goalSetButton: {
     height: 40,
     borderRadius: 12,
