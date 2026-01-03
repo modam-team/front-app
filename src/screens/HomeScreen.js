@@ -1,5 +1,4 @@
-import ReportCharacterBasic from "../../assets/report/character/basic.svg";
-import colors from "../theme/legacyColors";
+import ProgressBarCharacter from "../../assets/progress-bar-img.png";
 import {
   addBookToBookcase,
   deleteBookFromBookcase,
@@ -13,6 +12,8 @@ import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
+import { colors } from "@theme/colors";
+import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
@@ -770,9 +771,10 @@ export default function HomeScreen({ navigation }) {
                   <View
                     style={[styles.progressIndicator, { left: markerLeftPx }]}
                   >
-                    <ReportCharacterBasic
-                      width={36}
-                      height={34}
+                    <Image
+                      source={ProgressBarCharacter}
+                      style={{ width: 36, height: 34 }}
+                      resizeMode="contain"
                     />
                   </View>
                   <View
@@ -1564,7 +1566,7 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: colors.background.DEFAULT },
 
   header: {
     paddingTop: 12,
@@ -1591,12 +1593,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarImage: { width: 49, height: 49, borderRadius: 24.5 },
-  avatarInitial: { fontSize: 16, fontWeight: "700", color: colors.text },
+  avatarInitial: { fontSize: 16, fontWeight: "700", color: colors.mono[950] },
   avatarName: {
     marginTop: 5,
     fontSize: 12,
     fontWeight: "500",
-    color: colors.text,
+    color: colors.mono[950],
     textAlign: "center",
     width: 49,
   },
@@ -1629,7 +1631,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     fontSize: 12,
     fontWeight: "700",
-    color: colors.text,
+    color: colors.mono[950],
   },
   goalRow: {
     flexDirection: "row",
@@ -1644,26 +1646,33 @@ const styles = StyleSheet.create({
   },
   goalLabel: { fontSize: 14, fontWeight: "500", color: "#000" },
   goalTarget: { fontSize: 12, color: "#000" },
+
+  // 진행바 길이
   progressTrack: {
     marginTop: 6,
     height: 12.04,
-    width: 332,
-    alignSelf: "center",
+    width: "100%",
+    alignSelf: "stretch",
     borderRadius: 15,
     overflow: "visible",
     position: "relative",
     backgroundColor: "transparent",
     borderWidth: 0.5,
-    borderColor: "#ccc",
+    borderColor: colors.mono[200],
   },
+
+  // 진행바 채워진 막대 영역 (초록색으로 채워지는 거)
   progressFill: {
     height: "100%",
-    backgroundColor: green,
+    backgroundColor: colors.primary[400],
     borderRadius: 15,
+
     shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
     shadowOffset: { width: 3, height: 0 },
+
+    elevation: 4,
   },
   progressIndicator: {
     position: "absolute",
@@ -1860,7 +1869,7 @@ const styles = StyleSheet.create({
   calTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.text,
+    color: colors.mono[950],
     width: 60,
     textAlign: "center",
   },
@@ -1909,7 +1918,7 @@ const styles = StyleSheet.create({
   dayBubbleSelected: {
     backgroundColor: "#608540",
   },
-  dayText: { color: colors.text, fontWeight: "700", fontSize: 16 },
+  dayText: { color: colors.mono[950], fontWeight: "700", fontSize: 16 },
   dayTextHighlighted: { color: "#070b03" },
   dayTextSelected: { color: "#fff" },
   dayTextMuted: { color: "#d1d5db" },
@@ -1917,15 +1926,15 @@ const styles = StyleSheet.create({
     display: "none",
   },
   yearItem: { paddingVertical: 6, paddingHorizontal: 12 },
-  yearItemText: { fontSize: 14, color: colors.text },
+  yearItemText: { fontSize: 14, color: colors.mono[950] },
   section: { marginTop: 14, paddingHorizontal: 16 },
   sectionHead: { gap: 4, flexDirection: "row", alignItems: "center" },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: colors.text,
+    color: colors.mono[950],
   },
-  sectionHint: { fontSize: 14, color: colors.text, marginTop: 2 },
+  sectionHint: { fontSize: 14, color: colors.mono[950], marginTop: 2 },
   sectionActions: {
     flexDirection: "row",
     alignItems: "center",
@@ -1960,13 +1969,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  coverText: { fontWeight: "700", fontSize: 18, color: colors.text },
+  coverText: { fontWeight: "700", fontSize: 18, color: colors.mono[950] },
   bookMeta: { flex: 1, marginLeft: 12, gap: 8 },
-  bookTitle: { fontSize: 18, fontWeight: "800", color: colors.text },
-  bookAuthor: { fontSize: 14, color: colors.subtext },
+  bookTitle: { fontSize: 18, fontWeight: "800", color: colors.mono[950] },
+  bookAuthor: { fontSize: 14, color: colors.mono[600] },
   ratingRow: { flexDirection: "row", gap: 4 },
   starBox: { width: 20, alignItems: "center" },
   star: { fontSize: 16 },
@@ -2018,8 +2025,7 @@ const styles = StyleSheet.create({
     height: 170,
     borderRadius: 10,
     backgroundColor: "#f1f5f9",
-    borderWidth: 1,
-    borderColor: colors.border,
+
     overflow: "hidden",
   },
   detailCoverImg: { width: "100%", height: "100%" },
@@ -2037,8 +2043,12 @@ const styles = StyleSheet.create({
   detailTitle: { fontSize: 22, fontWeight: "800", color: "#355619" },
   detailAuthor: { fontSize: 13, fontWeight: "600", color: "#355619" },
   detailReviewSection: { marginTop: 16, gap: 8 },
-  detailReviewTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
-  detailReviewText: { fontSize: 14, color: colors.text, lineHeight: 20 },
+  detailReviewTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.mono[950],
+  },
+  detailReviewText: { fontSize: 14, color: colors.mono[950], lineHeight: 20 },
   detailReviewEmpty: { fontSize: 14, color: "#888" },
   modalBackdrop: {
     flex: 1,
@@ -2134,7 +2144,7 @@ const styles = StyleSheet.create({
   },
   dayLogChipText: { color: "#fff", fontSize: 10, fontWeight: "700" },
   dayEmptyText: { fontSize: 14, color: "#666" },
-  sheetTitle: { fontSize: 18, fontWeight: "600", color: colors.text },
+  sheetTitle: { fontSize: 18, fontWeight: "600", color: colors.mono[950] },
   yearList: { paddingVertical: 8, gap: 14 },
   yearRowItem: {
     flexDirection: "row",
@@ -2142,12 +2152,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 4,
   },
-  yearOptionText: { fontSize: 16, color: colors.text },
+  yearOptionText: { fontSize: 16, color: colors.mono[950] },
   yearOptionTextActive: { color: green, fontWeight: "700" },
   yearCheck: { fontSize: 18, color: green, fontWeight: "700" },
   yearCheckPlaceholder: { width: 18 },
   sheetClose: { alignSelf: "center", marginTop: 10 },
-  sheetCloseText: { fontSize: 18, fontWeight: "600", color: colors.text },
+  sheetCloseText: { fontSize: 18, fontWeight: "600", color: colors.mono[950] },
   fab: {
     position: "absolute",
     right: 24,
