@@ -9,6 +9,7 @@ import {
 import { searchFriends } from "@apis/friendApi";
 import { fetchReadingLogs, saveReadingLog } from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
+import ReadingProgressCard from "@components/ReadingProgressBar";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
@@ -737,78 +738,14 @@ export default function HomeScreen({ navigation }) {
           </Pressable>
         </View>
 
-        {(() => {
-          const rawRatio = goalCount > 0 ? readCount / goalCount : 0;
-          const percent =
-            goalCount > 0 ? Math.min(100, Math.round(rawRatio * 100)) : 0;
-          const fillRatio = Math.min(1, Math.max(0, rawRatio));
-          const fillWidth = fillRatio * 100;
-          const markerLeftPx = Math.min(
-            progressWidth,
-            Math.max(0, fillRatio * progressWidth),
-          );
-          const isCurrentMonth = year === currentYear && month === currentMonth;
-          return (
-            <Pressable
-              onPress={() => {
-                if (goalCount > 0) setGoalModalVisible(true);
-              }}
-              style={styles.progressCard}
-            >
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressPercent}>{`${percent}%`}</Text>
-                <View style={styles.progressTrack}>
-                  <LinearGradient
-                    colors={["#e5e5e5", "#e5e5e5", "#999"]}
-                    locations={[0, 0.5385, 0.8846]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={[StyleSheet.absoluteFill, { borderRadius: 15 }]}
-                  />
-                  <View
-                    style={[styles.progressFill, { width: `${fillWidth}%` }]}
-                  />
-                  <View
-                    style={[styles.progressIndicator, { left: markerLeftPx }]}
-                  >
-                    <Image
-                      source={ProgressBarCharacter}
-                      style={{ width: 36, height: 34 }}
-                      resizeMode="contain"
-                    />
-                  </View>
-                  <View
-                    style={styles.progressShadow}
-                    pointerEvents="none"
-                  />
-                </View>
-              </View>
-              <View style={styles.goalRow}>
-                <View style={styles.goalLeft}>
-                  <Svg
-                    width={15}
-                    height={17}
-                    viewBox="0 0 15 17"
-                    fill="none"
-                  >
-                    <Path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M15 12.6096C14.9989 12.6514 14.9949 12.6931 14.988 12.7343C15.0061 12.829 15.0033 12.9265 14.98 13.0199C14.9567 13.1134 14.9133 13.2004 14.853 13.2748C14.7927 13.3492 14.717 13.4091 14.6313 13.4503C14.5456 13.4914 14.4519 13.5128 14.3571 13.5128H2.35714C2.21644 13.5128 2.07712 13.541 1.94712 13.5958C1.81713 13.6505 1.69902 13.7308 1.59953 13.832C1.50004 13.9332 1.42112 14.0533 1.36727 14.1855C1.31343 14.3178 1.28571 14.4595 1.28571 14.6026C1.28571 14.7457 1.31343 14.8874 1.36727 15.0196C1.42112 15.1518 1.50004 15.2719 1.59953 15.3731C1.69902 15.4743 1.81713 15.5546 1.94712 15.6094C2.07712 15.6641 2.21644 15.6923 2.35714 15.6923H14.3571C14.5276 15.6923 14.6912 15.7612 14.8117 15.8838C14.9323 16.0064 15 16.1727 15 16.3462C15 16.5196 14.9323 16.6859 14.8117 16.8085C14.6912 16.9311 14.5276 17 14.3571 17H2.35714C1.73199 17 1.13244 16.7474 0.690391 16.2978C0.248341 15.8482 0 15.2384 0 14.6026V2.39744C0 1.7616 0.248341 1.1518 0.690391 0.702193C1.13244 0.252586 1.73199 0 2.35714 0H13.8429C14.4823 0 15 0.526564 15 1.17692V12.6096ZM4.92857 3.48718C4.75808 3.48718 4.59456 3.55607 4.474 3.67869C4.35344 3.80131 4.28571 3.96761 4.28571 4.14103C4.28571 4.31444 4.35344 4.48074 4.474 4.60336C4.59456 4.72598 4.75808 4.79487 4.92857 4.79487H10.0714C10.2419 4.79487 10.4054 4.72598 10.526 4.60336C10.6466 4.48074 10.7143 4.31444 10.7143 4.14103C10.7143 3.96761 10.6466 3.80131 10.526 3.67869C10.4054 3.55607 10.2419 3.48718 10.0714 3.48718H4.92857Z"
-                      fill="black"
-                    />
-                  </Svg>
-                  <Text
-                    style={styles.goalLabel}
-                  >{`${isCurrentMonth ? "이번달" : `${month}월`} ${readCount}권을 읽었어요`}</Text>
-                </View>
-                <Text style={styles.goalTarget}>
-                  {goalCount > 0 ? `목표 ${goalCount}권` : "목표 없음"}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        })()}
+        <ReadingProgressCard
+          goalCount={goalCount}
+          readCount={readCount}
+          onPress={() => {
+            if (goalCount > 0) setGoalModalVisible(true);
+          }}
+          characterSource={ProgressBarCharacter}
+        />
 
         <Calendar
           year={year}
