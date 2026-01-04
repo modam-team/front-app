@@ -8,8 +8,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 const INDICATOR_W = 36; // 캐릭터 가로 사이즈
-const TRACK_BORDER = 4; // 테두리보다 살짝 여유있게
-const INDICATOR_HALF = INDICATOR_W / 2 - TRACK_BORDER;
+const TRACK_BORDER = 8; // 테두리보다 살짝 여유있게
 
 /**
  * Props
@@ -47,14 +46,16 @@ export default function ReadingProgressCard({
     const innerWidth = Math.max(0, progressWidth - TRACK_BORDER * 2);
     const fw = fillRatio * innerWidth;
 
-    const rawCenter = fillRatio * innerWidth + TRACK_BORDER;
+    // indicator의 left 계산
+    const rawLeft = TRACK_BORDER + fw - INDICATOR_W / 2;
 
-    const min = TRACK_BORDER + INDICATOR_HALF;
-    const max = TRACK_BORDER + innerWidth - INDICATOR_HALF;
+    // left 범위를 트랙 안쪽으로 clamp
+    const minLeft = -INDICATOR_W / 2 + TRACK_BORDER; // 0%일 때 딱 시작점
+    const maxLeft = TRACK_BORDER + innerWidth - INDICATOR_W / 2; // 끝점에 걸치기
 
-    const leftCenter = Math.min(max, Math.max(min, rawCenter));
+    const left = Math.min(maxLeft, Math.max(minLeft, rawLeft));
 
-    return { percent: p, fillWidth: fw, markerLeftPx: leftCenter };
+    return { percent: p, fillWidth: fw, markerLeftPx: left };
   }, [goalCount, readCount, progressWidth]);
 
   return (
@@ -86,12 +87,7 @@ export default function ReadingProgressCard({
           <View style={[styles.progressFill, { width: fillWidth }]} />
 
           {/* 캐릭터 표시 영역 */}
-          <View
-            style={[
-              styles.progressIndicator,
-              { left: markerLeftPx - INDICATOR_HALF },
-            ]}
-          >
+          <View style={[styles.progressIndicator, { left: markerLeftPx }]}>
             <Image
               source={characterSource}
               style={{ width: 36, height: 34 }}
