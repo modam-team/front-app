@@ -126,14 +126,18 @@ export default function MonthlyCalendar({
 
       {/* 요일 헤더(월 ~ 일) */}
       <View style={styles.weekRow}>
-        {["월", "화", "수", "목", "금", "토", "일"].map((w) => (
-          <Text
-            key={w}
-            style={styles.weekLabel}
-          >
-            {w}
-          </Text>
-        ))}
+        {["월", "화", "수", "목", "금", "토", "일"].map((w, idx) => {
+          const isSunday = idx === 6;
+
+          return (
+            <Text
+              key={w}
+              style={[styles.weekLabel, isSunday && styles.weekLabelSunday]}
+            >
+              {w}
+            </Text>
+          );
+        })}
       </View>
 
       {/* 날짜 그리드 */}
@@ -157,6 +161,10 @@ export default function MonthlyCalendar({
                   // 선택된 날짜인지 여부
                   const isSelected = selectedDayKey === dayKey;
 
+                  // 일요일인지 여부
+                  const isSunday =
+                    new Date(year, month - 1, day).getDay() === 0;
+
                   return (
                     <Pressable
                       onPress={() => isMarked && onDayPress?.(dayKey)}
@@ -179,9 +187,14 @@ export default function MonthlyCalendar({
                       <Text
                         style={[
                           styles.dayText,
+
+                          // 꽃이 있으면 무조건 흰색
                           isMarked
                             ? styles.dayTextOnFlower
                             : styles.dayTextNormal,
+
+                          // 꽃이 없고 일요일이면 빨간색
+                          !isMarked && isSunday && styles.dayTextSunday,
                         ]}
                       >
                         {day}
@@ -316,6 +329,16 @@ const styles = StyleSheet.create({
   // 꽃 없는 날짜 (검정색)
   dayTextNormal: {
     color: colors.mono[950],
+  },
+
+  // 일요일 요일 라벨
+  weekLabelSunday: {
+    color: "#FF0000", // 원하는 레드로 조정
+  },
+
+  // 일요일 날짜 (꽃 없을 때만 적용)
+  dayTextSunday: {
+    color: "#FF0000",
   },
 
   // 날짜 없는 칸(공백)
