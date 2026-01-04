@@ -13,23 +13,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function SettingsScreen() {
   const navigation = useNavigation();
 
+  // 렌더링마다 새 배열 생성 방지
   const items = useMemo(
     () => [
       { key: "profile", label: "프로필" },
-      { key: "notification", label: "알림" },
+      { key: "theme", label: "테마" },
       { key: "notice", label: "공지사항" },
       { key: "inquiry", label: "1:1 문의" },
     ],
     [],
   );
 
+  // 설정 항목 클릭 시 이동 처리
   const onPressItem = (key) => {
     switch (key) {
       case "profile":
         navigation.navigate("ProfileScreen");
         break;
-      case "notification":
-        navigation.navigate("NotificationSettingScreen");
+      case "theme":
+        navigation.navigate("ThemeScreen");
         break;
       case "notice":
         navigation.navigate("NoticeScreen");
@@ -42,6 +44,7 @@ export default function SettingsScreen() {
     }
   };
 
+  // 로그아웃 처리
   const onLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃할까요?", [
       { text: "취소", style: "cancel" },
@@ -60,6 +63,7 @@ export default function SettingsScreen() {
     ]);
   };
 
+  // 회원 탈퇴 처리
   const onWithdraw = () => {
     Alert.alert(
       "회원탈퇴",
@@ -142,47 +146,50 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 화면 전체 높이 및 앱 기본 배경 색
   safe: {
     flex: 1,
     backgroundColor: colors.background.DEFAULT,
   },
 
-  pressed: {
-    opacity: 0.6,
-  },
-  title: {
-    ...typography["heading-4-medium"],
-  },
-  rightSpacer: {
-    width: 36,
-    height: 36,
-  },
-
+  // 설정 목록들이 있는 영역
   body: {
-    marginVertical: 24,
+    marginVertical: spacing.l,
     marginHorizontal: 28,
   },
+
+  // 설정 한 줄에 해당하는 스타일
   row: {
-    paddingVertical: 14,
+    paddingBottom: 14,
   },
+
+  // row 터치 중 상태 (투명도 조절)
   rowPressed: {
     opacity: 0.6,
   },
+
+  // 설정 항목 텍스트
   rowText: {
     ...typography["body-1-regular"],
+    color: colors.mono[950],
   },
 
+  // 하단 고정 영역
   bottom: {
     marginTop: "auto",
     paddingHorizontal: 28,
-    paddingBottom: 80,
+    paddingBottom: 100,
     flexDirection: "row",
     justifyContent: "space-between",
   },
+
+  // 로그아웃 텍스트
   logout: {
     ...typography["body-1-regular"],
     color: colors.warning.medium,
   },
+
+  // 회원 탈퇴 텍스트
   withdraw: {
     ...typography["body-1-regular"],
     color: colors.mono[400],
