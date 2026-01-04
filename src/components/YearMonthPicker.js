@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.m,
   },
   headerTitle: {
-    ...typography["body-1-bold"],
+    ...typography["heading-4-medium"],
   },
   divider: {
     height: 1,
