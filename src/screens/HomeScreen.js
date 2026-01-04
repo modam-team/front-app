@@ -14,6 +14,7 @@ import {
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import ProgressBarCharacter from "@assets/progress-bar-img.png";
 import GoalCountSlider from "@components/GoalCountSlider";
+import MonthlyCalendar from "@components/MonthlyCalendar";
 import ReadingProgressCard from "@components/ReadingProgressBar";
 import StarIcon from "@components/StarIcon";
 import YearMonthPicker from "@components/YearMonthPicker";
@@ -305,6 +306,9 @@ export default function HomeScreen({ navigation }) {
   const [readCount, setReadCount] = useState(0);
   const [goalCandidate, setGoalCandidate] = useState(1);
   const [friendList, setFriendList] = useState([]);
+
+  // 테마 일단은 하드코딩 (나중에 백엔드 api 나오면 수정하겠습니당)
+  const [themeKey] = useState("green");
 
   const openedGoalEditorRef = useRef(false);
 
@@ -687,6 +691,15 @@ export default function HomeScreen({ navigation }) {
     };
   }, [isFocused, year, month, formatDateKey, formatTime, parseReadAt]);
 
+  // 날짜별 카운트
+  const dateCounts = useMemo(() => {
+    const out = {};
+    for (const [dayKey, logs] of Object.entries(readingLogs || {})) {
+      out[dayKey] = Array.isArray(logs) ? logs.length : 0;
+    }
+    return out;
+  }, [readingLogs]);
+
   useEffect(() => {
     if (!isFocused) return;
     setReadCount(0);
@@ -961,14 +974,15 @@ export default function HomeScreen({ navigation }) {
           />
         )}
 
-        <Calendar
+        <MonthlyCalendar
           year={year}
           month={month}
           onPrev={prev}
           onNext={next}
           markedDates={markedDates}
+          dateCounts={dateCounts}
+          themeKey={themeKey /* 홈에서 가져온 테마 */}
           selectedDayKey={dayModalKey}
-          getDayBubbleStyle={getDayBubbleStyle}
           onDayPress={(key) => {
             if (!key) return;
             const logs = readingLogs[key] || [];
@@ -1597,99 +1611,6 @@ const styles = StyleSheet.create({
   goalLabel: { fontSize: 14, fontWeight: "500", color: "#000" },
   goalTarget: { fontSize: 12, color: "#000" },
 
-  calendarCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  yearRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginBottom: 12,
-    alignSelf: "flex-start",
-    paddingHorizontal: 6,
-  },
-  yearText: { fontSize: 16, fontWeight: "600", color: "#000" },
-  yearButton: { flexDirection: "row", alignItems: "center", gap: 5 },
-  monthRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 18,
-    paddingHorizontal: 6,
-    width: 328,
-    alignSelf: "center",
-  },
-  calTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.mono[950],
-    width: 60,
-    textAlign: "center",
-  },
-  calNav: { fontSize: 28, color: "#000", fontWeight: "600", padding: 4 },
-  weekRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignSelf: "center",
-    width: 328,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  weekLabel: {
-    width: 28,
-    textAlign: "center",
-    color: "#000",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  dayRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignSelf: "center",
-    width: 328,
-    marginBottom: 20,
-    paddingHorizontal: 2,
-  },
-  dayCell: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dayBubble: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14,
-  },
-  dayBubbleMarked: {
-    backgroundColor: "#d7eec4",
-    borderWidth: 1,
-    borderColor: "#608540",
-  },
-  dayBubbleSelected: {
-    backgroundColor: "#608540",
-  },
-  dayText: { color: colors.mono[950], fontWeight: "700", fontSize: 16 },
-  dayTextHighlighted: { color: "#070b03" },
-  dayTextSelected: { color: "#fff" },
-  dayTextMuted: { color: "#d1d5db" },
-  yearDropdown: {
-    display: "none",
-  },
-  yearItem: { paddingVertical: 6, paddingHorizontal: 12 },
-  yearItemText: { fontSize: 14, color: colors.mono[950] },
   section: { marginTop: 14, paddingHorizontal: 16 },
   sectionHead: { gap: 4, flexDirection: "row", alignItems: "center" },
   sectionTitle: {
