@@ -4,6 +4,7 @@ import AuthGateScreen from "./src/screens/AuthGateScreen";
 import BookDetailScreen from "./src/screens/BookDetailScreen";
 import EditNameScreen from "./src/screens/EditNameScreen";
 import FriendListScreen from "./src/screens/FriendListScreen";
+import ProgressBarImg from "@assets/progress-bar-img.png";
 import {
   REPORT_BACKGROUND_MAP,
   REPORT_BACKGROUND_MAP_PAST,
@@ -33,6 +34,7 @@ export default function App() {
     Asset.loadAsync([
       ...Object.values(REPORT_BACKGROUND_MAP),
       ...Object.values(REPORT_BACKGROUND_MAP_PAST),
+      ProgressBarImg,
     ]);
   }, []);
 
