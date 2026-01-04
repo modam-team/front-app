@@ -1,3 +1,4 @@
+import CheckGreenIcon from "@assets/icons/check-green.svg";
 import CheckIcon from "@assets/icons/check.svg";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { colors } from "@theme/colors";
@@ -6,8 +7,10 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import { buildMonthsByYear, buildYearsFrom2010 } from "@utils/dateOptions";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   Modal,
   Pressable,
   ScrollView,
@@ -19,6 +22,7 @@ import {
 
 const ITEM_HEIGHT = 32;
 const VISIBLE_COUNT = 6;
+const SHEET_HEIGHT = 355;
 
 export default function YearMonthPicker({
   visible,
@@ -30,6 +34,12 @@ export default function YearMonthPicker({
   onSelectYear,
   onSelectMonth,
 }) {
+  // 모달을 애니메이션 끝날 때까지 유지하기 위한 내부 상태
+  const [mounted, setMounted] = useState(visible);
+
+  // 시트 애니메이션 값 (아래에서 시작)
+  const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+
   const years = useMemo(() => buildYearsFrom2010(), []);
   const months = useMemo(
     () => (mode === "year-month" ? buildMonthsByYear(selectedYear) : []),
@@ -60,6 +70,29 @@ export default function YearMonthPicker({
     months.length > VISIBLE_COUNT,
   );
 
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      translateY.setValue(SHEET_HEIGHT);
+
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    } else if (mounted) {
+      Animated.timing(translateY, {
+        toValue: SHEET_HEIGHT,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setMounted(false);
+      });
+    }
+  }, [visible, mounted, translateY]);
+
   // months 바뀌면 fade 상태도 재계산
   useEffect(() => {
     setShowMonthTopFade(false);
@@ -69,12 +102,6 @@ export default function YearMonthPicker({
   // 연도만 고르는 picker 모드면, 연도 선택 시 자동으로 닫아주기
   const handlePressYear = (year) => {
     onSelectYear?.(year);
-
-    // 연도만 고르는 모드면 바로 닫기
-    if (mode === "year") {
-      onClose?.();
-      return;
-    }
   };
 
   // 연도 스크롤 제어
@@ -109,21 +136,24 @@ export default function YearMonthPicker({
     setShowMonthBottomFade(y < maxScroll);
   };
 
+  // early return
+  if (!mounted) return null;
+
   return (
     <Modal
       transparent
-      visible={visible}
-      animationType="slide"
+      visible={mounted}
+      animationType="none"
       onRequestClose={onClose}
     >
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop, mode === "year" && styles.backdropDim]}>
         {/* 모달 바깥 영역 누르면 닫히도록 */}
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={onClose}
         />
 
-        <View style={styles.sheet}>
+        <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
           <View
             style={[styles.inner, { backgroundColor: themeColors.sheetBg }]}
           >
@@ -180,12 +210,16 @@ export default function YearMonthPicker({
                       return (
                         <TouchableOpacity
                           key={year}
-                          style={styles.itemRowYear}
+                          style={[
+                            styles.itemRowYear,
+                            mode === "year" && styles.itemRowYearWithCheck, // year 모드일 때 양쪽 정렬
+                          ]}
                           onPress={() => handlePressYear(year)}
                         >
                           <Text
                             style={[
                               styles.itemText,
+                              styles.itemTextCenter,
                               { color: themeColors.itemText },
                               isActive && [
                                 styles.itemTextActive,
@@ -195,6 +229,13 @@ export default function YearMonthPicker({
                           >
                             {year}년
                           </Text>
+
+                          {/* 연도만 선택 모드일 때 체크 아이콘 표시 */}
+                          {mode === "year" && (
+                            <View style={styles.checkWrap}>
+                              {isActive ? <CheckGreenIcon /> : null}
+                            </View>
+                          )}
                         </TouchableOpacity>
                       );
                     })}
@@ -256,6 +297,7 @@ export default function YearMonthPicker({
                               <Text
                                 style={[
                                   styles.itemText,
+                                  styles.itemTextCenter,
                                   { color: themeColors.itemText },
                                   isActive && [
                                     styles.itemTextActive,
@@ -266,12 +308,14 @@ export default function YearMonthPicker({
                                 {month}월
                               </Text>
 
-                              {isActive && (
-                                <CheckIcon
-                                  width={16}
-                                  height={16}
-                                />
-                              )}
+                              <View style={styles.checkWrap}>
+                                {isActive ? (
+                                  <CheckIcon
+                                    width={16}
+                                    height={16}
+                                  />
+                                ) : null}
+                              </View>
                             </TouchableOpacity>
                           );
                         })}
@@ -299,7 +343,7 @@ export default function YearMonthPicker({
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -311,6 +355,23 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "stretch",
   },
+
+  // 연도만 선택 모드 딤
+  backdropDim: {
+    backgroundColor: "rgba(0,0,0,0.2)",
+  },
+
+  // 아이콘 래퍼
+  checkWrap: {
+    height: ITEM_HEIGHT, // row 높이랑 같게
+    justifyContent: "center", // 세로 가운데
+    alignItems: "center",
+  },
+
+  itemTextCenter: {
+    lineHeight: ITEM_HEIGHT, // 텍스트도 row 기준 세로 중앙
+  },
+
   sheet: {
     width: "100%",
     height: 355,
@@ -349,6 +410,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: ITEM_HEIGHT,
   },
+  // year 모드일 때 체크 아이콘 때문에 space-between
+  itemRowYearWithCheck: {
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
   itemRowMonth: {
     flexDirection: "row",
     alignItems: "center",
