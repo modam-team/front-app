@@ -244,8 +244,8 @@ export default function ProfileScreen() {
             <Text style={styles.rowRightText}>{nickname}</Text>
             <MaterialIcons
               name="chevron-right"
-              size={24}
-              color={colors.mono[0]}
+              size={20}
+              color={colors.mono[150]}
             />
           </View>
         </Pressable>
