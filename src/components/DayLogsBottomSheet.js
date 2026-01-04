@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
@@ -8,13 +9,15 @@ import {
   Easing,
   Image,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
 
-const SHEET_HEIGHT = 360; // 시트 최대 높이 (임의 설정이라 추후 정확한 값으로 변경 할게용 !)
+const MAX_VISIBLE = 5; // 한 번에 바텀 시트에서 보여줄 최대 책 권수
+const SHEET_HEIGHT = 470; // 시트 최대 높이 (임의 설정이라 추후 정확한 값으로 변경 할게용 !)
 const OPEN_DURATION = 260;
 const CLOSE_DURATION = 220;
 
@@ -31,9 +34,22 @@ export default function DayLogsBottomSheet({
   const [snapDayKey, setSnapDayKey] = useState(null);
   const [snapLogs, setSnapLogs] = useState([]);
 
+  // 기록이 5개 이상이라 스크롤이 필요한지
+  const shouldScroll = snapLogs.length >= MAX_VISIBLE;
+
+  // 5개 이상일 때만 높이를 확정해서 ScrollView가 남는 공간을 가져가게 함
+  // (1~4개는 자연 높이로 올라오게)
+  const sheetStyle = useMemo(
+    () => [styles.sheetBase, shouldScroll && styles.sheetFixed],
+    [shouldScroll],
+  );
+
   // 시트 슬라이드 / 딤 페이드 애니메이션 값
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const dimOpacity = useRef(new Animated.Value(0)).current;
+
+  // 한 번이라도 스크롤했는지 감지해서 힌트 숨기기
+  const [hasScrolled, setHasScrolled] = useState(false);
 
   const dayNumber = useMemo(() => {
     if (!snapDayKey) return "";
@@ -52,6 +68,9 @@ export default function DayLogsBottomSheet({
       setSnapLogs(logs);
 
       setMounted(true);
+
+      // 열릴 때마다 스크롤 힌트 상태 초기화
+      setHasScrolled(false);
 
       // 시작 위치 세팅
       translateY.setValue(SHEET_HEIGHT);
@@ -108,24 +127,93 @@ export default function DayLogsBottomSheet({
 
         {/* 시트 (슬라이드 업) */}
         <Animated.View style={{ transform: [{ translateY }] }}>
-          <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
-              <View style={styles.handle} />
+          <View style={sheetStyle}>
+            <View style={styles.handle} />
 
-              <Text style={styles.title}>
-                <Text style={styles.titleGreen}>{dayNumber}일</Text>
-                에는 책을{" "}
-                <Text style={styles.titleGreen}>{snapLogs.length}번</Text>{" "}
-                읽었어요!
-              </Text>
+            <Text style={styles.title}>
+              <Text style={styles.titleGreen}>{dayNumber}일</Text>
+              에는 책을{" "}
+              <Text style={styles.titleGreen}>{snapLogs.length}번</Text>{" "}
+              읽었어요!
+            </Text>
 
-              <View style={styles.list}>
-                {snapLogs.length === 0 ? (
-                  <Text style={styles.empty}>
-                    기록을 추가하려면 달력에서 날짜를 눌러주세요.
-                  </Text>
-                ) : (
-                  snapLogs.map((log) => (
+            {/* 5개 이상일 때만 list가 flex:1로 공간을 먹게 */}
+            <View style={[styles.listBase, shouldScroll && styles.listFill]}>
+              {snapLogs.length === 0 ? (
+                <Text style={styles.empty}>
+                  기록을 추가하려면 달력에서 날짜를 눌러주세요.
+                </Text>
+              ) : shouldScroll ? (
+                <View style={{ flex: 1 }}>
+                  <ScrollView
+                    style={{ flex: 1 }}
+                    showsVerticalScrollIndicator={shouldScroll}
+                    persistentScrollbar={true}
+                    bounces={false}
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                    scrollIndicatorInsets={{ right: 2 }}
+                    contentContainerStyle={styles.listContent}
+                    onScrollBeginDrag={() => setHasScrolled(true)}
+                    scrollEventThrottle={16}
+                  >
+                    {snapLogs.map((log) => (
+                      <View
+                        key={log.id}
+                        style={styles.row}
+                      >
+                        <View style={styles.thumb}>
+                          {log.cover ? (
+                            <Image
+                              source={{ uri: log.cover }}
+                              style={styles.thumbImg}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={styles.thumbFallback}>
+                              <Text style={styles.thumbText}>
+                                {log.title?.slice(0, 2) || "책"}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={styles.meta}>
+                          <Text style={styles.bookTitle}>{log.title}</Text>
+                          <View style={styles.subRow}>
+                            <Text style={styles.time}>{log.time}</Text>
+                            <View style={[styles.chip]}>
+                              <Text style={styles.chipText}>
+                                {log.place || "이동중"}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </ScrollView>
+
+                  {!hasScrolled && (
+                    <View
+                      pointerEvents="none"
+                      style={styles.scrollHintWrap}
+                    >
+                      <View style={styles.scrollHintFade} />
+                      <View style={styles.scrollHintPill}>
+                        <Text style={styles.scrollHintText}>위로 스크롤</Text>
+                        <Ionicons
+                          name="chevron-up"
+                          size={12}
+                          color={colors.mono[600]}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                // 1~4개는 ScrollView 없이 그냥 렌더 -> 자연 높이로 시트가 “적당히” 올라옴
+                <View style={styles.listContent}>
+                  {snapLogs.map((log) => (
                     <View
                       key={log.id}
                       style={styles.row}
@@ -150,7 +238,7 @@ export default function DayLogsBottomSheet({
                         <Text style={styles.bookTitle}>{log.title}</Text>
                         <View style={styles.subRow}>
                           <Text style={styles.time}>{log.time}</Text>
-                          <View style={[styles.chip]}>
+                          <View style={styles.chip}>
                             <Text style={styles.chipText}>
                               {log.place || "이동중"}
                             </Text>
@@ -158,11 +246,11 @@ export default function DayLogsBottomSheet({
                         </View>
                       </View>
                     </View>
-                  ))
-                )}
-              </View>
+                  ))}
+                </View>
+              )}
             </View>
-          </TouchableWithoutFeedback>
+          </View>
         </Animated.View>
       </View>
     </Modal>
@@ -181,8 +269,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.2)",
   },
 
-  // 바텀시트 컨테이너
-  sheet: {
+  // 기본 시트: 자연 높이 + 최대 높이만 제한
+  sheetBase: {
     backgroundColor: colors.mono[0],
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -194,7 +282,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: -4 },
     elevation: 6,
-    gap: 0,
+
+    maxHeight: SHEET_HEIGHT,
+  },
+
+  // 5개 이상일 때만 높이 확정
+  sheetFixed: {
+    height: SHEET_HEIGHT,
   },
 
   // 바텀시트 상단에 있는 핸들바
@@ -215,8 +309,20 @@ const styles = StyleSheet.create({
     color: colors.primary[400],
   },
 
-  // 로그 리스트 전체 래퍼
-  list: { gap: 20, marginTop: 20 },
+  // 기본 list
+  listBase: {
+    marginTop: 20,
+  },
+
+  // 5개 이상일 때만 남는 공간 채움
+  listFill: {
+    flex: 1,
+  },
+
+  listContent: {
+    gap: 20,
+    paddingBottom: 4,
+  },
 
   // 로그가 없을 때 안내 문구
   empty: { fontSize: 14, color: "#666" },
@@ -266,11 +372,48 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 6,
     paddingVertical: 3,
-    width: 39,
+    maxWidth: 39,
     alignItems: "center",
     backgroundColor: colors.primary[400],
   },
 
   // 장소 칩 안의 글자(흰색)
   chipText: { color: colors.mono[0], fontSize: 10, fontWeight: "700" },
+
+  // 스크롤 힌트 UI
+  scrollHintWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+  },
+
+  // 아래쪽 페이드 (스크롤이 더 있다는 느낌을 주고 싶어서 넣어 봤어요 ..!!)
+  scrollHintFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 48,
+    backgroundColor: "rgba(255,255,255,0.85)",
+  },
+
+  // 힌트 원형
+  scrollHintPill: {
+    marginVertical: spacing.xs,
+    paddingHorizontal: spacing.s,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    backgroundColor: colors.mono[100],
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+
+  // 힌트 텍스트
+  scrollHintText: { ...typography["detail-regular"], color: colors.mono[600] },
+
+  // 힌트 화살표
+  scrollHintArrow: { ...typography["detail-bold"], color: colors.mono[600] },
 });
