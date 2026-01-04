@@ -1,3 +1,4 @@
+import BookCover from "@components/BookCover";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
@@ -162,21 +163,17 @@ export default function DayLogsBottomSheet({
                         key={log.id}
                         style={styles.row}
                       >
-                        <View style={styles.thumb}>
-                          {log.cover ? (
-                            <Image
-                              source={{ uri: log.cover }}
-                              style={styles.thumbImg}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <View style={styles.thumbFallback}>
-                              <Text style={styles.thumbText}>
-                                {log.title?.slice(0, 2) || "책"}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
+                        <BookCover
+                          uri={log.cover}
+                          title={log.title}
+                          width={37}
+                          height={50}
+                          radius={0}
+                          backgroundColor={colors.mono[150]} // fallback 배경색
+                          textColor={colors.primary[400]} // fallback 글자색
+                          fallbackFontSize={12}
+                          containerStyle={styles.thumb}
+                        />
 
                         <View style={styles.meta}>
                           <Text style={styles.bookTitle}>{log.title}</Text>
@@ -218,21 +215,17 @@ export default function DayLogsBottomSheet({
                       key={log.id}
                       style={styles.row}
                     >
-                      <View style={styles.thumb}>
-                        {log.cover ? (
-                          <Image
-                            source={{ uri: log.cover }}
-                            style={styles.thumbImg}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View style={styles.thumbFallback}>
-                            <Text style={styles.thumbText}>
-                              {log.title?.slice(0, 2) || "책"}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
+                      <BookCover
+                        uri={log.cover}
+                        title={log.title}
+                        width={37}
+                        height={50}
+                        radius={0}
+                        backgroundColor={colors.mono[150]}
+                        textColor={colors.primary[400]}
+                        fallbackFontSize={12}
+                        containerStyle={styles.thumb}
+                      />
 
                       <View style={styles.meta}>
                         <Text style={styles.bookTitle}>{log.title}</Text>
@@ -338,22 +331,7 @@ const styles = StyleSheet.create({
   thumb: {
     width: 37,
     height: 50,
-    overflow: "hidden",
   },
-
-  // 실제 책 표지 이미지 스타일
-  thumbImg: { width: "100%", height: "100%" },
-
-  // 표지 이미지가 없을 때(대체 박스) 중앙 정렬 영역
-  thumbFallback: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.mono[150],
-  },
-
-  // 표지 없을 때 대체 텍스트(책 제목 앞 1~2글자)
-  thumbText: { fontWeight: "700", color: "#426b1f" },
 
   // 썸네일 오른쪽 정보 영역(제목 + 시간/장소)
   meta: { flex: 1, gap: 2 },
