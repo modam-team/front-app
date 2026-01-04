@@ -2,7 +2,7 @@
 | [김소연](https://github.com/soyeon1806) | [손상준](https://github.com/sangjoonson) |
 | --- | --- |
 | <a href="https://github.com/soyeon1806"><img src="https://avatars.githubusercontent.com/u/102381857?v=4" width="100px;" alt=""/></a> | <a href="https://github.com/sangjoonson"><img src="https://avatars.githubusercontent.com/sangjoonson" width="100px;" alt=""/></a> |
-| 회원가입/로그인<br>온보딩<br>리포트<br>설정 | 책장<br>리뷰<br>친구 추가<br> |
+| 회원가입/로그인<br>온보딩<br>리포트<br>설정<br>홈 | 책장<br>리뷰<br>홈<br>친구 추가<br> |
 
 <br><br>
 
