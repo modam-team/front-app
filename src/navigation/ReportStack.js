@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import EditNameScreen from "@screens/EditNameScreen";
+import InquiryScreen from "@screens/InquiryScreen";
 import NoticeScreen from "@screens/NoticeScreen";
 import ProfileScreen from "@screens/ProfileScreen";
 import ReportScreen from "@screens/ReportScreen";
@@ -35,6 +36,10 @@ export default function ReportStack() {
       <Stack.Screen
         name="NoticeScreen"
         component={NoticeScreen}
+      />
+      <Stack.Screen
+        name="InquiryScreen"
+        component={InquiryScreen}
       />
     </Stack.Navigator>
   );
