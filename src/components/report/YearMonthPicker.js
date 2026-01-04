@@ -6,7 +6,7 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import { buildMonthsByYear, buildYearsFrom2010 } from "@utils/dateOptions";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -23,13 +23,31 @@ const VISIBLE_COUNT = 6;
 export default function YearMonthPicker({
   visible,
   onClose,
+  mode = "year-month", // "연도만 보여줄 거면 -> year" | "연도랑 월 모두 보여줄 거면 -> year-month"
+  theme = "green", // green이랑 mono 중에서 선택하기
   selectedYear,
   selectedMonth,
   onSelectYear,
   onSelectMonth,
 }) {
   const years = useMemo(() => buildYearsFrom2010(), []);
-  const months = useMemo(() => buildMonthsByYear(selectedYear), [selectedYear]);
+  const months = useMemo(
+    () => (mode === "year-month" ? buildMonthsByYear(selectedYear) : []),
+    [mode, selectedYear],
+  );
+
+  // 테마별 색상 세트
+  const themeColors = useMemo(() => {
+    const isMono = theme === "mono";
+
+    return {
+      sheetBg: isMono ? colors.mono[0] : colors.primary[400],
+      divider: isMono ? colors.mono[400] : colors.primary[100],
+      headerText: isMono ? colors.mono[950] : colors.mono[0],
+      itemText: isMono ? colors.mono[950] : colors.primary[0],
+      itemTextActive: isMono ? colors.primary[500] : colors.mono[0],
+    };
+  }, [theme]);
 
   // 위아래로 스크롤할 요소가 남아있는지에 따라서 fade 표시 여부 결정
   const [showYearTopFade, setShowYearTopFade] = useState(false);
@@ -41,6 +59,23 @@ export default function YearMonthPicker({
   const [showMonthBottomFade, setShowMonthBottomFade] = useState(
     months.length > VISIBLE_COUNT,
   );
+
+  // months 바뀌면 fade 상태도 재계산
+  useEffect(() => {
+    setShowMonthTopFade(false);
+    setShowMonthBottomFade(months.length > VISIBLE_COUNT);
+  }, [months.length]);
+
+  // 연도만 고르는 picker 모드면, 연도 선택 시 자동으로 닫아주기
+  const handlePressYear = (year) => {
+    onSelectYear?.(year);
+
+    // 연도만 고르는 모드면 바로 닫기
+    if (mode === "year") {
+      onClose?.();
+      return;
+    }
+  };
 
   // 연도 스크롤 제어
   const handleYearScroll = (e) => {
@@ -89,17 +124,25 @@ export default function YearMonthPicker({
         />
 
         <View style={styles.sheet}>
-          <View style={styles.inner}>
+          <View
+            style={[styles.inner, { backgroundColor: themeColors.sheetBg }]}
+          >
             {/* 헤더 */}
             <View style={styles.headerRow}>
-              <Text style={styles.headerTitle}>날짜</Text>
+              <Text
+                style={[styles.headerTitle, { color: themeColors.headerText }]}
+              >
+                날짜
+              </Text>
             </View>
 
             {/* 가로 구분선 */}
-            <View style={styles.divider} />
+            <View
+              style={[styles.divider, { backgroundColor: themeColors.divider }]}
+            />
 
             {/* 연 / 월 영역 */}
-            <View style={styles.columns}>
+            <View style={[styles.columns, mode === "year"]}>
               {/* 연도 컬럼 */}
               <View style={styles.column}>
                 <MaskedView
@@ -138,12 +181,16 @@ export default function YearMonthPicker({
                         <TouchableOpacity
                           key={year}
                           style={styles.itemRowYear}
-                          onPress={() => onSelectYear?.(year)}
+                          onPress={() => handlePressYear(year)}
                         >
                           <Text
                             style={[
                               styles.itemText,
-                              isActive && styles.itemTextActive,
+                              { color: themeColors.itemText },
+                              isActive && [
+                                styles.itemTextActive,
+                                { color: themeColors.itemTextActive },
+                              ],
                             ]}
                           >
                             {year}년
@@ -155,81 +202,101 @@ export default function YearMonthPicker({
                 </MaskedView>
               </View>
 
-              {/* 세로 구분선 */}
-              <View style={styles.verticalDivider} />
+              {/* mode === "year-month" 일 때만 월 컬럼(구분선 포함) 렌더링 */}
+              {mode === "year-month" && (
+                <>
+                  {/* 세로 구분선 */}
+                  <View
+                    style={[
+                      styles.verticalDivider,
+                      { backgroundColor: themeColors.divider },
+                    ]}
+                  />
 
-              {/* 월 칼럼 */}
-              <View style={styles.column}>
-                <MaskedView
-                  style={styles.listContainer}
-                  maskElement={
-                    <View style={styles.mask}>
-                      {/* 위쪽 fade */}
-                      {showMonthTopFade && (
-                        <LinearGradient
-                          colors={["rgba(0,0,0,0)", "rgba(0,0,0,1)"]}
-                          style={styles.topMask}
-                        />
-                      )}
-
-                      {/* 스크롤 리스트가 또렷하게 보이는 영역 */}
-                      <View style={styles.middleMask} />
-
-                      {/* 아래쪽 fade */}
-                      {showMonthBottomFade && (
-                        <LinearGradient
-                          colors={["rgba(0,0,0,1)", "rgba(0,0,0,0)"]}
-                          style={styles.bottomMask}
-                        />
-                      )}
-                    </View>
-                  }
-                >
-                  <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    onScroll={handleMonthScroll}
-                    scrollEventThrottle={16}
-                  >
-                    {months.map((month) => {
-                      const isActive = month === selectedMonth;
-                      return (
-                        <TouchableOpacity
-                          key={month}
-                          style={styles.itemRowMonth}
-                          onPress={() => onSelectMonth?.(month)}
-                        >
-                          <Text
-                            style={[
-                              styles.itemText,
-                              isActive && styles.itemTextActive,
-                            ]}
-                          >
-                            {month}월
-                          </Text>
-
-                          {isActive && (
-                            <CheckIcon
-                              width={16}
-                              height={16}
+                  {/* 월 칼럼 */}
+                  <View style={styles.column}>
+                    <MaskedView
+                      style={styles.listContainer}
+                      maskElement={
+                        <View style={styles.mask}>
+                          {/* 위쪽 fade */}
+                          {showMonthTopFade && (
+                            <LinearGradient
+                              colors={["rgba(0,0,0,0)", "rgba(0,0,0,1)"]}
+                              style={styles.topMask}
                             />
                           )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </MaskedView>
-              </View>
+
+                          {/* 스크롤 리스트가 또렷하게 보이는 영역 */}
+                          <View style={styles.middleMask} />
+
+                          {/* 아래쪽 fade */}
+                          {showMonthBottomFade && (
+                            <LinearGradient
+                              colors={["rgba(0,0,0,1)", "rgba(0,0,0,0)"]}
+                              style={styles.bottomMask}
+                            />
+                          )}
+                        </View>
+                      }
+                    >
+                      <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        onScroll={handleMonthScroll}
+                        scrollEventThrottle={16}
+                      >
+                        {months.map((month) => {
+                          const isActive = month === selectedMonth;
+                          return (
+                            <TouchableOpacity
+                              key={month}
+                              style={styles.itemRowMonth}
+                              onPress={() => onSelectMonth?.(month)}
+                            >
+                              <Text
+                                style={[
+                                  styles.itemText,
+                                  { color: themeColors.itemText },
+                                  isActive && [
+                                    styles.itemTextActive,
+                                    { color: themeColors.itemTextActive },
+                                  ],
+                                ]}
+                              >
+                                {month}월
+                              </Text>
+
+                              {isActive && (
+                                <CheckIcon
+                                  width={16}
+                                  height={16}
+                                />
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </MaskedView>
+                  </View>
+                </>
+              )}
             </View>
 
             {/* 가로 구분선 */}
-            <View style={styles.divider} />
+            <View
+              style={[styles.divider, { backgroundColor: themeColors.divider }]}
+            />
 
             {/* 닫기 버튼 */}
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
             >
-              <Text style={styles.closeText}>닫기</Text>
+              <Text
+                style={[styles.closeText, { color: themeColors.headerText }]}
+              >
+                닫기
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -250,7 +317,6 @@ const styles = StyleSheet.create({
   },
   inner: {
     borderRadius: radius[400],
-    backgroundColor: colors.primary[400],
     overflow: "hidden",
     flex: 1,
   },
@@ -260,11 +326,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography["body-1-bold"],
-    color: colors.mono[0],
   },
   divider: {
     height: 1,
-    backgroundColor: colors.primary[100],
     marginHorizontal: spacing.m,
   },
   columns: {
@@ -280,9 +344,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
   },
-  scrollContent: {
-    paddingBottom: ITEM_HEIGHT,
-  },
   itemRowYear: {
     flexDirection: "row",
     alignItems: "center",
@@ -296,15 +357,12 @@ const styles = StyleSheet.create({
   },
   itemText: {
     ...typography["body-1-regular"],
-    color: colors.primary[0],
   },
   itemTextActive: {
     ...typography["body-1-bold"],
-    color: colors.mono[0],
   },
   verticalDivider: {
     width: 1,
-    backgroundColor: colors.primary[100],
     marginHorizontal: spacing.m,
   },
   mask: {
@@ -327,6 +385,5 @@ const styles = StyleSheet.create({
   },
   closeText: {
     ...typography["heading-4-medium"],
-    color: colors.mono[0],
   },
 });
