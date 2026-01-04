@@ -13,6 +13,7 @@ import {
 } from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import ProgressBarCharacter from "@assets/progress-bar-img.png";
+import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
 import MonthlyCalendar from "@components/MonthlyCalendar";
 import ReadingProgressCard from "@components/ReadingProgressBar";
@@ -1346,68 +1347,12 @@ export default function HomeScreen({ navigation }) {
         </TouchableWithoutFeedback>
       </Modal>
 
-      <Modal
+      <DayLogsBottomSheet
         visible={!!dayModalKey}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDayModalKey(null)}
-      >
-        <TouchableWithoutFeedback onPress={() => setDayModalKey(null)}>
-          <View style={styles.dayModalBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={styles.daySheet}>
-                <View style={styles.sheetHandle} />
-                <Text style={styles.daySummaryText}>
-                  {activeDayNumber
-                    ? `${activeDayNumber}일에는 책을 ${activeDayLogs.length}번 읽었어요!`
-                    : "읽은 기록이 없어요"}
-                </Text>
-                <View style={styles.dayLogList}>
-                  {activeDayLogs.length === 0 ? (
-                    <Text style={styles.dayEmptyText}>
-                      기록을 추가하려면 달력에서 날짜를 눌러주세요.
-                    </Text>
-                  ) : (
-                    activeDayLogs.map((log) => (
-                      <View
-                        key={log.id}
-                        style={styles.dayLogRow}
-                      >
-                        <View style={styles.dayLogThumb}>
-                          {log.cover ? (
-                            <Image
-                              source={{ uri: log.cover }}
-                              style={styles.dayLogThumbImg}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <View style={styles.dayLogThumbFallback}>
-                              <Text style={styles.dayLogThumbText}>
-                                {log.title?.slice(0, 2) || "책"}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                        <View style={styles.dayLogMeta}>
-                          <Text style={styles.dayLogTitle}>{log.title}</Text>
-                          <View style={styles.dayLogSubRow}>
-                            <Text style={styles.dayLogTime}>{log.time}</Text>
-                            <View style={styles.dayLogChip}>
-                              <Text style={styles.dayLogChipText}>
-                                {log.place || "이동중"}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                      </View>
-                    ))
-                  )}
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+        dayKey={dayModalKey}
+        logs={activeDayLogs}
+        onClose={() => setDayModalKey(null)}
+      />
 
       <Modal
         visible={!!recoDetail}
@@ -1597,20 +1542,6 @@ const styles = StyleSheet.create({
   },
   addPlus: { color: "#fff", fontSize: 24, fontWeight: "700" },
 
-  goalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  goalLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-  },
-  goalLabel: { fontSize: 14, fontWeight: "500", color: "#000" },
-  goalTarget: { fontSize: 12, color: "#000" },
-
   section: { marginTop: 14, paddingHorizontal: 16 },
   sectionHead: { gap: 4, flexDirection: "row", alignItems: "center" },
   sectionTitle: {
@@ -1734,114 +1665,7 @@ const styles = StyleSheet.create({
   },
   detailReviewText: { fontSize: 14, color: colors.mono[950], lineHeight: 20 },
   detailReviewEmpty: { fontSize: 14, color: "#888" },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    justifyContent: "flex-end",
-  },
-  dayModalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    justifyContent: "flex-end",
-  },
-  daySheet: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 30,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 6,
-    gap: 20,
-  },
-  yearSheet: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 6,
-  },
-  sheetHandle: {
-    alignSelf: "center",
-    width: 56,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#e5e5e5",
-    marginBottom: 12,
-  },
-  sheetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-  },
-  daySummaryText: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#000",
-  },
-  dayLogList: { gap: 14 },
-  dayLogRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 4,
-  },
-  dayLogThumb: {
-    width: 44,
-    height: 60,
-    borderRadius: 10,
-    overflow: "hidden",
-    backgroundColor: "#f1f5f9",
-    borderWidth: 1,
-    borderColor: "#d9d9d9",
-  },
-  dayLogThumbImg: { width: "100%", height: "100%" },
-  dayLogThumbFallback: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#e5e5e5",
-  },
-  dayLogThumbText: { fontWeight: "700", color: "#426b1f" },
-  dayLogMeta: { flex: 1, gap: 4 },
-  dayLogTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
-  dayLogSubRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  dayLogTime: { fontSize: 16, color: "#000" },
-  dayLogChip: {
-    backgroundColor: green,
-    borderRadius: 16,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 60,
-    alignItems: "center",
-  },
-  dayLogChipText: { color: "#fff", fontSize: 10, fontWeight: "700" },
-  dayEmptyText: { fontSize: 14, color: "#666" },
-  sheetTitle: { fontSize: 18, fontWeight: "600", color: colors.mono[950] },
-  yearList: { paddingVertical: 8, gap: 14 },
-  yearRowItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 4,
-  },
-  yearOptionText: { fontSize: 16, color: colors.mono[950] },
-  yearOptionTextActive: { color: green, fontWeight: "700" },
-  yearCheck: { fontSize: 18, color: green, fontWeight: "700" },
-  yearCheckPlaceholder: { width: 18 },
-  sheetClose: { alignSelf: "center", marginTop: 10 },
-  sheetCloseText: { fontSize: 18, fontWeight: "600", color: colors.mono[950] },
+
   fab: {
     position: "absolute",
     right: 24,
@@ -1911,8 +1735,7 @@ const styles = StyleSheet.create({
     color: "#070b03",
   },
   bookWrap: { gap: 14 },
-  bookSection: { gap: 8 },
-  bookSectionTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
+
   bookRow: { gap: 8, paddingVertical: 4, paddingHorizontal: 8 },
   coverBox: { width: 130, alignItems: "center", gap: 6 },
   coverBoxActive: { borderWidth: 2, borderColor: "#426b1f", borderRadius: 10 },
