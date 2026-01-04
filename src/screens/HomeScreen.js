@@ -293,9 +293,7 @@ export default function HomeScreen({ navigation }) {
   const [goalCount, setGoalCount] = useState(0);
   const [readCount, setReadCount] = useState(0);
   const [goalModalVisible, setGoalModalVisible] = useState(false);
-  const [goalSetModalVisible, setGoalSetModalVisible] = useState(false);
   const [goalCandidate, setGoalCandidate] = useState(1);
-  const [goalBarWidth, setGoalBarWidth] = useState(0);
   const [friendList, setFriendList] = useState([]);
   const [progressWidth, setProgressWidth] = useState(0);
   const selectedMonthKey = useMemo(
@@ -656,13 +654,11 @@ export default function HomeScreen({ navigation }) {
   }, [isFocused]);
 
   const maxGoal = 30;
-  const handleSize = 44;
 
   const saveGoal = async () => {
     try {
       await updateProfile({ goalScore: goalCandidate });
       setGoalCount(goalCandidate);
-      setGoalSetModalVisible(false);
       showBanner("이번 달 목표를 설정했어요");
     } catch (e) {
       console.warn("목표 설정 실패:", e.response?.data || e.message);
@@ -670,25 +666,8 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const barRef = useRef(null);
-  const [barLeft, setBarLeft] = useState(0);
-
-  const measureBar = useCallback(() => {
-    requestAnimationFrame(() => {
-      barRef.current?.measureInWindow((x) => {
-        setBarLeft(x);
-      });
-    });
-  }, []);
-
-  const handleSetGoalByPageX = (pageX) => {
-    if (!goalBarWidth) return;
-
-    const x = pageX - barLeft; // bar 내부 좌표로 변환
-    const ratio = Math.min(1, Math.max(0, x / goalBarWidth));
-    const val = Math.max(1, Math.round(ratio * maxGoal));
-    setGoalCandidate(val);
-  };
+  // 목표 권수 설정
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -739,14 +718,24 @@ export default function HomeScreen({ navigation }) {
           </Pressable>
         </View>
 
-        <ReadingProgressCard
-          goalCount={goalCount}
-          readCount={readCount}
-          onPress={() => {
-            if (goalCount > 0) setGoalModalVisible(true);
-          }}
-          characterSource={ProgressBarCharacter}
-        />
+        {isEditingGoal ? (
+          <GoalCountSlider
+            value={goalCandidate}
+            onChange={setGoalCandidate}
+            onSave={async () => {
+              await saveGoal(); // 기존 함수 그대로 사용
+              setIsEditingGoal(false); // 완료하면 다시 진행바로
+            }}
+            max={maxGoal}
+          />
+        ) : (
+          <ReadingProgressCard
+            goalCount={goalCount} // 0이어도 그대로 보여줌
+            readCount={readCount}
+            onPress={() => setGoalModalVisible(true)} // 카드 누르면 결과 모달
+            characterSource={ProgressBarCharacter}
+          />
+        )}
 
         <Calendar
           year={year}
@@ -1250,55 +1239,14 @@ export default function HomeScreen({ navigation }) {
                 <Pressable
                   style={styles.goalButton}
                   onPress={() => {
-                    setGoalModalVisible(false);
-                    setGoalSetModalVisible(true);
+                    setGoalModalVisible(false); // 결과 모달 닫고
+                    setGoalCandidate(goalCount || 0); // 현재 목표값으로 슬라이더 초기화(없으면 0)
+                    setIsEditingGoal(true); // 진행바 자리에서 슬라이더 보여주기
                   }}
                 >
                   <Text style={styles.goalButtonText}>
                     홈에서 새 목표 설정하기
                   </Text>
-                </Pressable>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      <Modal
-        visible={goalSetModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setGoalSetModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setGoalSetModalVisible(false)}>
-          <View style={styles.goalSetBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={styles.goalSetCard}>
-                <View style={styles.goalSetHeader}>
-                  <Text style={styles.goalSetTitle}>이번 달 목표 권수</Text>
-                </View>
-
-                <View style={styles.goalSetSliderWrap}>
-                  <GoalCountSlider
-                    value={goalCandidate}
-                    onChange={setGoalCandidate}
-                    max={maxGoal}
-                    handleSize={handleSize}
-                    icon={
-                      <Ionicons
-                        name="book-outline"
-                        size={26}
-                        color="#355619"
-                      />
-                    }
-                  />
-                </View>
-
-                <Pressable
-                  style={styles.goalSetButton}
-                  onPress={saveGoal}
-                >
-                  <Text style={styles.goalSetButtonText}>목표 저장</Text>
                 </Pressable>
               </View>
             </TouchableWithoutFeedback>
@@ -1566,87 +1514,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   goalButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  goalSetBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  goalSetCard: {
-    width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#b1b1b1",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    gap: 20,
-  },
-  goalSetHeader: { alignItems: "center" },
-  goalSetTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#426b1f",
-    alignSelf: "flex-start",
-  },
-  goalSetSliderWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  goalSetBar: {
-    flex: 1,
-    height: 52,
-    justifyContent: "center",
-    position: "relative",
-  },
-  goalSetTrack: {
-    height: 8,
-    borderRadius: 20,
-    backgroundColor: "#c6c6c6",
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 22,
-  },
-  goalSetFill: {
-    height: 8,
-    borderRadius: 20,
-    backgroundColor: "#608540",
-    position: "absolute",
-    left: 0,
-    top: 22,
-  },
 
-  // 슬라이더에서 동그라미 + 숫자의 컨테이너
-  goalSetHandle: {
-    position: "absolute",
-    top: 8,
-    backgroundColor: "#426b1f",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 7,
-    paddingVertical: 6,
-  },
-
-  // 목표 설정 슬라이더 숫자 텍스트
-  goalSetHandleText: {
-    ...typography["body-1-bold"],
-    color: "#fff",
-  },
-
-  // 목표 설정 완료 버튼
-  goalSetButton: {
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "#426b1f",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  goalSetButtonText: { fontSize: 16, color: "#fff", fontWeight: "600" },
   calendarCard: {
     marginHorizontal: 16,
     marginTop: 12,
