@@ -11,6 +11,7 @@ import {
 } from "@constants/reportBackgroundMap";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import GoalResultScreen from "@screens/GoalResultScreen";
 import OnboardingFlowScreen from "@screens/OnboardingFlowScreen";
 import OnboardingIntroScreen from "@screens/OnboardingIntroScreen";
 import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
@@ -96,6 +97,11 @@ export default function App() {
           name="AuthGate"
           component={AuthGateScreen}
           options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GoalResult"
+          component={GoalResultScreen}
+          options={{ headerShown: false, gestureEnabled: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

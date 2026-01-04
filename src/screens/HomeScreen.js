@@ -1,4 +1,3 @@
-import ProgressBarCharacter from "../../assets/progress-bar-img.png";
 import {
   addBookToBookcase,
   deleteBookFromBookcase,
@@ -7,13 +6,20 @@ import {
   updateBookcaseState,
 } from "@apis/bookcaseApi";
 import { searchFriends } from "@apis/friendApi";
-import { fetchReadingLogs, saveReadingLog } from "@apis/reportApi";
+import {
+  fetchMonthlyReport,
+  fetchReadingLogs,
+  saveReadingLog,
+} from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
+import ProgressBarCharacter from "@assets/progress-bar-img.png";
 import GoalCountSlider from "@components/GoalCountSlider";
 import ReadingProgressCard from "@components/ReadingProgressBar";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
@@ -27,6 +33,7 @@ import React, {
 } from "react";
 import {
   Animated,
+  BackHandler,
   Image,
   Modal,
   Pressable,
@@ -276,6 +283,7 @@ const now = new Date();
 const TAB_BAR_HEIGHT = 52;
 
 export default function HomeScreen({ navigation }) {
+  const route = useRoute();
   const insets = useSafeAreaInsets();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -292,10 +300,60 @@ export default function HomeScreen({ navigation }) {
   const bookScrollRef = React.useRef(null);
   const [goalCount, setGoalCount] = useState(0);
   const [readCount, setReadCount] = useState(0);
-  const [goalModalVisible, setGoalModalVisible] = useState(false);
   const [goalCandidate, setGoalCandidate] = useState(1);
   const [friendList, setFriendList] = useState([]);
-  const [progressWidth, setProgressWidth] = useState(0);
+
+  // 테스트용 이번 달 방문 여부 초기화
+  const DEV = __DEV__;
+
+  const resetGoalModalDebug = async () => {
+    await AsyncStorage.multiRemove([
+      "lastSeenMonthKey",
+      "shownResultForMonthKey",
+    ]);
+    showBanner("✅ 목표 결과 노출 키 리셋!");
+
+    // 리셋 후 바로 지난달 결과 화면 다시 열기 (테스트 편하게)
+    const prevMonthKey = getPrevMonthKey();
+    const [py, pm] = prevMonthKey.split("-");
+
+    const report = await fetchMonthlyReport({
+      year: Number(py),
+      month: Number(pm),
+    }).catch(() => null);
+
+    const profile = await fetchUserProfile().catch(() => null);
+    const prevGoal = Number(profile?.goalScore) || 0;
+
+    const bookcase = await fetchBookcase().catch(() => ({}));
+    const after = bookcase?.after || bookcase?.AFTER || [];
+    const prevRead = after.filter(
+      (b) => getCompletionKey(b)?.key === prevMonthKey,
+    ).length;
+
+    const achieved = prevGoal > 0 && prevRead >= prevGoal;
+
+    navigation.navigate("GoalResult", {
+      achieved,
+      summary: report?.summary ?? null,
+      monthKey: prevMonthKey,
+      prevGoal,
+      prevRead,
+      forceSetGoal: true,
+    });
+  };
+
+  const getMonthKey = (date = new Date()) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+  };
+
+  const getPrevMonthKey = (date = new Date()) => {
+    const d = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+    return getMonthKey(d);
+  };
+
   const selectedMonthKey = useMemo(
     () => `${year}-${String(month).padStart(2, "0")}`,
     [year, month],
@@ -371,10 +429,12 @@ export default function HomeScreen({ navigation }) {
     const [, , day] = dayModalKey.split("-");
     return Number(day || 0);
   }, [dayModalKey]);
+
   const goalAchieved = useMemo(
     () => goalCount > 0 && readCount >= goalCount,
     [goalCount, readCount],
   );
+
   const filteredBooks = useMemo(() => {
     const merged = [
       ...(bookOptions.before || []),
@@ -554,6 +614,19 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
+  // 포커스 될 때 목표 에디터 자동 오픈
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const shouldOpen = route?.params?.openGoalEditor;
+    if (!shouldOpen) return;
+
+    setIsEditingGoal(true);
+
+    // 한번 열었으면 파라미터 제거(재진입/리렌더 때 계속 열리는 거 방지)
+    navigation.setParams({ openGoalEditor: undefined });
+  }, [isFocused, route?.params?.openGoalEditor, navigation]);
+
   useEffect(() => {
     if (isFocused) {
       loadRecommendations();
@@ -653,6 +726,75 @@ export default function HomeScreen({ navigation }) {
     };
   }, [isFocused]);
 
+  // 이번 달 첫 방문 체크 및 지난 달 결과 모달
+  useEffect(() => {
+    if (!isFocused) return;
+
+    let cancelled = false;
+
+    const checkAndOpenPrevMonthResult = async () => {
+      const thisMonthKey = getMonthKey();
+      const prevMonthKey = getPrevMonthKey();
+
+      const lastSeenMonthKey = await AsyncStorage.getItem("lastSeenMonthKey");
+      const shownResultForMonthKey = await AsyncStorage.getItem(
+        "shownResultForMonthKey",
+      );
+
+      const isFirstVisitThisMonth = lastSeenMonthKey !== thisMonthKey;
+      const alreadyShownPrev = shownResultForMonthKey === prevMonthKey;
+
+      // 이번달 첫 방문이 아니거나, 이미 지난달 결과 보여줬으면 패스
+      if (!isFirstVisitThisMonth || alreadyShownPrev) {
+        await AsyncStorage.setItem("lastSeenMonthKey", thisMonthKey);
+        return;
+      }
+
+      try {
+        // 지난달 리포트 summary 가져오기
+        const [py, pm] = prevMonthKey.split("-"); // "2025-12" -> ["2025","12"]
+        const report = await fetchMonthlyReport({
+          year: Number(py),
+          month: Number(pm),
+        }).catch(() => null);
+
+        // 지난달 목표 (goalScore)
+        const profile = await fetchUserProfile().catch(() => null);
+        const prevGoal = Number(profile?.goalScore) || 0;
+
+        // 지난달 완독 수 (after 중에서 완료월이 prevMonthKey인 것)
+        const bookcase = await fetchBookcase().catch(() => ({}));
+        const after = bookcase?.after || bookcase?.AFTER || [];
+        const prevRead = after.filter(
+          (b) => getCompletionKey(b)?.key === prevMonthKey,
+        ).length;
+
+        const achieved = prevGoal > 0 && prevRead >= prevGoal;
+
+        if (cancelled) return;
+
+        navigation.navigate("GoalResult", {
+          achieved,
+          summary: report?.summary ?? null,
+          monthKey: prevMonthKey,
+          prevGoal,
+          prevRead,
+          forceSetGoal: true,
+        });
+
+        await AsyncStorage.setItem("shownResultForMonthKey", prevMonthKey);
+      } finally {
+        await AsyncStorage.setItem("lastSeenMonthKey", thisMonthKey);
+      }
+    };
+
+    checkAndOpenPrevMonthResult();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isFocused, getCompletionKey, navigation]);
+
   const maxGoal = 30;
 
   const saveGoal = async () => {
@@ -675,9 +817,19 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
+        {/*
         <View style={styles.header}>
           <Text style={styles.logo}>modam</Text>
         </View>
+        */}
+
+        {/* 임시로 로고 버튼 길게 누르면 이번 달에 조회했어두 그 기록 초기화 하고 처음 오는 것처럼 보이게 해뒀어용 !*/}
+        <Pressable
+          style={styles.header}
+          onLongPress={DEV ? resetGoalModalDebug : undefined}
+        >
+          <Text style={styles.logo}>modam</Text>
+        </Pressable>
 
         <View style={styles.friendsStrip}>
           {friends.map((f, idx) => (
@@ -732,7 +884,7 @@ export default function HomeScreen({ navigation }) {
           <ReadingProgressCard
             goalCount={goalCount} // 0이어도 그대로 보여줌
             readCount={readCount}
-            onPress={() => setGoalModalVisible(true)} // 카드 누르면 결과 모달
+            onPress={() => {}}
             characterSource={ProgressBarCharacter}
           />
         )}
@@ -1209,52 +1361,6 @@ export default function HomeScreen({ navigation }) {
       </Modal>
 
       <Modal
-        visible={goalModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setGoalModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setGoalModalVisible(false)}>
-          <View style={styles.goalModalBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={styles.goalModalCard}>
-                <View style={styles.goalBadge}>
-                  <Text style={styles.goalBadgeText}>캐릭터</Text>
-                </View>
-                <View style={{ alignItems: "center", gap: 10 }}>
-                  <Text style={styles.goalTitle}>
-                    {goalAchieved ? "미션 완료" : "미션 실패"}
-                  </Text>
-                  <Text style={styles.goalTitle}>
-                    {goalAchieved
-                      ? "목표 권수를 달성했어요!"
-                      : "목표 권수를 달성하지 못했어요.."}
-                  </Text>
-                  <Text style={styles.goalSubtitle}>
-                    {goalAchieved
-                      ? "다음달도 즐겁게 독서해볼까요?"
-                      : "다음달은 더 즐겁게 독서해요!"}
-                  </Text>
-                </View>
-                <Pressable
-                  style={styles.goalButton}
-                  onPress={() => {
-                    setGoalModalVisible(false); // 결과 모달 닫고
-                    setGoalCandidate(goalCount || 0); // 현재 목표값으로 슬라이더 초기화(없으면 0)
-                    setIsEditingGoal(true); // 진행바 자리에서 슬라이더 보여주기
-                  }}
-                >
-                  <Text style={styles.goalButtonText}>
-                    홈에서 새 목표 설정하기
-                  </Text>
-                </Pressable>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      <Modal
         visible={!!recoDetail}
         transparent
         animationType="fade"
@@ -1455,65 +1561,6 @@ const styles = StyleSheet.create({
   },
   goalLabel: { fontSize: 14, fontWeight: "500", color: "#000" },
   goalTarget: { fontSize: 12, color: "#000" },
-
-  goalModalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  goalModalCard: {
-    width: "100%",
-    backgroundColor: "#fafaf5",
-    borderRadius: 20,
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    gap: 28,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
-  },
-  goalBadge: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "#d7eec4",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#426b1f",
-  },
-  goalBadgeText: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#000",
-  },
-  goalTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#000",
-    textAlign: "center",
-  },
-  goalSubtitle: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: "#666",
-    textAlign: "center",
-  },
-  goalButton: {
-    marginTop: 4,
-    backgroundColor: "#426b1f",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    alignSelf: "stretch",
-    alignItems: "center",
-  },
-  goalButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 
   calendarCard: {
     marginHorizontal: 16,
