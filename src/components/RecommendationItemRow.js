@@ -1,5 +1,6 @@
 import BookCover from "@components/BookCover";
 import StarIcon from "@components/StarIcon";
+import Tag from "@components/Tag";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
@@ -106,17 +107,12 @@ function RecommendationItemRow({
         <View style={styles.bottomRow}>
           <View style={styles.chipRow}>
             {topKeywords.map((k, idx) => (
-              <View
+              <Tag
                 key={`${k}-${idx}`}
-                style={styles.chip}
-              >
-                <Text
-                  style={styles.chipText}
-                  numberOfLines={1}
-                >
-                  {k}
-                </Text>
-              </View>
+                label={k}
+                size="small"
+                variant="square"
+              />
             ))}
           </View>
 
@@ -192,21 +188,6 @@ const styles = StyleSheet.create({
 
   // 키워드 칩 한 묶음
   chipRow: { flexDirection: "row", gap: spacing.xs },
-
-  // 키워드 칩 하나
-  chip: {
-    height: 18,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius[100],
-    backgroundColor: colors.primary[300],
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 36,
-  },
-
-  // 키워드 텍스트
-  chipText: { ...typography["detail-2-regular"], color: colors.mono[0] },
 });
 
 export default memo(RecommendationItemRow);

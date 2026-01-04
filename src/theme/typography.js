@@ -12,6 +12,11 @@ export const typography = {
     fontSize: 24,
     fontWeight: "500",
   },
+  "heading-1-bold": {
+    ...baseText,
+    fontSize: 24,
+    fontWeight: "700",
+  },
   "heading-2-medium": {
     ...baseText,
     fontSize: 22,
