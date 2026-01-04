@@ -113,7 +113,11 @@ export default function GoalResultScreen() {
             const prevMonthKey = getPrevMonthKey(now);
 
             await AsyncStorage.setItem("lastSeenMonthKey", thisMonthKey);
-            await AsyncStorage.setItem("shownResultForMonthKey", prevMonthKey);
+            await AsyncStorage.setItem(
+              "pendingResultForMonthKey",
+              prevMonthKey,
+            );
+            await AsyncStorage.setItem("pendingGoalEdit", "1");
 
             navigation.reset({
               index: 0,
@@ -170,9 +174,8 @@ const styles = StyleSheet.create({
 
   // 캐릭터가 띄워질 원
   characterBox: {
-    width: 266,
-    height: 266,
-    borderRadius: 999,
+    width: 184,
+    height: 178,
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",

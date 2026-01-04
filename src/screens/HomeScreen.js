@@ -51,6 +51,8 @@ import {
 } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
+const PENDING_GOAL_EDIT_KEY = "pendingGoalEdit"; // 이번 달 목표 설정 했는지 체크하는 용
+
 const green = "#608540";
 const lightGreen = "#fafaf5";
 const mutedGreen = "#9fb37b";
@@ -303,6 +305,8 @@ export default function HomeScreen({ navigation }) {
   const [goalCandidate, setGoalCandidate] = useState(1);
   const [friendList, setFriendList] = useState([]);
 
+  const openedGoalEditorRef = useRef(false);
+
   // 테스트용 이번 달 방문 여부 초기화
   const DEV = __DEV__;
 
@@ -310,6 +314,7 @@ export default function HomeScreen({ navigation }) {
     await AsyncStorage.multiRemove([
       "lastSeenMonthKey",
       "shownResultForMonthKey",
+      "pendingResultForMonthKey",
     ]);
     showBanner("✅ 목표 결과 노출 키 리셋!");
 
@@ -621,6 +626,8 @@ export default function HomeScreen({ navigation }) {
     const shouldOpen = route?.params?.openGoalEditor;
     if (!shouldOpen) return;
 
+    openedGoalEditorRef.current = true; // 이번 포커스는 GoalResult 체크 스킵용
+    AsyncStorage.setItem(PENDING_GOAL_EDIT_KEY, "1");
     setIsEditingGoal(true);
 
     // 한번 열었으면 파라미터 제거(재진입/리렌더 때 계속 열리는 거 방지)
@@ -736,10 +743,62 @@ export default function HomeScreen({ navigation }) {
       const thisMonthKey = getMonthKey();
       const prevMonthKey = getPrevMonthKey();
 
+      // 이번 진입에서 GoalEditor를 연 상태면 GoalResult로 되돌리지 말기
+      if (openedGoalEditorRef.current || isEditingGoal) {
+        await AsyncStorage.setItem("lastSeenMonthKey", thisMonthKey);
+        return;
+      }
+
       const lastSeenMonthKey = await AsyncStorage.getItem("lastSeenMonthKey");
       const shownResultForMonthKey = await AsyncStorage.getItem(
         "shownResultForMonthKey",
       );
+      const pendingResultForMonthKey = await AsyncStorage.getItem(
+        "pendingResultForMonthKey",
+      );
+
+      const pendingGoalEdit = await AsyncStorage.getItem(PENDING_GOAL_EDIT_KEY);
+
+      // pending이 남아있으면 (=아직 목표 설정 완료로 확정 안 된 상태)
+      // 첫 방문 여부 상관없이 GoalResult 다시 띄우기
+      if (
+        (pendingResultForMonthKey === prevMonthKey ||
+          pendingGoalEdit === "1") &&
+        shownResultForMonthKey !== prevMonthKey
+      ) {
+        const [py, pm] = prevMonthKey.split("-");
+
+        const report = await fetchMonthlyReport({
+          year: Number(py),
+          month: Number(pm),
+        }).catch(() => null);
+
+        const profile = await fetchUserProfile().catch(() => null);
+        const prevGoal = Number(profile?.goalScore) || 0;
+
+        const bookcase = await fetchBookcase().catch(() => ({}));
+        const after = bookcase?.after || bookcase?.AFTER || [];
+        const prevRead = after.filter(
+          (b) => getCompletionKey(b)?.key === prevMonthKey,
+        ).length;
+
+        const achieved = prevGoal > 0 && prevRead >= prevGoal;
+
+        if (cancelled) return;
+
+        navigation.navigate("GoalResult", {
+          achieved,
+          summary: report?.summary ?? null,
+          monthKey: prevMonthKey,
+          prevGoal,
+          prevRead,
+          forceSetGoal: true,
+        });
+
+        // lastSeenMonthKey는 갱신해도 됨 (pending이 우선이니까)
+        await AsyncStorage.setItem("lastSeenMonthKey", thisMonthKey);
+        return;
+      }
 
       const isFirstVisitThisMonth = lastSeenMonthKey !== thisMonthKey;
       const alreadyShownPrev = shownResultForMonthKey === prevMonthKey;
@@ -782,7 +841,7 @@ export default function HomeScreen({ navigation }) {
           forceSetGoal: true,
         });
 
-        await AsyncStorage.setItem("shownResultForMonthKey", prevMonthKey);
+        await AsyncStorage.setItem("pendingResultForMonthKey", prevMonthKey);
       } finally {
         await AsyncStorage.setItem("lastSeenMonthKey", thisMonthKey);
       }
@@ -793,7 +852,7 @@ export default function HomeScreen({ navigation }) {
     return () => {
       cancelled = true;
     };
-  }, [isFocused, getCompletionKey, navigation]);
+  }, [isFocused, getCompletionKey, navigation, isEditingGoal]);
 
   const maxGoal = 30;
 
@@ -801,7 +860,17 @@ export default function HomeScreen({ navigation }) {
     try {
       await updateProfile({ goalScore: goalCandidate });
       setGoalCount(goalCandidate);
-      showBanner("이번 달 목표를 설정했어요");
+
+      const pending = await AsyncStorage.getItem("pendingResultForMonthKey");
+      if (pending) {
+        await AsyncStorage.setItem("shownResultForMonthKey", pending);
+        await AsyncStorage.removeItem("pendingResultForMonthKey");
+      }
+
+      // 목표 확정했으니 편집 중 플래그도 제거
+      await AsyncStorage.removeItem(PENDING_GOAL_EDIT_KEY);
+
+      openedGoalEditorRef.current = false; // 다음 포커스부터는 정상 체크
     } catch (e) {
       console.warn("목표 설정 실패:", e.response?.data || e.message);
       showBanner("목표 설정에 실패했어요");
