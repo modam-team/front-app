@@ -57,7 +57,7 @@ function RecommendationSectionCard({
           totalReview={Number(b.totalReview) || 0}
           cover={b.cover}
           keywords={b.topKeywords || b.userHashTag || b.tags || []} // 키워드 Top3를 아직 안 넘겨줘서 .. 일단 이중 하나는 이름 얻어걸리겠지 하구 넣어 봤어요 ..
-          liked={isLiked?.(b.bookId ?? b.id)}
+          liked={isLiked?.(b)}
           onPress={() => onPressItem?.(b)}
           onToggleHeart={() => onToggleHeart?.(b)}
           heartDisabled={heartDisabledIds.has(b.bookId ?? b.id)}
