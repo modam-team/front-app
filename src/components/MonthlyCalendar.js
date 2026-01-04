@@ -93,8 +93,8 @@ export default function MonthlyCalendar({
           <Text style={styles.yearText}>{year}</Text>
           <Ionicons
             name="chevron-down"
-            size={18}
-            color="#191919"
+            size={16}
+            color={colors.mono[950]}
           />
         </TouchableOpacity>
       </View>
@@ -107,8 +107,8 @@ export default function MonthlyCalendar({
         >
           <Ionicons
             name="chevron-back-outline"
-            size={28}
-            color="#000"
+            size={24}
+            color={colors.mono[950]}
           />
         </TouchableOpacity>
         <Text style={styles.calTitle}>{`${month}월`}</Text>
@@ -118,8 +118,8 @@ export default function MonthlyCalendar({
         >
           <Ionicons
             name="chevron-forward-outline"
-            size={28}
-            color="#000"
+            size={24}
+            color={colors.mono[950]}
           />
         </TouchableOpacity>
       </View>
