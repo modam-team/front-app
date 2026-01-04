@@ -1,4 +1,5 @@
 import AppHeader from "@components/AppHeader";
+import { NOTICES } from "@constants/notices";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
@@ -7,25 +8,16 @@ import React, { useMemo } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-//TODO: 서버 붙이면 실제 데이터로 교체 하겠습니당 !
-const MOCK_NOTICES = [
-  /*
-  { id: "1", title: "공지사항은 이러이러합니다.", createdAt: "2026-01-01" },
-  { id: "2", title: "공지사항은 이러이러합니다.", createdAt: "2026-01-02" },
-  { id: "3", title: "공지사항은 이러이러합니다.", createdAt: "2026-01-03" },
-   */
-];
-
 export default function NoticeScreen({ navigation }) {
   // 최신순 정렬 (createdAt 기준)
   const notices = useMemo(() => {
-    return [...MOCK_NOTICES].sort(
+    return [...NOTICES].sort(
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     );
   }, []);
 
   // 공지사항이 하나도 없는지 여부
-  const isEmpty = notices.length === 0;
+  const isEmpty = NOTICES.length === 0;
 
   // 공지사항 리스트 아이템 렌더링
   const renderItem = ({ item, index }) => {
@@ -38,7 +30,7 @@ export default function NoticeScreen({ navigation }) {
         style={({ pressed }) => [
           styles.item,
           pressed && styles.pressed,
-          !isLast && styles.itemDivider,
+          styles.itemDivider,
         ]}
       >
         {/* 공지 제목 */}
