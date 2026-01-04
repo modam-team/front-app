@@ -13,15 +13,14 @@ import {
 } from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import ProgressBarCharacter from "@assets/progress-bar-img.png";
+import Button from "@components/Button";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
 import MonthlyCalendar from "@components/MonthlyCalendar";
 import ReadingProgressCard from "@components/ReadingProgressBar";
 import ReadingStartModal from "@components/ReadingStartModal";
 import RecommendationDetailModal from "@components/RecommendationDetailModal";
-import RecommendationItemRow from "@components/RecommendationItemRow";
 import RecommendationSectionCard from "@components/RecommendationSectionCard";
-import StarIcon from "@components/StarIcon";
 import YearMonthPicker from "@components/YearMonthPicker";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,7 +29,6 @@ import { useRoute } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import { LinearGradient } from "expo-linear-gradient";
 import React, {
   useCallback,
   useEffect,
@@ -40,16 +38,11 @@ import React, {
 } from "react";
 import {
   Animated,
-  BackHandler,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import {
@@ -100,6 +93,45 @@ export default function HomeScreen({ navigation }) {
   const [themeKey] = useState("green");
 
   const openedGoalEditorRef = useRef(false);
+
+  // 토스트 관련
+  const [toast, setToast] = useState({
+    visible: false,
+    text: "",
+    tone: "primary",
+  });
+
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimer = useRef(null);
+
+  const showToast = useCallback(
+    (text, tone = "primary") => {
+      if (!text) return;
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+
+      setToast({ visible: true, text, tone });
+
+      toastOpacity.stopAnimation();
+      toastOpacity.setValue(0);
+
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+
+      toastTimer.current = setTimeout(() => {
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(({ finished }) => {
+          if (finished) setToast((prev) => ({ ...prev, visible: false }));
+        });
+      }, 1800);
+    },
+    [toastOpacity],
+  );
 
   // 테스트용 이번 달 방문 여부 초기화
   const DEV = __DEV__;
@@ -154,10 +186,6 @@ export default function HomeScreen({ navigation }) {
     return getMonthKey(d);
   };
 
-  const selectedMonthKey = useMemo(
-    () => `${year}-${String(month).padStart(2, "0")}`,
-    [year, month],
-  );
   const formatDateKey = useCallback((dateObj) => {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -207,19 +235,7 @@ export default function HomeScreen({ navigation }) {
     const b = clamp(Math.round(f.b + (t.b - f.b) * ratio));
     return `rgb(${r},${g},${b})`;
   }, []);
-  const getDayBubbleStyle = useCallback(
-    (dayKey) => {
-      const count = readingLogs?.[dayKey]?.length || 0;
-      if (!count) return null;
-      const ratio = Math.min(1, count / maxDayCount);
-      return {
-        backgroundColor: mixColor("#d7eec4", "#608540", ratio),
-        borderColor: mixColor("#9fb37b", "#355619", ratio),
-        borderWidth: 1,
-      };
-    },
-    [readingLogs, maxDayCount, mixColor],
-  );
+
   const activeDayLogs = dayModalKey ? readingLogs[dayModalKey] || [] : [];
   const activeDayNumber = useMemo(() => {
     if (!dayModalKey) return "";
@@ -302,34 +318,35 @@ export default function HomeScreen({ navigation }) {
     async (book) => {
       const bookId = book?.bookId || book?.id;
       if (!bookId || heartBusyIds.has(bookId)) return;
-      setHeartBusyIds((prev) => {
-        const next = new Set(prev);
-        next.add(bookId);
-        return next;
-      });
+
+      setHeartBusyIds((prev) => new Set(prev).add(bookId));
+
       const alreadyLiked = favoriteIds.has(bookId);
+
       try {
         if (alreadyLiked) {
           await deleteBookFromBookcase(bookId);
+
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            next.delete(bookId);
+            return next;
+          });
+
+          showToast("책을 책장에서 뺐어요", "primary");
         } else {
           await addBookToBookcase(bookId, "BEFORE");
+
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            next.add(bookId);
+            return next;
+          });
+
+          showToast("책을 책장에 담았어요", "primary");
         }
-        setFavoriteIds((prev) => {
-          const next = new Set(prev);
-          if (alreadyLiked) next.delete(bookId);
-          else next.add(bookId);
-          return next;
-        });
-        showBanner(
-          alreadyLiked ? "책을 책장에서 뺐어요" : "책을 책장에 담았어요",
-        );
       } catch (e) {
-        console.warn("책장 토글 실패:", e.response?.data || e.message);
-        showBanner(
-          alreadyLiked
-            ? "책을 책장에서 빼는 데 실패했어요"
-            : "책을 책장에 담는 데 실패했어요",
-        );
+        showToast("더이상 새로고침 할 수 없어요", "error");
       } finally {
         setHeartBusyIds((prev) => {
           const next = new Set(prev);
@@ -338,21 +355,8 @@ export default function HomeScreen({ navigation }) {
         });
       }
     },
-    [favoriteIds, heartBusyIds, showBanner],
+    [favoriteIds, heartBusyIds, showToast, loadRecommendations],
   );
-
-  // 추천 책의 키워드 후보를 추출하는 헬퍼
-  // - userHashTag / tags / categoryName 등에서 최대 3개로 정리
-  const getRecoKeywords = useCallback((book) => {
-    const raw =
-      (Array.isArray(book?.userHashTag) && book.userHashTag) ||
-      (Array.isArray(book?.tags) && book.tags) ||
-      (typeof book?.categoryName === "string" ? [book.categoryName] : []);
-
-    return (raw || [])
-      .filter((x) => typeof x === "string" && x.trim().length > 0)
-      .map((x) => x.trim());
-  }, []);
 
   const loadRecommendations = useCallback(async () => {
     setRecoLoading(true);
@@ -825,7 +829,7 @@ export default function HomeScreen({ navigation }) {
               //하트 토글
               onToggleHeart={(book) => handleToggleHeart(book)}
               // liked 여부 판단 함수
-              isLiked={(bookId) => favoriteIds.has(bookId)}
+              isLiked={(book) => favoriteIds.has(book?.bookId || book?.id)}
               // 하트 disabled 처리용 Set
               heartDisabledIds={heartBusyIds}
             />
@@ -866,7 +870,6 @@ export default function HomeScreen({ navigation }) {
         fetchBookcase={fetchBookcase}
         placeKeyMap={placeKeyMap}
         onSubmit={async ({ placeLabel, placeCode, selectedBookId, book }) => {
-          // ✅ 여기 안에 “기존 bookSelectOpen 모달의 독서 시작 onPress 로직”을 옮김
           try {
             // (1) 상태 READING 맞추기
             const stateRaw = book?.state || book?.status || book?.bookStatus;
@@ -933,25 +936,35 @@ export default function HomeScreen({ navigation }) {
         onClose={() => setRecoDetail(null)}
       />
 
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.toast,
-          {
-            opacity: bannerOpacity,
-            transform: [
-              {
-                translateY: bannerOpacity.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <Text style={styles.toastText}>{bannerText}</Text>
-      </Animated.View>
+      {toast.visible && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.toastWrap,
+            { bottom: TAB_BAR_HEIGHT + insets.bottom + 12 },
+            {
+              opacity: toastOpacity,
+              transform: [
+                {
+                  translateY: toastOpacity.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [16, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Button
+            label={toast.text}
+            size="xlarge"
+            variant={toast.tone === "error" ? "error" : "primary"}
+            tone="fill"
+            fullWidth
+            style={styles.toastButton}
+          />
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1044,4 +1057,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   toastText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+
+  toastWrap: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+  },
+  toastButton: { borderRadius: 14 },
 });
