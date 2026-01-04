@@ -68,4 +68,14 @@ export const typography = {
     fontSize: 12,
     fontWeight: "400",
   },
+  "detail-2-bold": {
+    ...baseText,
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  "detail-2-regular": {
+    ...baseText,
+    fontSize: 10,
+    fontWeight: "400",
+  },
 };

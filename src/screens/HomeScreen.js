@@ -17,6 +17,8 @@ import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
 import MonthlyCalendar from "@components/MonthlyCalendar";
 import ReadingProgressCard from "@components/ReadingProgressBar";
+import RecommendationItemRow from "@components/RecommendationItemRow";
+import RecommendationSectionCard from "@components/RecommendationSectionCard";
 import StarIcon from "@components/StarIcon";
 import YearMonthPicker from "@components/YearMonthPicker";
 import { Ionicons } from "@expo/vector-icons";
@@ -95,191 +97,6 @@ function Rating({ value, color = green, inactiveColor = starGray }) {
           </View>
         );
       })}
-    </View>
-  );
-}
-
-function RecommendationItem({
-  title,
-  author,
-  tags,
-  rating,
-  cover,
-  totalReview = 0,
-  onToggleHeart,
-  liked,
-  onPress,
-  heartDisabled = false,
-}) {
-  return (
-    <Pressable
-      style={styles.recCard}
-      onPress={onPress}
-    >
-      <View style={styles.bookCover}>
-        {cover ? (
-          <Image
-            source={{ uri: cover }}
-            style={styles.coverImg}
-            resizeMode="cover"
-          />
-        ) : (
-          <Text style={styles.coverText}>{title.slice(0, 2)}</Text>
-        )}
-      </View>
-      <View style={styles.bookMeta}>
-        <Text style={styles.bookTitle}>{title}</Text>
-        <Text style={styles.bookAuthor}>{author}</Text>
-        <View style={styles.ratingLine}>
-          <Rating
-            value={rating}
-            color={starGray}
-            inactiveColor={starGray}
-          />
-          <Text style={styles.reviewCount}>({totalReview})</Text>
-        </View>
-      </View>
-      <Pressable
-        hitSlop={8}
-        onPress={onToggleHeart}
-        disabled={heartDisabled}
-        style={styles.heartBtn}
-      >
-        <Ionicons
-          name={liked ? "heart" : "heart-outline"}
-          size={28}
-          color={liked ? "#426b1f" : "#c6c6c6"}
-        />
-      </Pressable>
-    </Pressable>
-  );
-}
-
-function Calendar({
-  year,
-  month,
-  onPrev,
-  onNext,
-  onYearChange,
-  markedDates = new Set(),
-  onDayPress,
-  selectedDayKey,
-  getDayBubbleStyle = () => null,
-}) {
-  const weeks = useMemo(() => {
-    const first = new Date(year, month - 1, 1);
-    const last = new Date(year, month, 0).getDate();
-    const startIndex = (first.getDay() + 6) % 7; // monday start
-    const cells = [];
-    for (let i = 0; i < startIndex; i += 1) cells.push(null);
-    for (let d = 1; d <= last; d += 1) cells.push(d);
-    while (cells.length % 7 !== 0) cells.push(null);
-    const result = [];
-    for (let i = 0; i < cells.length; i += 7) {
-      result.push(cells.slice(i, i + 7));
-    }
-    return result;
-  }, [year, month]);
-
-  return (
-    <View style={styles.calendarCard}>
-      <View style={styles.yearRow}>
-        <TouchableOpacity
-          style={styles.yearButton}
-          onPress={() => onYearChange?.("open")}
-          hitSlop={8}
-        >
-          <Text style={styles.yearText}>{year}</Text>
-          <Ionicons
-            name="chevron-down"
-            size={18}
-            color="#191919"
-          />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.monthRow}>
-        <TouchableOpacity
-          onPress={onPrev}
-          hitSlop={12}
-        >
-          <Ionicons
-            name="chevron-back-outline"
-            size={28}
-            color="#000"
-          />
-        </TouchableOpacity>
-        <Text style={styles.calTitle}>{`${month}월`}</Text>
-        <TouchableOpacity
-          onPress={onNext}
-          hitSlop={12}
-        >
-          <Ionicons
-            name="chevron-forward-outline"
-            size={28}
-            color="#000"
-          />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.weekRow}>
-        {["월", "화", "수", "목", "금", "토", "일"].map((w) => (
-          <Text
-            key={w}
-            style={styles.weekLabel}
-          >
-            {w}
-          </Text>
-        ))}
-      </View>
-      {weeks.map((week, idx) => (
-        <View
-          key={idx}
-          style={styles.dayRow}
-        >
-          {week.map((day, dIdx) => (
-            <View
-              key={dIdx}
-              style={styles.dayCell}
-            >
-              {day ? (
-                (() => {
-                  const dayKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                  const isMarked = markedDates?.has?.(dayKey);
-                  const isSelected = selectedDayKey === dayKey;
-                  const bubbleStyle = getDayBubbleStyle?.(dayKey);
-                  return (
-                    <Pressable
-                      onPress={() => {
-                        if (isMarked) {
-                          onDayPress?.(dayKey);
-                        }
-                      }}
-                      style={[
-                        styles.dayBubble,
-                        (isMarked || isSelected) && styles.dayBubbleMarked,
-                        bubbleStyle,
-                        isSelected && styles.dayBubbleSelected,
-                      ]}
-                      hitSlop={8}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          (isMarked || isSelected) && styles.dayTextHighlighted,
-                          isSelected && styles.dayTextSelected,
-                        ]}
-                      >
-                        {day}
-                      </Text>
-                    </Pressable>
-                  );
-                })()
-              ) : (
-                <Text style={styles.dayTextMuted}> </Text>
-              )}
-            </View>
-          ))}
-        </View>
-      ))}
     </View>
   );
 }
@@ -576,6 +393,19 @@ export default function HomeScreen({ navigation }) {
     [favoriteIds, heartBusyIds, showBanner],
   );
 
+  // 추천 책의 키워드 후보를 추출하는 헬퍼
+  // - userHashTag / tags / categoryName 등에서 최대 3개로 정리
+  const getRecoKeywords = useCallback((book) => {
+    const raw =
+      (Array.isArray(book?.userHashTag) && book.userHashTag) ||
+      (Array.isArray(book?.tags) && book.tags) ||
+      (typeof book?.categoryName === "string" ? [book.categoryName] : []);
+
+    return (raw || [])
+      .filter((x) => typeof x === "string" && x.trim().length > 0)
+      .map((x) => x.trim());
+  }, []);
+
   const loadRecommendations = useCallback(async () => {
     setRecoLoading(true);
     Animated.timing(recoOpacity, {
@@ -592,6 +422,7 @@ export default function HomeScreen({ navigation }) {
 
       const preferred = profile?.preferredCategories || [];
       const goalCountNumber = Number(profile?.goalScore) || 0;
+
       setNickname(profile?.nickname || "");
       setGoalCount(goalCountNumber);
       setGoalCandidate(goalCountNumber || 1);
@@ -614,7 +445,19 @@ export default function HomeScreen({ navigation }) {
 
       // 새로고침 시에도 구성이 바뀌도록 섞어서 상위 2개만 사용
       const shuffled = filtered.sort(() => Math.random() - 0.5);
-      setRecs(shuffled.slice(0, 2));
+      // setRecs(shuffled.slice(0, 2));
+
+      // !!임시!! 더미 키워드 정의
+      const DUMMY_KEYWORDS = ["힐링", "현실공감", "몰입감", "문장력", "감동"];
+
+      // !!임시!! 상위 2권에 더미 키워드 주입
+      const withDummy = shuffled.slice(0, 2).map((b) => ({
+        ...b,
+        topKeywords: DUMMY_KEYWORDS.sort(() => Math.random() - 0.5).slice(0, 3),
+      }));
+
+      // !!임시!! 최종 세팅
+      setRecs(withDummy);
     } catch (e) {
       console.warn("추천 불러오기 실패:", e.response?.data || e.message);
     } finally {
@@ -1000,52 +843,21 @@ export default function HomeScreen({ navigation }) {
         />
 
         <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sectionTitle}>
-                {nickname
-                  ? `${nickname}님께 추천하는 책이에요`
-                  : "추천하는 책이에요"}
-              </Text>
-              <Text style={styles.sectionHint}>
-                클릭하면 독서 노트를 볼 수 있어요
-              </Text>
-            </View>
-            <View style={styles.sectionActions}>
-              <Pressable
-                style={styles.iconButton}
-                hitSlop={8}
-                onPress={loadRecommendations}
-                disabled={recoLoading}
-              >
-                <Ionicons
-                  name="refresh"
-                  size={28}
-                  color="#7a7a7a"
-                />
-              </Pressable>
-            </View>
-          </View>
           <Animated.View style={[styles.recList, { opacity: recoOpacity }]}>
-            {recs.map((book, idx) => {
-              const bookId = book.bookId || book.id || idx;
-              const liked = favoriteIds.has(bookId);
-              return (
-                <RecommendationItem
-                  key={bookId}
-                  title={book.title}
-                  author={`${book.author || ""}${book.publisher ? ` / ${book.publisher}` : ""}`}
-                  rating={book.rate || 0}
-                  totalReview={book.totalReview || 0}
-                  tags={[book.categoryName || book.publisher || "추천"]}
-                  cover={book.cover}
-                  liked={liked}
-                  onToggleHeart={() => handleToggleHeart(book)}
-                  heartDisabled={heartBusyIds.has(bookId)}
-                  onPress={() => setRecoDetail(book)}
-                />
-              );
-            })}
+            <RecommendationSectionCard
+              nickname={nickname || ""}
+              recs={recs}
+              // 새로고침
+              onRefresh={loadRecommendations}
+              // 아이템 클릭 -> 상세 모달 열기
+              onPressItem={(book) => setRecoDetail(book)}
+              //하트 토글
+              onToggleHeart={(book) => handleToggleHeart(book)}
+              // liked 여부 판단 함수
+              isLiked={(bookId) => favoriteIds.has(bookId)}
+              // 하트 disabled 처리용 Set
+              heartDisabledIds={heartBusyIds}
+            />
           </Animated.View>
         </View>
       </ScrollView>
@@ -1564,37 +1376,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  recList: { marginTop: 12, gap: 12 },
-  recCard: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
+
+  recList: { marginTop: 12 },
+
+  // 추천 큰 카드 컨테이너
+  recoBigCard: {
+    backgroundColor: colors.mono[0],
     borderRadius: 12,
-    padding: 12,
-    alignItems: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  bookCover: {
-    width: 110,
-    height: 140,
-    borderRadius: 8,
-    backgroundColor: "#f1f5f9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coverText: { fontWeight: "700", fontSize: 18, color: colors.mono[950] },
-  bookMeta: { flex: 1, marginLeft: 12, gap: 8 },
-  bookTitle: { fontSize: 18, fontWeight: "800", color: colors.mono[950] },
-  bookAuthor: { fontSize: 14, color: colors.mono[600] },
-  ratingRow: { flexDirection: "row", gap: 4 },
-  starBox: { width: 20, alignItems: "center" },
-  star: { fontSize: 16 },
-  coverImg: { width: "100%", height: "100%", borderRadius: 6 },
-  ratingLine: { flexDirection: "row", alignItems: "center", gap: 6 },
-  reviewCount: { color: "#c6c6c6", fontSize: 14 },
+
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   tagPill: {
     backgroundColor: lightGreen,
