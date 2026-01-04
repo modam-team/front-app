@@ -11,6 +11,8 @@ import {
   StyleSheet,
   Text,
   View,
+  children,
+  title,
 } from "react-native";
 
 export default function ActionBottomSheet({
@@ -19,6 +21,8 @@ export default function ActionBottomSheet({
   actions = [], // 버튼 목록 [{ key, label, icon, color?, onPress }]
   height = 172, // 시트 높이
   backgroundColor = colors.mono[0],
+  children,
+  title,
 }) {
   const translateY = useRef(new Animated.Value(height)).current;
 
@@ -65,6 +69,12 @@ export default function ActionBottomSheet({
           <View style={[styles.inner, { backgroundColor }]}>
             {/* 상단 드래그 핸들 */}
             <View style={styles.handle} />
+
+            {/* 타이틀 */}
+            {title ? <Text style={styles.title}>{title}</Text> : null}
+
+            {/* 커스텀 컨텐츠 */}
+            {children ? <View style={styles.custom}>{children}</View> : null}
 
             {/* 액션 버튼 영역 */}
             <View style={styles.content}>
@@ -137,6 +147,21 @@ const styles = StyleSheet.create({
     opacity: 0.2,
     marginTop: 12,
     marginBottom: spacing.s,
+  },
+
+  // 바텀 시트 상단 제목
+  title: {
+    ...typography["body-2-bold"],
+    color: colors.mono[950],
+    textAlign: "center",
+    marginBottom: 20,
+  },
+
+  // 커스텀 항목들 스타일
+  custom: {
+    alignItems: "flex-start",
+    justifyContent: "center",
+    paddingBottom: spacing.m,
   },
 
   // 액션 리스트 영역
