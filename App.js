@@ -4,12 +4,14 @@ import AuthGateScreen from "./src/screens/AuthGateScreen";
 import BookDetailScreen from "./src/screens/BookDetailScreen";
 import EditNameScreen from "./src/screens/EditNameScreen";
 import FriendListScreen from "./src/screens/FriendListScreen";
+import ProgressBarImg from "@assets/progress-bar-img.png";
 import {
   REPORT_BACKGROUND_MAP,
   REPORT_BACKGROUND_MAP_PAST,
 } from "@constants/reportBackgroundMap";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import GoalResultScreen from "@screens/GoalResultScreen";
 import OnboardingFlowScreen from "@screens/OnboardingFlowScreen";
 import OnboardingIntroScreen from "@screens/OnboardingIntroScreen";
 import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
@@ -33,6 +35,7 @@ export default function App() {
     Asset.loadAsync([
       ...Object.values(REPORT_BACKGROUND_MAP),
       ...Object.values(REPORT_BACKGROUND_MAP_PAST),
+      ProgressBarImg,
     ]);
   }, []);
 
@@ -94,6 +97,11 @@ export default function App() {
           name="AuthGate"
           component={AuthGateScreen}
           options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GoalResult"
+          component={GoalResultScreen}
+          options={{ headerShown: false, gestureEnabled: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

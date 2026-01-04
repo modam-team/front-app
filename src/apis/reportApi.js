@@ -351,8 +351,6 @@ export async function fetchMonthlyReport({ year, month }) {
       .sort((a, b) => b.ratio - a.ratio);
 
     // 6) Summary 구성
-    const isEmpty = latestTotal === 0;
-
     const placeLabel = PLACE_LABEL[manyPlace] ?? manyPlace;
 
     // 캐릭터 이름
@@ -368,6 +366,8 @@ export async function fetchMonthlyReport({ year, month }) {
 
     // 최종 타이틀
     const latestTotal = Array.isArray(latestRecords) ? latestRecords.length : 0;
+
+    const isEmpty = latestTotal === 0;
 
     const title =
       latestTotal === 0 ? "아직 측정되지 않았어요" : `${mood} ${characterName}`;
