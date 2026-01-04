@@ -16,6 +16,7 @@ import ProgressBarCharacter from "@assets/progress-bar-img.png";
 import GoalCountSlider from "@components/GoalCountSlider";
 import ReadingProgressCard from "@components/ReadingProgressBar";
 import StarIcon from "@components/StarIcon";
+import YearMonthPicker from "@components/YearMonthPicker";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
@@ -1034,6 +1035,21 @@ export default function HomeScreen({ navigation }) {
         </View>
       </ScrollView>
 
+      <YearMonthPicker
+        visible={yearPickerOpen}
+        onClose={() => setYearPickerOpen(false)}
+        mode="year" // 연도만 고르도록
+        theme="mono" // 테마는 모노
+        selectedYear={year}
+        selectedMonth={month} // props 맞춰야 해서 전달
+        onSelectYear={(y) => {
+          setYear(y);
+        }}
+        onSelectMonth={(m) => {
+          setMonth(m);
+        }}
+      />
+
       <Pressable
         style={[styles.fab, { bottom: TAB_BAR_HEIGHT + insets.bottom + 16 }]}
         onPress={() => setAddModalOpen(true)}
@@ -1045,58 +1061,6 @@ export default function HomeScreen({ navigation }) {
           color="#fff"
         />
       </Pressable>
-
-      <Modal
-        visible={yearPickerOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setYearPickerOpen(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setYearPickerOpen(false)}>
-          <View style={styles.modalBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={styles.yearSheet}>
-                <View style={styles.sheetHandle} />
-                <View style={styles.sheetHeader}>
-                  <Text style={styles.sheetTitle}>날짜</Text>
-                </View>
-                <View style={styles.yearList}>
-                  {yearOptions.map((y) => (
-                    <Pressable
-                      key={y}
-                      style={styles.yearRowItem}
-                      onPress={() => {
-                        setYear(y);
-                        setYearPickerOpen(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.yearOptionText,
-                          y === year && styles.yearOptionTextActive,
-                        ]}
-                      >
-                        {`${y}년`}
-                      </Text>
-                      {y === year ? (
-                        <Text style={styles.yearCheck}>✓</Text>
-                      ) : (
-                        <View style={styles.yearCheckPlaceholder} />
-                      )}
-                    </Pressable>
-                  ))}
-                </View>
-                <Pressable
-                  style={styles.sheetClose}
-                  onPress={() => setYearPickerOpen(false)}
-                >
-                  <Text style={styles.sheetCloseText}>닫기</Text>
-                </Pressable>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
 
       <Modal
         visible={addModalOpen}
