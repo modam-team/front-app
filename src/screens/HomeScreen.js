@@ -354,6 +354,8 @@ export default function HomeScreen({ navigation }) {
     return `${y}-${m}`;
   };
 
+  const THIS_MONTH_KEY = useMemo(() => getMonthKey(new Date()), []); // 이번달 독서 현황을 보여주는 용도
+
   const getPrevMonthKey = (date = new Date()) => {
     const d = new Date(date.getFullYear(), date.getMonth() - 1, 1);
     return getMonthKey(d);
@@ -694,7 +696,7 @@ export default function HomeScreen({ navigation }) {
         if (cancelled) return;
         const after = bookcase?.after || bookcase?.AFTER || [];
         const count = after.filter(
-          (b) => getCompletionKey(b)?.key === selectedMonthKey,
+          (b) => getCompletionKey(b)?.key === THIS_MONTH_KEY,
         ).length;
         setReadCount(count);
       } catch (e) {
@@ -709,7 +711,7 @@ export default function HomeScreen({ navigation }) {
     return () => {
       cancelled = true;
     };
-  }, [isFocused, year, month, getCompletionKey, selectedMonthKey]);
+  }, [isFocused, getCompletionKey, THIS_MONTH_KEY]);
 
   useEffect(() => {
     if (!isFocused) return;
