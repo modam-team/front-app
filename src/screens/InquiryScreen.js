@@ -1,3 +1,4 @@
+import { fetchUserProfile } from "@apis/userApi";
 import AppHeader from "@components/AppHeader";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
@@ -20,13 +21,22 @@ const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
 export default function InquiryScreen({ navigation }) {
   // 기본 앱을 열고 수신자, 제목, 본문을 미리 채워줌 (사용자는 전송 버튼만 누르면 됨 !!)
   const onPressEmail = useCallback(async () => {
+    // 닉네임 가져오기 (실패해도 진행되게 fallback)
+    let nickname = "";
+    try {
+      const profile = await fetchUserProfile();
+      nickname = profile?.nickname ?? "";
+    } catch (e) {
+      console.warn("프로필 조회 실패(닉네임 없이 진행):", e);
+    }
+
     // 메일 제목 및 본문 템플릿
     const subject = "[모담] 1:1 문의드립니다";
     const body = [
       "안녕하세요! 모담 1:1 문의입니다.",
       "",
       "아래 내용을 작성해 주세요 🙏",
-      "- 닉네임:",
+      `- 닉네임: ${nickname}`,
       "- 문의 내용:",
       "",
       "※ 가능하면 아래 정보도 함께 보내주시면 좋아요",
