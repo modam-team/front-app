@@ -1,5 +1,6 @@
 import { fetchMonthlyReport } from "@apis/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
+import YearMonthPicker from "@components/YearMonthPicker";
 import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
 import KeywordReviewCard from "@components/report/KeywordReviewCard";
 import MonthlyStats from "@components/report/MonthlyStats";
@@ -8,7 +9,6 @@ import ReportToggle from "@components/report/ReportToggle";
 import ReportTopHeader from "@components/report/ReportTopHeader";
 import Summary from "@components/report/Summary";
 import TimeHabits from "@components/report/TimeHabits";
-import YearMonthPicker from "@components/report/YearMonthPicker";
 import {
   REPORT_BACKGROUND_MAP,
   REPORT_BACKGROUND_MAP_PAST,
