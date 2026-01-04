@@ -17,6 +17,7 @@ import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
 import MonthlyCalendar from "@components/MonthlyCalendar";
 import ReadingProgressCard from "@components/ReadingProgressBar";
+import ReadingStartModal from "@components/ReadingStartModal";
 import RecommendationDetailModal from "@components/RecommendationDetailModal";
 import RecommendationItemRow from "@components/RecommendationItemRow";
 import RecommendationSectionCard from "@components/RecommendationSectionCard";
@@ -85,20 +86,15 @@ export default function HomeScreen({ navigation }) {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [place, setPlace] = useState(null);
-  const [bookSelectOpen, setBookSelectOpen] = useState(false);
-  const [bookOptions, setBookOptions] = useState({ before: [], reading: [] });
-  const [selectedBookId, setSelectedBookId] = useState(null);
-  const [loadingBooks, setLoadingBooks] = useState(false);
-  const [bookSearch, setBookSearch] = useState("");
+
   const [readingLogs, setReadingLogs] = useState({});
   const [dayModalKey, setDayModalKey] = useState(null);
-  const bookScrollRef = React.useRef(null);
   const [goalCount, setGoalCount] = useState(0);
   const [readCount, setReadCount] = useState(0);
   const [goalCandidate, setGoalCandidate] = useState(1);
   const [friendList, setFriendList] = useState([]);
+
+  const [readingStartOpen, setReadingStartOpen] = useState(false);
 
   // 테마 일단은 하드코딩 (나중에 백엔드 api 나오면 수정하겠습니당)
   const [themeKey] = useState("green");
@@ -183,10 +179,7 @@ export default function HomeScreen({ navigation }) {
     }
     return null;
   }, []);
-  const allBooks = useMemo(
-    () => [...(bookOptions.before || []), ...(bookOptions.reading || [])],
-    [bookOptions],
-  );
+
   const markedDates = useMemo(
     () => new Set(Object.keys(readingLogs)),
     [readingLogs],
@@ -234,26 +227,7 @@ export default function HomeScreen({ navigation }) {
     return Number(day || 0);
   }, [dayModalKey]);
 
-  const goalAchieved = useMemo(
-    () => goalCount > 0 && readCount >= goalCount,
-    [goalCount, readCount],
-  );
-
-  const filteredBooks = useMemo(() => {
-    const merged = [
-      ...(bookOptions.before || []),
-      ...(bookOptions.reading || []),
-    ];
-    const q = bookSearch.trim().toLowerCase();
-    if (!q) return merged;
-    return merged.filter((b) => (b.title || "").toLowerCase().includes(q));
-  }, [bookOptions, bookSearch]);
   const currentYear = useMemo(() => new Date().getFullYear(), []);
-  const currentMonth = useMemo(() => new Date().getMonth() + 1, []);
-  const yearOptions = useMemo(() => {
-    const start = Math.max(currentYear, year);
-    return Array.from({ length: 4 }, (_, idx) => start - idx);
-  }, [currentYear, year]);
 
   const prev = () =>
     setMonth((m) => (m === 1 ? (setYear((y) => y - 1), 12) : m - 1));
@@ -876,7 +850,7 @@ export default function HomeScreen({ navigation }) {
 
       <Pressable
         style={[styles.fab, { bottom: TAB_BAR_HEIGHT + insets.bottom + 16 }]}
-        onPress={() => setAddModalOpen(true)}
+        onPress={() => setReadingStartOpen(true)}
         hitSlop={6}
       >
         <Ionicons
@@ -886,275 +860,65 @@ export default function HomeScreen({ navigation }) {
         />
       </Pressable>
 
-      <Modal
-        visible={addModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAddModalOpen(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setAddModalOpen(false)}>
-          <View style={styles.addBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={styles.addSheet}>
-                <Text style={styles.addTitle}>독서 장소를 선택해주세요</Text>
-                <View style={styles.addGrid}>
-                  {[
-                    { label: "집" },
-                    { label: "카페" },
-                    { label: "이동중" },
-                    { label: "도서관" },
-                  ].map((opt) => (
-                    <Pressable
-                      key={opt.label}
-                      style={styles.addOption}
-                      onPress={() => {
-                        setPlace(opt.label);
-                        setAddModalOpen(false);
-                        setBookSelectOpen(true);
-                        setSelectedBookId(null);
-                        setLoadingBooks(true);
-                        fetchBookcase()
-                          .then((res) => {
-                            setBookOptions({
-                              before: res.before || res.BEFORE || [],
-                              reading: res.reading || res.READING || [],
-                            });
-                          })
-                          .catch((e) =>
-                            console.warn(
-                              "책장 불러오기 실패:",
-                              e.response?.data || e.message,
-                            ),
-                          )
-                          .finally(() => setLoadingBooks(false));
-                      }}
-                    >
-                      <View style={styles.addThumbPlaceholder} />
-                      <Text style={styles.addOptionLabel}>{opt.label}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+      <ReadingStartModal
+        visible={readingStartOpen}
+        onClose={() => setReadingStartOpen(false)}
+        fetchBookcase={fetchBookcase}
+        placeKeyMap={placeKeyMap}
+        onSubmit={async ({ placeLabel, placeCode, selectedBookId, book }) => {
+          // ✅ 여기 안에 “기존 bookSelectOpen 모달의 독서 시작 onPress 로직”을 옮김
+          try {
+            // (1) 상태 READING 맞추기
+            const stateRaw = book?.state || book?.status || book?.bookStatus;
+            const isReadingState =
+              stateRaw === "READING" ||
+              stateRaw === "읽는중" ||
+              stateRaw === "읽는 중";
+            if (!isReadingState) {
+              await updateBookcaseState(Number(selectedBookId), "READING");
+            }
 
-      <Modal
-        visible={bookSelectOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setBookSelectOpen(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setBookSelectOpen(false)}>
-          <View style={styles.addBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={[styles.addSheet, { gap: 20 }]}>
-                <Text style={styles.addTitle}>읽을 책을 선택해주세요</Text>
-                <View style={styles.bookWrap}>
-                  <View style={styles.searchRow}>
-                    <Ionicons
-                      name="search-outline"
-                      size={20}
-                      color="#8A8A8A"
-                    />
-                    <TextInput
-                      placeholder="책장의 책을 검색해보세요"
-                      value={bookSearch}
-                      onChangeText={setBookSearch}
-                      style={styles.bookSearchInput}
-                      placeholderTextColor="#B1B1B1"
-                    />
-                  </View>
-                  <View style={styles.carouselRow}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        bookScrollRef.current?.scrollTo({
-                          x: 0,
-                          animated: true,
-                        });
-                      }}
-                      hitSlop={10}
-                    >
-                      <Ionicons
-                        name="chevron-back"
-                        size={26}
-                        color="#000"
-                      />
-                    </TouchableOpacity>
-                    <ScrollView
-                      ref={bookScrollRef}
-                      horizontal
-                      style={{ flex: 1 }}
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.bookRow}
-                    >
-                      {loadingBooks && (
-                        <Text style={styles.bookEmpty}>불러오는 중...</Text>
-                      )}
-                      {!loadingBooks && filteredBooks.length === 0 && (
-                        <Text style={styles.bookEmpty}>책이 없습니다</Text>
-                      )}
-                      {filteredBooks.map((b, idx) => {
-                        const baseId = b.id || b.bookId || b.isbn || "book";
-                        const key = `${baseId}-${idx}`;
-                        return (
-                          <Pressable
-                            key={key}
-                            onPress={() => setSelectedBookId(b.id || b.bookId)}
-                            style={[
-                              styles.coverBox,
-                              selectedBookId === (b.id || b.bookId) &&
-                                styles.coverBoxActive,
-                            ]}
-                          >
-                            <View style={styles.coverThumb}>
-                              {b.cover ? (
-                                <Image
-                                  source={{ uri: b.cover }}
-                                  style={styles.coverImage}
-                                  resizeMode="cover"
-                                />
-                              ) : (
-                                <Text style={styles.coverPlaceholder}>
-                                  {b.title?.slice(0, 2) || "책"}
-                                </Text>
-                              )}
-                            </View>
-                            <Text
-                              numberOfLines={1}
-                              style={styles.coverLabel}
-                            >
-                              {b.title}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </ScrollView>
-                    <TouchableOpacity
-                      onPress={() => {
-                        bookScrollRef.current?.scrollToEnd({ animated: true });
-                      }}
-                      hitSlop={10}
-                    >
-                      <Ionicons
-                        name="chevron-forward"
-                        size={26}
-                        color="#000"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <Pressable
-                  disabled={!selectedBookId}
-                  style={[
-                    styles.startBtn,
-                    !selectedBookId && { backgroundColor: "#9fb37b" },
-                  ]}
-                  onPress={async () => {
-                    if (!selectedBookId) return;
-                    const now = new Date();
-                    const key = formatDateKey(now);
-                    const book =
-                      allBooks.find(
-                        (b) =>
-                          String(b.id || b.bookId) === String(selectedBookId),
-                      ) || {};
-                    const entry = {
-                      id: `${selectedBookId}-${Date.now()}`,
-                      title: book.title || "제목 없음",
-                      cover: book.cover || book.coverUri || null,
-                      place: place || "이동중",
-                      time: formatTime(now),
-                    };
-                    try {
-                      const placeCode = placeKeyMap[place] || "MOVING";
-                      const chosen =
-                        allBooks.find(
-                          (b) =>
-                            String(b.id || b.bookId) === String(selectedBookId),
-                        ) || {};
+            // (2) 로그 저장
+            await saveReadingLog({
+              bookId: Number(selectedBookId),
+              readingPlace: placeCode,
+            });
 
-                      // 백엔드에서 READING 상태만 허용하는 경우가 있어 상태를 먼저 맞춰줍니다.
-                      const stateRaw =
-                        chosen.state || chosen.status || chosen.bookStatus;
-                      const isReadingState =
-                        stateRaw === "READING" ||
-                        stateRaw === "읽는중" ||
-                        stateRaw === "읽는 중";
-                      if (!isReadingState) {
-                        await updateBookcaseState(
-                          Number(selectedBookId),
-                          "READING",
-                        );
-                      }
+            // (3) 서버 기준으로 리프레시해서 readingLogs 재세팅
+            const refreshed = await fetchReadingLogs({ year, month });
+            const grouped = {};
+            for (const item of refreshed) {
+              const dt = parseReadAt(item?.readAt);
+              if (!dt || Number.isNaN(dt.getTime())) continue;
+              const k = formatDateKey(dt);
+              const e = {
+                id: `${item.readAt}-${item.title || "book"}`,
+                title: item.title || "제목 없음",
+                cover: item.cover || null,
+                place:
+                  placeLabelMap[item.readingPlace] ||
+                  item.readingPlace ||
+                  "이동중",
+                time: formatTime(dt),
+              };
+              grouped[k] = grouped[k] ? [...grouped[k], e] : [e];
+            }
+            setReadingLogs(grouped);
 
-                      await saveReadingLog({
-                        bookId: Number(selectedBookId),
-                        readingPlace: placeCode,
-                      });
-                      setReadingLogs((prev) => {
-                        const next = { ...prev };
-                        const list = next[key] ? [...next[key]] : [];
-                        list.push(entry);
-                        next[key] = list;
-                        return next;
-                      });
-                      // 서버 시간을 기준으로 보정
-                      try {
-                        const refreshed = await fetchReadingLogs({
-                          year,
-                          month,
-                        });
-                        const grouped = {};
-                        for (const item of refreshed) {
-                          const dt = parseReadAt(item?.readAt);
-                          if (!dt || Number.isNaN(dt.getTime())) continue;
-                          const k = formatDateKey(dt);
-                          const e = {
-                            id: `${item.readAt}-${item.title || "book"}`,
-                            title: item.title || "제목 없음",
-                            cover: item.cover || null,
-                            place:
-                              placeLabelMap[item.readingPlace] ||
-                              item.readingPlace ||
-                              "이동중",
-                            time: formatTime(dt),
-                          };
-                          grouped[k] = grouped[k] ? [...grouped[k], e] : [e];
-                        }
-                        setReadingLogs(grouped);
-                      } catch (err) {
-                        console.warn(
-                          "독서 기록 재조회 실패:",
-                          err.response?.data || err.message,
-                        );
-                      }
-                      showBanner("독서 기록을 저장했어요");
-                    } catch (e) {
-                      const code = e.response?.data?.error?.code;
-                      console.warn(
-                        "독서 기록 저장 실패:",
-                        e.response?.data || e.message,
-                      );
-                      if (code === "4091") {
-                        showBanner("책장에 담긴 책만 기록할 수 있어요");
-                      } else {
-                        showBanner("독서 기록 저장에 실패했어요");
-                      }
-                    } finally {
-                      setBookSelectOpen(false);
-                      setSelectedBookId(null);
-                    }
-                  }}
-                >
-                  <Text style={styles.startBtnText}>독서 시작</Text>
-                </Pressable>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+            showBanner("독서 기록을 저장했어요");
+            setReadingStartOpen(false); // 성공하면 닫기
+          } catch (e) {
+            const code = e.response?.data?.error?.code;
+            console.warn("독서 기록 저장 실패:", e.response?.data || e.message);
+            showBanner(
+              code === "4091"
+                ? "책장에 담긴 책만 기록할 수 있어요"
+                : "독서 기록 저장에 실패했어요",
+            );
+            // 실패 시 닫을지 말지는 취향 (보통은 안 닫고 유지)
+          }
+        }}
+      />
 
       <DayLogsBottomSheet
         visible={!!dayModalKey}
@@ -1243,57 +1007,8 @@ const styles = StyleSheet.create({
   addPlus: { color: "#fff", fontSize: 24, fontWeight: "700" },
 
   section: { marginTop: 14, paddingHorizontal: 16 },
-  sectionHead: { gap: 4, flexDirection: "row", alignItems: "center" },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: colors.mono[950],
-  },
-  sectionHint: { fontSize: 14, color: colors.mono[950], marginTop: 2 },
-  sectionActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginLeft: 8,
-  },
-  iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
 
   recList: { marginTop: 12 },
-
-  // 추천 큰 카드 컨테이너
-  recoBigCard: {
-    backgroundColor: colors.mono[0],
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-
-  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  tagPill: {
-    backgroundColor: lightGreen,
-    borderRadius: 16,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  tagText: { fontSize: 12, color: green, fontWeight: "700" },
-  heartBtn: {
-    position: "absolute",
-    right: 8,
-    bottom: 8,
-  },
 
   fab: {
     position: "absolute",
@@ -1311,110 +1026,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  addBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  addSheet: {
-    width: "100%",
-    backgroundColor: "#fafaf5",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#b1b1b1",
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    gap: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  addTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#000",
-    textAlign: "center",
-  },
-  addGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 16,
-  },
-  addOption: {
-    width: "47%",
-    alignItems: "center",
-    gap: 12,
-  },
-  addThumbPlaceholder: {
-    width: "100%",
-    aspectRatio: 1,
-    borderRadius: 8,
-    backgroundColor: "#e5e5e5",
-    borderWidth: 1,
-    borderColor: "#d7d7d7",
-  },
-  addOptionLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#070b03",
-  },
-  bookWrap: { gap: 14 },
 
-  bookRow: { gap: 8, paddingVertical: 4, paddingHorizontal: 8 },
-  coverBox: { width: 130, alignItems: "center", gap: 6 },
-  coverBoxActive: { borderWidth: 2, borderColor: "#426b1f", borderRadius: 10 },
-  coverThumb: {
-    width: 130,
-    height: 180,
-    borderRadius: 8,
-    backgroundColor: "#e5e5e5",
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coverImage: { width: "100%", height: "100%" },
-  coverTitle: { textAlign: "center", color: "#555", fontWeight: "600" },
-  coverPlaceholder: { fontSize: 16, fontWeight: "700", color: "#949494" },
-  coverLabel: {
-    fontSize: 12,
-    color: "#000",
-    textAlign: "center",
-    width: 130,
-  },
-  bookEmpty: { color: "#8a8a8a", paddingVertical: 6, paddingHorizontal: 4 },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 8,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#d7eec4",
-  },
-  bookSearchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#000",
-  },
-  carouselRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  startBtn: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#426b1f",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  startBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   toast: {
     position: "absolute",
     left: 16,
