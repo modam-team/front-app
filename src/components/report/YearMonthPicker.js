@@ -4,8 +4,9 @@ import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
+import { buildMonthsByYear, buildYearsFrom2010 } from "@utils/dateOptions";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -27,8 +28,8 @@ export default function YearMonthPicker({
   onSelectYear,
   onSelectMonth,
 }) {
-  const years = [2025, 2024, 2023, 2022, 2021, 2020, 2019];
-  const months = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+  const years = useMemo(() => buildYearsFrom2010(), []);
+  const months = useMemo(() => buildMonthsByYear(selectedYear), [selectedYear]);
 
   // 위아래로 스크롤할 요소가 남아있는지에 따라서 fade 표시 여부 결정
   const [showYearTopFade, setShowYearTopFade] = useState(false);
