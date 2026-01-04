@@ -1,12 +1,16 @@
+import BookIcon from "@assets/book-icon.svg";
+import Button from "@components/Button";
+import { colors } from "@theme/colors";
+import { radius } from "@theme/radius";
+import { spacing } from "@theme/spacing";
+import { typography } from "@theme/typography";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-export default function GoalCountSlider({
-  value,
-  onChange,
-  max = 30,
-  handleSize = 44,
-}) {
+const HANDLE_SIZE = 28;
+
+export default function GoalCountSlider({ value, onChange, onSave, max = 30 }) {
   // 슬라이더 바(View)의 ref
   // 화면 좌표를 얻기 위해 사용
   const barRef = useRef(null);
@@ -45,7 +49,7 @@ export default function GoalCountSlider({
     [barWidth, barLeft, max, onChange],
   );
 
-  const handleHalf = handleSize / 2;
+  const handleHalf = HANDLE_SIZE / 2;
 
   // 현재 value를 0 ~ 1 사이 비율로 변환
   const ratio = Math.min(1, Math.max(0, value / max));
@@ -54,104 +58,145 @@ export default function GoalCountSlider({
   const left =
     barWidth > 0
       ? Math.min(
-          barWidth - handleSize,
+          barWidth - HANDLE_SIZE,
           Math.max(0, ratio * barWidth - handleHalf),
         )
       : 0;
 
   return (
-    <View style={styles.wrap}>
-      {/* 슬라이더 바 영역 */}
-      <View
-        ref={barRef}
-        style={styles.bar}
-        onLayout={(e) => {
-          setBarWidth(e.nativeEvent.layout.width);
-          measureBar();
-        }}
-        onStartShouldSetResponderCapture={() => true}
-        onMoveShouldSetResponderCapture={() => true}
-        onResponderGrant={(e) => {
-          measureBar();
-          setByPageX(e.nativeEvent.pageX);
-        }}
-        onResponderMove={(e) => setByPageX(e.nativeEvent.pageX)}
-      >
-        {/* 전체 트랙 (회색 배경) */}
-        <View style={styles.track} />
+    <View style={styles.card}>
+      <Text style={styles.title}>이번 달엔 몇 권을 읽어 볼까요?</Text>
 
-        {/* 채워진 트랙 (현재 값 비율만큼) */}
-        <View
-          pointerEvents="none"
-          style={[styles.fill, { width: barWidth ? `${ratio * 100}%` : 0 }]}
+      <View style={styles.sliderRow}>
+        {/* 왼쪽 아이콘*/}
+        <BookIcon
+          width={28}
+          height={28}
         />
 
-        {/* 핸들 (동그라미 + 숫자) */}
+        {/* 슬라이더 바 영역 */}
         <View
-          pointerEvents="none"
-          style={[
-            styles.handle,
-            {
-              left,
-              width: handleSize,
-              height: handleSize,
-              borderRadius: handleHalf,
-            },
-          ]}
+          ref={barRef}
+          style={styles.bar}
+          onLayout={(e) => {
+            setBarWidth(e.nativeEvent.layout.width);
+            measureBar();
+          }}
+          onStartShouldSetResponderCapture={() => true}
+          onMoveShouldSetResponderCapture={() => true}
+          onResponderGrant={(e) => {
+            measureBar();
+            setByPageX(e.nativeEvent.pageX);
+          }}
+          onResponderMove={(e) => setByPageX(e.nativeEvent.pageX)}
         >
-          <Text style={styles.handleText}>{value}</Text>
+          {/* 전체 트랙 (회색 배경) */}
+          <View style={styles.track} />
+
+          <LinearGradient
+            pointerEvents="none"
+            colors={[colors.primary[400], colors.primary[200]]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={[styles.fill, { width: barWidth ? `${ratio * 100}%` : 0 }]}
+          />
+
+          {/* 핸들 (동그라미 + 숫자) */}
+          <View
+            pointerEvents="none"
+            style={[
+              styles.handle,
+              {
+                left,
+                width: HANDLE_SIZE,
+                height: HANDLE_SIZE,
+                borderRadius: handleHalf,
+              },
+            ]}
+          >
+            <Text style={styles.handleText}>{value}</Text>
+          </View>
         </View>
       </View>
+
+      <Button
+        label="목표 설정 완료"
+        variant="primary"
+        tone="fill"
+        size="large"
+        fullWidth
+        onPress={onSave}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
+  // 카드 전체
+  card: {
+    marginHorizontal: 14, // 좌우 여백 (카드가 화면 가장자리에 안 붙게)
+    marginTop: spacing.l, // 위쪽 여백 (사용자들 뜨는 거랑 사이의 여백)
+    marginBottom: 20, // 아래쪽 여백 (캘린더와 사이의 여백)
+
+    backgroundColor: colors.mono[0],
+    borderRadius: radius[400],
+
+    borderWidth: 1,
+    borderColor: colors.mono[500],
+
+    paddingHorizontal: 26, // 카드 내부 좌우 패딩
+    paddingVertical: spacing.m, // 카드 내부 상단 패딩
   },
 
+  // "이번 달엔 몇 권을 읽어 볼까요?" 텍스트
+  title: {
+    ...typography["heading-4-bold"],
+    color: colors.primary[500],
+  },
+
+  // 슬라이더랑 책 아이콘
+  sliderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingTop: 9,
+    paddingBottom: 10,
+  },
+
+  // 슬라이더 영역
   bar: {
     flex: 1,
-    height: 52,
+    height: 64,
     justifyContent: "center",
     position: "relative",
   },
 
+  // 회색 트랙
   track: {
-    height: 8,
-    borderRadius: 20,
-    backgroundColor: "#c6c6c6",
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 22,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: colors.mono[400],
   },
 
+  // 연두 fill (스크린샷 왼쪽 부분)
   fill: {
-    height: 8,
-    borderRadius: 20,
-    backgroundColor: "#608540",
     position: "absolute",
     left: 0,
-    top: 22,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: "#9FB37B",
   },
 
+  // 초록 원 핸들
   handle: {
     position: "absolute",
-    top: 8,
-    backgroundColor: "#426b1f",
+    backgroundColor: colors.primary[500],
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 7,
-    paddingVertical: 6,
   },
 
   handleText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
+    ...typography["body-1-bold"],
+    color: colors.mono[0],
   },
 });

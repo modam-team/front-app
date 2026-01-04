@@ -27,6 +27,11 @@ export const typography = {
     fontSize: 18,
     fontWeight: "500",
   },
+  "heading-4-bold": {
+    ...baseText,
+    fontSize: 18,
+    fontWeight: "700",
+  },
 
   // Body 1
   "body-1-bold": {
