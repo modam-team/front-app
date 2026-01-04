@@ -17,6 +17,7 @@ import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
 import MonthlyCalendar from "@components/MonthlyCalendar";
 import ReadingProgressCard from "@components/ReadingProgressBar";
+import RecommendationDetailModal from "@components/RecommendationDetailModal";
 import RecommendationItemRow from "@components/RecommendationItemRow";
 import RecommendationSectionCard from "@components/RecommendationSectionCard";
 import StarIcon from "@components/StarIcon";
@@ -75,32 +76,6 @@ const placeKeyMap = {
   이동중: "MOVING",
 };
 
-function Rating({ value, color = green, inactiveColor = starGray }) {
-  const stars = [1, 2, 3, 4, 5];
-  return (
-    <View style={styles.ratingRow}>
-      {stars.map((star) => {
-        const diff = value - star;
-        const isFull = diff >= 0;
-        const isHalf = diff >= -0.5 && diff < 0;
-        return (
-          <View
-            key={star}
-            style={styles.starBox}
-          >
-            <StarIcon
-              size={16}
-              color={color}
-              emptyColor={inactiveColor}
-              variant={isFull ? "full" : isHalf ? "half" : "empty"}
-            />
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
 const now = new Date();
 const TAB_BAR_HEIGHT = 52;
 
@@ -139,7 +114,6 @@ export default function HomeScreen({ navigation }) {
       "shownResultForMonthKey",
       "pendingResultForMonthKey",
     ]);
-    showBanner("✅ 목표 결과 노출 키 리셋!");
 
     // 리셋 후 바로 지난달 결과 화면 다시 열기 (테스트 편하게)
     const prevMonthKey = getPrevMonthKey();
@@ -850,7 +824,30 @@ export default function HomeScreen({ navigation }) {
               // 새로고침
               onRefresh={loadRecommendations}
               // 아이템 클릭 -> 상세 모달 열기
-              onPressItem={(book) => setRecoDetail(book)}
+              onPressItem={(book) => {
+                // !!더미데이터!!!!!!
+                const injected = __DEV__
+                  ? {
+                      ...book,
+                      // 리뷰 키워드 (상위 3개)
+                      topKeywords: book.topKeywords || [
+                        "힐링",
+                        "몰입감",
+                        "문장력",
+                      ],
+
+                      reviews: book.reviews || [
+                        {
+                          id: "d1",
+                          nickname: "닉네임",
+                          content: book.comment || "...",
+                        },
+                      ],
+                    }
+                  : book;
+
+                setRecoDetail(injected);
+              }}
               //하트 토글
               onToggleHeart={(book) => handleToggleHeart(book)}
               // liked 여부 판단 함수
@@ -1166,120 +1163,11 @@ export default function HomeScreen({ navigation }) {
         onClose={() => setDayModalKey(null)}
       />
 
-      <Modal
+      <RecommendationDetailModal
         visible={!!recoDetail}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setRecoDetail(null)}
-      >
-        <TouchableWithoutFeedback onPress={() => setRecoDetail(null)}>
-          <View style={styles.detailBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={styles.detailCard}>
-                <View style={styles.detailCloseRow}>
-                  <Pressable
-                    hitSlop={8}
-                    onPress={() => setRecoDetail(null)}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={22}
-                      color="#555"
-                    />
-                  </Pressable>
-                </View>
-                {recoDetail && (
-                  <>
-                    {(() => {
-                      const detailTags = Array.isArray(recoDetail.userHashTag)
-                        ? recoDetail.userHashTag
-                        : Array.isArray(recoDetail.tags)
-                          ? recoDetail.tags
-                          : [recoDetail.categoryName || "추천"];
-                      return (
-                        <View style={styles.detailRow}>
-                          <View style={styles.detailCover}>
-                            {recoDetail.cover ? (
-                              <Image
-                                source={{ uri: recoDetail.cover }}
-                                style={styles.detailCoverImg}
-                                resizeMode="cover"
-                              />
-                            ) : (
-                              <Text style={styles.coverText}>
-                                {recoDetail.title?.slice(0, 2) || "책"}
-                              </Text>
-                            )}
-                          </View>
-                          <View style={styles.detailMeta}>
-                            {recoDetail.categoryName ? (
-                              <View style={styles.detailChip}>
-                                <Text style={styles.detailChipText}>
-                                  {recoDetail.categoryName}
-                                </Text>
-                              </View>
-                            ) : null}
-                            <Text style={styles.detailTitle}>
-                              {recoDetail.title}
-                            </Text>
-                            <Text style={styles.detailAuthor}>
-                              {`${recoDetail.author || ""}${
-                                recoDetail.publisher
-                                  ? ` / ${recoDetail.publisher}`
-                                  : ""
-                              }`}
-                            </Text>
-                            <View style={styles.ratingLine}>
-                              <Rating
-                                value={recoDetail.rate || 0}
-                                color={starGray}
-                                inactiveColor={starGray}
-                              />
-                              <Text style={styles.reviewCount}>
-                                ({recoDetail.totalReview || 0})
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                      );
-                    })()}
-                    <View style={styles.detailReviewSection}>
-                      <Text style={styles.detailReviewTitle}>리뷰</Text>
-                      {recoDetail.userComment || recoDetail.comment ? (
-                        <>
-                          <Text style={styles.detailReviewText}>
-                            {recoDetail.userComment || recoDetail.comment}
-                          </Text>
-                          {Array.isArray(
-                            recoDetail.userHashTag || recoDetail.tags,
-                          ) && (
-                            <View style={styles.tagRow}>
-                              {(recoDetail.userHashTag || recoDetail.tags || [])
-                                .slice(0, 3)
-                                .map((tag, idx) => (
-                                  <View
-                                    key={`${tag}-${idx}`}
-                                    style={styles.tagPill}
-                                  >
-                                    <Text style={styles.tagText}>{tag}</Text>
-                                  </View>
-                                ))}
-                            </View>
-                          )}
-                        </>
-                      ) : (
-                        <Text style={styles.detailReviewEmpty}>
-                          아직 리뷰가 없습니다.
-                        </Text>
-                      )}
-                    </View>
-                  </>
-                )}
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+        book={recoDetail}
+        onClose={() => setRecoDetail(null)}
+      />
 
       <Animated.View
         pointerEvents="none"
@@ -1406,63 +1294,6 @@ const styles = StyleSheet.create({
     right: 8,
     bottom: 8,
   },
-  detailBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  detailCard: {
-    width: "100%",
-    backgroundColor: "#fafaf5",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#b1b1b1",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  detailCloseRow: {
-    alignItems: "flex-end",
-    marginBottom: 6,
-  },
-  detailRow: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  detailCover: {
-    width: 120,
-    height: 170,
-    borderRadius: 10,
-    backgroundColor: "#f1f5f9",
-
-    overflow: "hidden",
-  },
-  detailCoverImg: { width: "100%", height: "100%" },
-  detailMeta: { flex: 1, gap: 10 },
-  detailChip: {
-    alignSelf: "flex-start",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#888",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  detailChipText: { fontSize: 12, color: "#888" },
-  detailTitle: { fontSize: 22, fontWeight: "800", color: "#355619" },
-  detailAuthor: { fontSize: 13, fontWeight: "600", color: "#355619" },
-  detailReviewSection: { marginTop: 16, gap: 8 },
-  detailReviewTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.mono[950],
-  },
-  detailReviewText: { fontSize: 14, color: colors.mono[950], lineHeight: 20 },
-  detailReviewEmpty: { fontSize: 14, color: "#888" },
 
   fab: {
     position: "absolute",
