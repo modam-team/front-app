@@ -11,6 +11,8 @@ export const reportMonthlyApiMock = {
   responseDto: {
     manyPlace: "MOVING",
     readingTendency: "몰입·공감형",
+    userTotalNum: 100,
+    characterNum: 15,
     data: {
       2024: {
         11: [
@@ -256,7 +258,16 @@ export async function fetchMonthlyReport({ year, month }) {
       return makeEmptyReport({ year, month });
     }
 
-    const { manyPlace, readingTendency, data } = body.responseDto;
+    const { manyPlace, readingTendency, data, userTotalNum, characterNum } =
+      body.responseDto;
+
+    const percent =
+      !userTotalNum || userTotalNum <= 0
+        ? null
+        : Math.max(
+            0,
+            Math.min(100, Math.round((characterNum / userTotalNum) * 100)),
+          );
 
     const yearKey = String(year);
     const monthKey = String(month);
@@ -389,7 +400,7 @@ export async function fetchMonthlyReport({ year, month }) {
         month: latestMonth,
         title,
         description,
-        percent: isEmpty ? null : 0,
+        percent: isEmpty ? null : percent,
         isEmpty,
         characterKey,
         placeKey: manyPlace,
