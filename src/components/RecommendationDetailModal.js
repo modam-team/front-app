@@ -1,3 +1,4 @@
+import Avatar from "@components/Avatar";
 import BookCover from "@components/BookCover";
 import StarIcon from "@components/StarIcon";
 import Tag from "@components/Tag";
@@ -7,7 +8,6 @@ import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { memo, useMemo } from "react";
 import {
-  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -21,10 +21,13 @@ const starGray = colors.mono[400];
 function Rating({ value = 0, color = starGray, inactiveColor = starGray }) {
   const stars = [1, 2, 3, 4, 5];
 
+  // 0.5 단위로 반올림
+  const v = Math.round((Number(value) || 0) * 2) / 2;
+
   return (
     <View style={styles.ratingRow}>
       {stars.map((star) => {
-        const diff = value - star;
+        const diff = v - star;
         const isFull = diff >= 0;
         const isHalf = diff >= -0.5 && diff < 0;
 
@@ -34,7 +37,7 @@ function Rating({ value = 0, color = starGray, inactiveColor = starGray }) {
             style={styles.starBox}
           >
             <StarIcon
-              size={16}
+              size={20}
               color={color}
               emptyColor={inactiveColor}
               variant={isFull ? "full" : isHalf ? "half" : "empty"}
@@ -57,36 +60,13 @@ function RecommendationDetailModal({ visible, book, onClose }) {
   const detailTags = useMemo(() => {
     if (!book) return [];
 
-    if (Array.isArray(book.topKeywords)) {
-      return book.topKeywords
+    if (Array.isArray(book.hashtags) && book.hashtags.length > 0) {
+      return book.hashtags
         .filter((x) => typeof x === "string" && x.trim())
         .slice(0, 3);
     }
 
-    let keywords = [];
-
-    if (Array.isArray(book.reviews)) {
-      book.reviews.forEach((r) => {
-        if (Array.isArray(r.keywords)) keywords.push(...r.keywords);
-      });
-    }
-
-    if (Array.isArray(book.reviewKeywords)) keywords = book.reviewKeywords;
-
-    const cleaned = (keywords || [])
-      .filter((k) => typeof k === "string")
-      .map((k) => k.trim())
-      .filter(Boolean);
-
-    if (cleaned.length === 0) return [];
-
-    const countMap = {};
-    cleaned.forEach((k) => (countMap[k] = (countMap[k] || 0) + 1));
-
-    return Object.entries(countMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([keyword]) => keyword);
+    return [];
   }, [book]);
 
   // 실제 리뷰 최대 3개 (테스트용 더미도 fallback)
@@ -100,6 +80,7 @@ function RecommendationDetailModal({ visible, book, onClose }) {
         nickname: r.nickname ?? r.user?.nickname ?? "닉네임",
         avatar: r.avatar ?? r.user?.avatarUrl ?? r.profileImageUrl ?? null,
         content: r.content ?? r.comment ?? r.userComment ?? "",
+        rating: typeof r.rating === "number" ? r.rating : 0,
       }))
       .filter(
         (r) => typeof r.content === "string" && r.content.trim().length > 0,
@@ -178,7 +159,11 @@ function RecommendationDetailModal({ visible, book, onClose }) {
                     </View>
                     {/* 별점 */}
                     <View style={styles.ratingLine}>
-                      <Rating value={book?.rate || 0} />
+                      <Rating
+                        value={book?.rate || 0}
+                        color={colors.primary[600]}
+                        inactiveColor={colors.mono[200]}
+                      />
                       <Text style={styles.reviewCount}>
                         ({book?.totalReview || 0})
                       </Text>
@@ -209,14 +194,10 @@ function RecommendationDetailModal({ visible, book, onClose }) {
                     style={styles.reviewCard}
                   >
                     <View style={styles.reviewItem}>
-                      {r.avatar ? (
-                        <Image
-                          source={{ uri: r.avatar }}
-                          style={styles.avatarImg}
-                        />
-                      ) : (
-                        <View style={styles.avatarPlaceholder} />
-                      )}
+                      <Avatar
+                        uri={r.avatar}
+                        size={46}
+                      />
 
                       <View style={styles.reviewTextBox}>
                         <Text style={styles.reviewNickname}>{r.nickname}</Text>
@@ -365,21 +346,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.m,
     alignItems: "flex-start",
-  },
-
-  // 아바타 없을 때 placeholder
-  avatarPlaceholder: {
-    width: 46,
-    height: 46,
-    borderRadius: 999,
-    backgroundColor: colors.mono[150],
-  },
-
-  // 아바타 이미지
-  avatarImg: {
-    width: 46,
-    height: 46,
-    borderRadius: 999,
   },
 
   // 리뷰 텍스트 영역(닉네임 + 내용)

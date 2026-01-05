@@ -13,10 +13,7 @@ export async function searchBooks(query) {
     throw err;
   }
   const payloads = trimmed
-    ? [
-        { query: trimmed, queryType: "Keyword" },
-        { query: trimmed, queryType: "KEYWORD" },
-      ]
+    ? [{ query: trimmed, queryType: "Keyword" }]
     : [{ queryType: "Bestseller" }];
 
   const token = await getToken("accessToken");
