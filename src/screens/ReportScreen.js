@@ -1,3 +1,4 @@
+import ReportSectionHeader from "../components/report/ReportSectionHeader";
 import { fetchMonthlyReport } from "@apis/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
 import YearMonthPicker from "@components/YearMonthPicker";
@@ -13,7 +14,6 @@ import {
   REPORT_BACKGROUND_MAP,
   REPORT_BACKGROUND_MAP_PAST,
 } from "@constants/reportBackgroundMap";
-import { MaterialIcons } from "@expo/vector-icons";
 import { useTabBarTheme } from "@navigation/TabBarThemeContext";
 import { useIsFocused } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
@@ -24,15 +24,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
   ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { Platform, StatusBar } from "react-native";
 
 const CARD_WIDTH = 300;
 const CARD_SPACING = 16;
@@ -74,19 +71,6 @@ export default function ReportScreen() {
   const now = new Date();
   const isCurrentMonth =
     year === now.getFullYear() && month === now.getMonth() + 1;
-
-  // 어떤 달인지에 따라 색상 구분
-  const styleSet = isCurrentMonth
-    ? {
-        title: colors.mono[0],
-        caption: colors.primary[50],
-        month: colors.mono[0],
-      }
-    : {
-        title: colors.mono[950],
-        caption: colors.mono[950],
-        month: colors.primary[500],
-      };
 
   // 리포트 화면이 포커스일 때만 탭바 테마를 바꿈
   useEffect(() => {
@@ -391,36 +375,12 @@ export default function ReportScreen() {
                   {/* 취향 분석 스와이프 페이저 섹션 */}
                   <View onLayout={handlePreferenceLayout}>
                     {/* 섹션 헤더*/}
-                    <View style={styles.header}>
-                      <View style={styles.titleBlock}>
-                        {/* 제목 */}
-                        <View style={styles.titleRow}>
-                          <Text
-                            style={[
-                              styles.monthText,
-                              { color: styleSet.month },
-                            ]}
-                          >
-                            {month}월
-                          </Text>
-                          <Text
-                            style={[
-                              styles.sectionTitle,
-                              { color: styleSet.title },
-                            ]}
-                          >
-                            취향 분석
-                          </Text>
-                        </View>
-
-                        {/* 캡션 */}
-                        <Text
-                          style={[styles.caption, { color: styleSet.caption }]}
-                        >
-                          나의 별점을 기준으로 작성된 표예요
-                        </Text>
-                      </View>
-                    </View>
+                    <ReportSectionHeader
+                      month={month}
+                      title="취향 분석"
+                      caption="나의 별점을 기준으로 작성된 표예요"
+                      variant={isCurrentMonth ? "current" : "past"}
+                    />
 
                     {/* 스와이프 카드 */}
                     <Animated.ScrollView
@@ -465,35 +425,13 @@ export default function ReportScreen() {
                     style={{ marginTop: 30 }}
                     onLayout={handleHabitLayout}
                   >
-                    {/* 섹션 헤더 */}
-                    <View style={{ marginBottom: 12 }}>
-                      <View style={styles.titleBlock}>
-                        <View style={styles.titleRow}>
-                          <Text
-                            style={[
-                              styles.monthText,
-                              { color: styleSet.month },
-                            ]}
-                          >
-                            {month}월
-                          </Text>
-                          <Text
-                            style={[
-                              styles.sectionTitle,
-                              { color: styleSet.title },
-                            ]}
-                          >
-                            습관 분석
-                          </Text>
-                        </View>
-
-                        <Text
-                          style={[styles.caption, { color: styleSet.caption }]}
-                        >
-                          독서 기록 버튼을 누른 기록으로 분석했어요
-                        </Text>
-                      </View>
-                    </View>
+                    {/* 섹션 헤더*/}
+                    <ReportSectionHeader
+                      month={month}
+                      title="습관 분석"
+                      caption="독서 기록 버튼을 누른 기록으로 분석했어요"
+                      variant={isCurrentMonth ? "current" : "past"}
+                    />
 
                     {/* 토글 */}
                     <ReportToggle
@@ -561,34 +499,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.DEFAULT,
   },
 
-  header: {
-    marginBottom: spacing.m,
-  },
-  titleBlock: {
-    flexShrink: 1,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-  },
-  sectionTitle: {
-    fontSize: 28,
-    fontWeight: "600",
-    color: colors.mono[950],
-  },
-  monthText: {
-    fontSize: 28,
-    fontWeight: "600",
-    color: colors.primary[500],
-    marginRight: 12,
-  },
   dropdownIcon: {
     fontSize: 12,
     color: colors.primary[500],
-  },
-  caption: {
-    ...typography["body-1-regular"],
-    color: colors.mono[950],
   },
 
   // 임시
