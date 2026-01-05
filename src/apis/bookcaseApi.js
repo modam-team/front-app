@@ -114,30 +114,26 @@ export async function fetchReviewListByBookId(bookId) {
 
   // DEV에서는 항상 리뷰가 내려온 것처럼 임시로 넣어 뒀습니다 !
   if (__DEV__) {
-    return {
-      responseDto: [
-        {
-          userName: "모담이",
-          rating: 3.5,
-          comment: "문장력이 좋아서 술술 읽혀요!",
-          image: "https://i.pravatar.cc/150?img=12",
-        },
-        {
-          userName: "책벌레",
-          rating: 3,
-          comment: "몰입감 미쳤음... 새벽에 끝까지 읽음",
-          image: "https://i.pravatar.cc/150?img=32",
-        },
-        {
-          userName: "독서중",
-          rating: 4,
-          comment: "초반은 잔잔한데 후반이 재밌어요",
-          image: "https://i.pravatar.cc/150?img=56",
-        },
-      ],
-      success: true,
-      error: null,
-    };
+    return [
+      {
+        userName: "모담이",
+        rating: 3.5,
+        comment: "문장력이 좋아서 술술 읽혀요!",
+        image: "https://i.pravatar.cc/150?img=12",
+      },
+      {
+        userName: "책벌레",
+        rating: 3,
+        comment: "몰입감 미쳤음... 새벽에 끝까지 읽음",
+        image: "https://i.pravatar.cc/150?img=32",
+      },
+      {
+        userName: "독서중",
+        rating: 4,
+        comment: "초반은 잔잔한데 후반이 재밌어요",
+        image: null,
+      },
+    ];
   }
 
   try {
@@ -145,7 +141,6 @@ export async function fetchReviewListByBookId(bookId) {
       params: { bookId: Number(bookId) },
     });
 
-    // swagger: { responseDto: [...], success: true }
     return res.data?.responseDto || [];
   } catch (e) {
     console.warn("리뷰 리스트 조회 실패:", e?.response?.data || e.message);
