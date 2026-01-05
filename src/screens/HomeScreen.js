@@ -89,8 +89,7 @@ export default function HomeScreen({ navigation }) {
 
   const [readingStartOpen, setReadingStartOpen] = useState(false);
 
-  // 테마 일단은 하드코딩 (나중에 백엔드 api 나오면 수정하겠습니당)
-  const [themeKey] = useState("green");
+  const [themeColor, setThemeColor] = useState(null);
 
   const openedGoalEditorRef = useRef(false);
 
@@ -378,6 +377,7 @@ export default function HomeScreen({ navigation }) {
       setNickname(profile?.nickname || "");
       setGoalCount(goalCountNumber);
       setGoalCandidate(goalCountNumber || 1);
+      setThemeColor(profile?.themeColor ?? null);
       const ownedIds = new Set(
         [
           ...(bookcase?.before || []),
@@ -777,7 +777,7 @@ export default function HomeScreen({ navigation }) {
           onNext={next}
           markedDates={markedDates}
           dateCounts={dateCounts}
-          themeKey={themeKey /* 홈에서 가져온 테마 */}
+          themeColor={themeColor}
           selectedDayKey={dayModalKey}
           onDayPress={(key) => {
             if (!key) return;

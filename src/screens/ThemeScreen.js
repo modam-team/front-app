@@ -1,3 +1,4 @@
+import { fetchUserProfile, updateThemeColor } from "@apis/userApi";
 import ActionBottomSheet from "@components/ActionBottomSheet";
 import AppHeader from "@components/AppHeader";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -5,7 +6,7 @@ import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -25,18 +26,63 @@ export default function ThemeScreen({ navigation }) {
   // 바텀 시트 노출 여부
   const [sheetVisible, setSheetVisible] = useState(false);
 
-  // TODO: 서버 연동 시 이 부분을 store 값으로 대체할 예정 !
-  const [themeKey, setThemeKey] = useState("green");
+  const [themeColor, setThemeColor] = useState(null);
+
+  // 중복 클릭 방지
+  const [saving, setSaving] = useState(false);
 
   // 현재 선택된 테마 객체
   const current = useMemo(
-    () => THEME_OPTIONS.find((t) => t.key === themeKey) ?? THEME_OPTIONS[0],
-    [themeKey],
+    () => THEME_OPTIONS.find((t) => t.key === themeColor) ?? THEME_OPTIONS[0],
+    [themeColor],
   );
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const profile = await fetchUserProfile();
+        if (!mounted) return;
+
+        // 서버 값이 없을 때를 대비해 fallback
+        setThemeColor(profile?.themeColor ?? THEME_OPTIONS[0].dot);
+      } catch (e) {
+        // 실패하면 기본값
+        setThemeColor(THEME_OPTIONS[0].dot);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // 바텀 시트 열기 및 닫기
   const openSheet = () => setSheetVisible(true);
   const closeSheet = () => setSheetVisible(false);
+
+  const handleSelectTheme = async (opt) => {
+    if (saving) return;
+
+    const nextColor = opt.dot;
+    const prevColor = themeColor;
+
+    // ui 먼저 반영하기 (낙관적 업데이트)
+    setThemeColor(nextColor);
+    setSheetVisible(false);
+
+    // 실제 서버 patch
+    try {
+      setSaving(true);
+      await updateThemeColor(nextColor);
+    } catch (e) {
+      // 실패 했으니까 ui 롤백해줬음
+      setThemeColor(prevColor);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -59,7 +105,7 @@ export default function ThemeScreen({ navigation }) {
 
           {/* 오른쪽 현재 선택된 색상 + 드롭다운 아이콘 */}
           <View style={styles.rowRight}>
-            <View style={[styles.dot, { backgroundColor: current.dot }]} />
+            <View style={[styles.dot, { backgroundColor: themeColor }]} />
             <MaterialIcons
               name="keyboard-arrow-down"
               size={20}
@@ -79,20 +125,14 @@ export default function ThemeScreen({ navigation }) {
         {/* 실제 색상 선택 버튼들 */}
         <View style={styles.paletteRow}>
           {THEME_OPTIONS.map((opt) => {
-            const selected = opt.key === themeKey;
+            const selected =
+              themeColor && themeColor.toLowerCase() === opt.dot.toLowerCase();
 
             return (
               <Pressable
                 key={opt.key}
-                onPress={() => {
-                  // 선택된 테마 변경
-                  setThemeKey(opt.key);
-
-                  // 선택 후 바텀시트 닫기
-                  setSheetVisible(false);
-
-                  // TODO: 여기서 서버 저장 및 전역 상태 업데이트 하면 됨
-                }}
+                onPress={() => handleSelectTheme(opt)}
+                disabled={saving} // 저장 중엔 클릭 막아두기
                 style={({ pressed }) => [
                   styles.colorBtn,
                   pressed && { opacity: 0.6 },
