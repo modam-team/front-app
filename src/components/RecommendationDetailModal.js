@@ -21,13 +21,13 @@ const starGray = colors.mono[400];
 function Rating({ value = 0, color = starGray, inactiveColor = starGray }) {
   const stars = [1, 2, 3, 4, 5];
 
-  // ✅ 0.5 단위로 반올림 (3.499999 -> 3.5)
+  // 0.5 단위로 반올림
   const v = Math.round((Number(value) || 0) * 2) / 2;
 
   return (
     <View style={styles.ratingRow}>
       {stars.map((star) => {
-        const diff = value - star;
+        const diff = v - star;
         const isFull = diff >= 0;
         const isHalf = diff >= -0.5 && diff < 0;
 
@@ -37,7 +37,7 @@ function Rating({ value = 0, color = starGray, inactiveColor = starGray }) {
             style={styles.starBox}
           >
             <StarIcon
-              size={16}
+              size={20}
               color={color}
               emptyColor={inactiveColor}
               variant={isFull ? "full" : isHalf ? "half" : "empty"}
