@@ -107,3 +107,41 @@ export async function fetchRecommendedBooks() {
   const res = await client.get("/api/bookcase/recommend");
   return res.data?.responseDto || [];
 }
+
+// 책 검색 시 리뷰 리스트 조회 (다른 유저들 리뷰)
+export async function fetchReviewListByBookId(bookId) {
+  if (!bookId) return [];
+
+  // DEV에서는 항상 리뷰가 내려온 것처럼 임시로 넣어 뒀습니다 !
+  if (__DEV__) {
+    return [
+      {
+        userName: "모담이",
+        rating: 3.5,
+        comment: "문장력이 좋아서 술술 읽혀요!",
+      },
+      {
+        userName: "책벌레",
+        rating: 3,
+        comment: "몰입감 미쳤음... 새벽에 끝까지 읽음",
+      },
+      {
+        userName: "독서중",
+        rating: 4,
+        comment: "초반은 잔잔한데 후반이 재밌어요",
+      },
+    ];
+  }
+
+  try {
+    const res = await client.get("/api/review/search", {
+      params: { bookId: Number(bookId) },
+    });
+
+    // swagger: { responseDto: [...], success: true }
+    return res.data?.responseDto || [];
+  } catch (e) {
+    console.warn("리뷰 리스트 조회 실패:", e?.response?.data || e.message);
+    return [];
+  }
+}

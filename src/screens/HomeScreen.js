@@ -3,6 +3,7 @@ import {
   deleteBookFromBookcase,
   fetchBookcase,
   fetchRecommendedBooks,
+  fetchReviewListByBookId,
   updateBookcaseState,
 } from "@apis/bookcaseApi";
 import { searchFriends } from "@apis/friendApi";
@@ -819,29 +820,84 @@ export default function HomeScreen({ navigation }) {
               // 새로고침
               onRefresh={loadRecommendations}
               // 아이템 클릭 -> 상세 모달 열기
-              onPressItem={(book) => {
-                // !!더미데이터!!!!!!
-                const injected = __DEV__
-                  ? {
-                      ...book,
-                      // 리뷰 키워드 (상위 3개)
-                      topKeywords: book.topKeywords || [
-                        "힐링",
-                        "몰입감",
-                        "문장력",
-                      ],
+              onPressItem={async (book) => {
+                const bookId = book?.bookId || book?.id;
+                if (!bookId) return;
 
-                      reviews: book.reviews || [
-                        {
-                          id: "d1",
-                          nickname: "닉네임",
-                          content: book.comment || "...",
-                        },
-                      ],
-                    }
-                  : book;
+                try {
+                  const reviewList = await fetchReviewListByBookId(bookId);
 
-                setRecoDetail(injected);
+                  // 1) 리뷰 정규화
+                  const normalizedReviews = (reviewList || []).map(
+                    (r, idx) => ({
+                      id: `${bookId}-${idx}`,
+                      nickname: r.userName || "닉네임",
+                      content: r.comment || "",
+                      // API에 아직 avatar가 없으니 null
+                      avatar: null,
+                      // rating도 같이 들고가기
+                      rating: typeof r.rating === "number" ? r.rating : 0,
+                    }),
+                  );
+
+                  // 2) ⭐ 평균 별점 + 리뷰 개수 집계
+                  const totalReview = normalizedReviews.length;
+                  const avgRate =
+                    totalReview === 0
+                      ? 0
+                      : normalizedReviews.reduce(
+                          (sum, r) => sum + (r.rating || 0),
+                          0,
+                        ) / totalReview;
+
+                  // 3) 🟩 키워드 3개 (임시: comment에서 단어 뽑는 버전)
+                  //   - 백엔드에서 키워드 내려오기 전까진 이렇게라도 동작하게 해두면 좋아
+                  const stop = new Set([
+                    "진짜",
+                    "너무",
+                    "완전",
+                    "그냥",
+                    "근데",
+                    "조금",
+                    "정말",
+                  ]);
+                  const tokens = normalizedReviews.flatMap((r) =>
+                    (r.content || "")
+                      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+                      .split(/\s+/)
+                      .map((w) => w.trim())
+                      .filter((w) => w.length >= 2 && !stop.has(w)),
+                  );
+
+                  const countMap = {};
+                  tokens.forEach((t) => (countMap[t] = (countMap[t] || 0) + 1));
+
+                  const topKeywords = Object.entries(countMap)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([k]) => k);
+
+                  setRecoDetail({
+                    ...book,
+                    reviews: normalizedReviews,
+                    rate: avgRate, // ✅ 모달이 쓰는 book.rate 채움
+                    totalReview, // ✅ 모달이 쓰는 book.totalReview 채움
+                    topKeywords, // ✅ 태그 3개 바꿈
+                  });
+                } catch (e) {
+                  console.warn(
+                    "리뷰 조회 실패:",
+                    e.response?.data || e.message,
+                  );
+                  // 실패해도 모달은 열리게(리뷰만 비움)
+                  setRecoDetail({
+                    ...book,
+                    reviews: [],
+                    rate: 0,
+                    totalReview: 0,
+                    topKeywords: [],
+                  });
+                }
               }}
               //하트 토글
               onToggleHeart={(book) => handleToggleHeart(book)}

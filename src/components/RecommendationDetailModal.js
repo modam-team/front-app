@@ -21,6 +21,9 @@ const starGray = colors.mono[400];
 function Rating({ value = 0, color = starGray, inactiveColor = starGray }) {
   const stars = [1, 2, 3, 4, 5];
 
+  // ✅ 0.5 단위로 반올림 (3.499999 -> 3.5)
+  const v = Math.round((Number(value) || 0) * 2) / 2;
+
   return (
     <View style={styles.ratingRow}>
       {stars.map((star) => {
@@ -100,6 +103,7 @@ function RecommendationDetailModal({ visible, book, onClose }) {
         nickname: r.nickname ?? r.user?.nickname ?? "닉네임",
         avatar: r.avatar ?? r.user?.avatarUrl ?? r.profileImageUrl ?? null,
         content: r.content ?? r.comment ?? r.userComment ?? "",
+        rating: typeof r.rating === "number" ? r.rating : 0,
       }))
       .filter(
         (r) => typeof r.content === "string" && r.content.trim().length > 0,
@@ -178,7 +182,11 @@ function RecommendationDetailModal({ visible, book, onClose }) {
                     </View>
                     {/* 별점 */}
                     <View style={styles.ratingLine}>
-                      <Rating value={book?.rate || 0} />
+                      <Rating
+                        value={book?.rate || 0}
+                        color={colors.primary[600]}
+                        inactiveColor={colors.mono[200]}
+                      />
                       <Text style={styles.reviewCount}>
                         ({book?.totalReview || 0})
                       </Text>
