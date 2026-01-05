@@ -104,6 +104,35 @@ export async function fetchRecommendedBooks() {
   const token = await getToken("accessToken");
   if (!token) return [];
 
+  if (__DEV__) {
+    return [
+      {
+        bookId: 101,
+        title: "아주 작은 습관의 힘",
+        author: "제임스 클리어",
+        cover: "https://image.yes24.com/goods/84690614/XL",
+        categoryName: "자기계발",
+        publisher: "비즈니스북스",
+        rate: 4.6,
+        totalReview: 1287,
+        link: "https://www.yes24.com/Product/Goods/84690614",
+        hashtags: ["습관", "자기관리", "성장"],
+      },
+      {
+        bookId: 102,
+        title: "달러구트 꿈 백화점",
+        author: "이미예",
+        cover: "https://image.yes24.com/goods/91084580/XL",
+        categoryName: "소설",
+        publisher: "팩토리나인",
+        rate: 4.4,
+        totalReview: 3421,
+        link: "https://www.yes24.com/Product/Goods/91084580",
+        hashtags: ["힐링", "판타지", "위로"],
+      },
+    ];
+  }
+
   const res = await client.get("/api/bookcase/recommend");
   return res.data?.responseDto || [];
 }

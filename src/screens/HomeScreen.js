@@ -369,7 +369,7 @@ export default function HomeScreen({ navigation }) {
         });
       }
     },
-    [favoriteIds, heartBusyIds, showToast, loadRecommendations],
+    [favoriteIds, heartBusyIds, showToast],
   );
 
   const loadRecommendations = useCallback(async () => {
@@ -379,54 +379,29 @@ export default function HomeScreen({ navigation }) {
       duration: 150,
       useNativeDriver: true,
     }).start();
+
     try {
-      const [reco, profile, bookcase] = await Promise.all([
+      const [reco, profile] = await Promise.all([
         fetchRecommendedBooks(),
         fetchUserProfile().catch(() => null),
-        fetchBookcase().catch(() => ({})),
       ]);
 
-      const preferred = profile?.preferredCategories || [];
       const goalCountNumber = Number(profile?.goalScore) || 0;
 
       setNickname(profile?.nickname || "");
       setGoalCount(goalCountNumber);
       setGoalCandidate(goalCountNumber || 1);
       setThemeColor(profile?.themeColor ?? null);
-      const ownedIds = new Set(
-        [
-          ...(bookcase?.before || []),
-          ...(bookcase?.reading || []),
-          ...(bookcase?.after || []),
-        ]
-          .map((b) => b.id || b.bookId)
-          .filter(Boolean),
-      );
 
-      const filtered = (Array.isArray(reco) ? reco : []).filter((b) => {
-        const inCategory =
-          preferred.length === 0 || preferred.includes(b.categoryName);
-        const notOwned = !ownedIds.has(b.bookId || b.id);
-        return inCategory && notOwned;
-      });
+      // 서버가 필터링해준 추천 리스트
+      const list = Array.isArray(reco) ? reco : [];
 
-      // 새로고침 시에도 구성이 바뀌도록 섞어서 상위 2개만 사용
-      const shuffled = filtered.sort(() => Math.random() - 0.5);
-      // setRecs(shuffled.slice(0, 2));
-
-      // !!임시!! 더미 키워드 정의
-      const DUMMY_KEYWORDS = ["힐링", "현실공감", "몰입감", "문장력", "감동"];
-
-      // !!임시!! 상위 2권에 더미 키워드 주입
-      const withDummy = shuffled.slice(0, 2).map((b) => ({
-        ...b,
-        topKeywords: DUMMY_KEYWORDS.sort(() => Math.random() - 0.5).slice(0, 3),
-      }));
-
-      // !!임시!! 최종 세팅
-      setRecs(withDummy);
+      // 새로고침 시에도 구성 바뀌게 섞고 2개만
+      const shuffled = list.sort(() => Math.random() - 0.5);
+      setRecs(shuffled.slice(0, 2));
     } catch (e) {
       console.warn("추천 불러오기 실패:", e.response?.data || e.message);
+      setRecs([]);
     } finally {
       setRecoLoading(false);
       Animated.timing(recoOpacity, {
@@ -435,7 +410,7 @@ export default function HomeScreen({ navigation }) {
         useNativeDriver: true,
       }).start();
     }
-  }, []);
+  }, [recoOpacity]);
 
   // 포커스 될 때 목표 에디터 자동 오픈
   useEffect(() => {
@@ -821,88 +796,63 @@ export default function HomeScreen({ navigation }) {
               onRefresh={loadRecommendations}
               // 아이템 클릭 -> 상세 모달 열기
               onPressItem={async (book) => {
-                const bookId = book?.bookId || book?.id;
+                const bookId = book?.bookId; // 이제 응답 스키마 기준 bookId가 메인
                 if (!bookId) return;
 
                 try {
                   const reviewList = await fetchReviewListByBookId(bookId);
 
-                  // 1) 리뷰 정규화
-                  const normalizedReviews = (reviewList || []).map(
-                    (r, idx) => ({
+                  const normalizedReviews = (
+                    Array.isArray(reviewList) ? reviewList : []
+                  )
+                    .map((r, idx) => ({
                       id: `${bookId}-${idx}`,
-                      nickname: r.userName || "닉네임",
-                      content: r.comment || "",
-                      // API에 아직 avatar가 없으니 null
-                      avatar: null,
-                      // rating도 같이 들고가기
+                      nickname: r.userName || r.nickname || "닉네임",
+                      content: r.comment || r.content || "",
+                      avatar: r.image || r.avatar || null,
                       rating: typeof r.rating === "number" ? r.rating : 0,
-                    }),
-                  );
+                    }))
+                    .filter((r) => r.content.trim().length > 0)
+                    .slice(0, 3);
 
-                  // 2) ⭐ 평균 별점 + 리뷰 개수 집계
-                  const totalReview = normalizedReviews.length;
-                  const avgRate =
-                    totalReview === 0
-                      ? 0
-                      : normalizedReviews.reduce(
-                          (sum, r) => sum + (r.rating || 0),
-                          0,
-                        ) / totalReview;
-
-                  // 3) 🟩 키워드 3개 (임시: comment에서 단어 뽑는 버전)
-                  //   - 백엔드에서 키워드 내려오기 전까진 이렇게라도 동작하게 해두면 좋아
-                  const stop = new Set([
-                    "진짜",
-                    "너무",
-                    "완전",
-                    "그냥",
-                    "근데",
-                    "조금",
-                    "정말",
-                  ]);
-                  const tokens = normalizedReviews.flatMap((r) =>
-                    (r.content || "")
-                      .replace(/[^\p{L}\p{N}\s]/gu, " ")
-                      .split(/\s+/)
-                      .map((w) => w.trim())
-                      .filter((w) => w.length >= 2 && !stop.has(w)),
-                  );
-
-                  const countMap = {};
-                  tokens.forEach((t) => (countMap[t] = (countMap[t] || 0) + 1));
-
-                  const topKeywords = Object.entries(countMap)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 3)
-                    .map(([k]) => k);
-
+                  // 추천 API가 주는 필드 그대로 사용하게 수정
                   setRecoDetail({
                     ...book,
                     reviews: normalizedReviews,
-                    rate: avgRate, // ✅ 모달이 쓰는 book.rate 채움
-                    totalReview, // ✅ 모달이 쓰는 book.totalReview 채움
-                    topKeywords, // ✅ 태그 3개 바꿈
+                    hashtags: Array.isArray(book?.hashtags)
+                      ? book.hashtags
+                      : [],
+                    rate: typeof book?.rate === "number" ? book.rate : 0,
+                    totalReview:
+                      typeof book?.totalReview === "number"
+                        ? book.totalReview
+                        : 0,
                   });
                 } catch (e) {
                   console.warn(
                     "리뷰 조회 실패:",
                     e.response?.data || e.message,
                   );
-                  // 실패해도 모달은 열리게(리뷰만 비움)
+
+                  // 실패해도 모달은 열리게
                   setRecoDetail({
                     ...book,
                     reviews: [],
-                    rate: 0,
-                    totalReview: 0,
-                    topKeywords: [],
+                    hashtags: Array.isArray(book?.hashtags)
+                      ? book.hashtags
+                      : [],
+                    rate: typeof book?.rate === "number" ? book.rate : 0,
+                    totalReview:
+                      typeof book?.totalReview === "number"
+                        ? book.totalReview
+                        : 0,
                   });
                 }
               }}
               //하트 토글
               onToggleHeart={(book) => handleToggleHeart(book)}
               // liked 여부 판단 함수
-              isLiked={(book) => favoriteIds.has(book?.bookId || book?.id)}
+              isLiked={(book) => favoriteIds.has(book?.bookId)}
               // 하트 disabled 처리용 Set
               heartDisabledIds={heartBusyIds}
             />
