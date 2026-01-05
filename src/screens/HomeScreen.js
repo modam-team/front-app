@@ -17,7 +17,7 @@ import Button from "@components/Button";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
 import MonthlyCalendar from "@components/MonthlyCalendar";
-import ReadingProgressCard from "@components/ReadingProgressBar";
+import ReadingProgressBar from "@components/ReadingProgressBar";
 import ReadingStartModal from "@components/ReadingStartModal";
 import RecommendationDetailModal from "@components/RecommendationDetailModal";
 import RecommendationSectionCard from "@components/RecommendationSectionCard";
@@ -248,6 +248,20 @@ export default function HomeScreen({ navigation }) {
     setMonth((m) => (m === 1 ? (setYear((y) => y - 1), 12) : m - 1));
   const next = () =>
     setMonth((m) => (m === 12 ? (setYear((y) => y + 1), 1) : m + 1));
+
+  // 독서 현황 바 애니메이션 관련
+  const didAnimateOnceRef = useRef(false);
+  const [progressAnimateKey, setProgressAnimateKey] = useState(0);
+
+  useEffect(() => {
+    if (!isFocused) return;
+
+    // 앱 켜고 홈 첫 진입만
+    if (!didAnimateOnceRef.current) {
+      didAnimateOnceRef.current = true;
+      setProgressAnimateKey((k) => k + 1);
+    }
+  }, [isFocused]);
 
   const friends =
     friendList.length > 0
@@ -498,7 +512,8 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     if (!isFocused) return;
-    setReadCount(0);
+
+    // setReadCount(0);
     let cancelled = false;
     const loadCompletionCount = async () => {
       try {
@@ -762,11 +777,13 @@ export default function HomeScreen({ navigation }) {
             max={maxGoal}
           />
         ) : (
-          <ReadingProgressCard
-            goalCount={goalCount} // 0이어도 그대로 보여줌
+          <ReadingProgressBar
+            goalCount={goalCount}
             readCount={readCount}
-            onPress={() => {}}
             characterSource={ProgressBarCharacter}
+            animateKey={progressAnimateKey}
+            animate={true}
+            duration={700}
           />
         )}
 
