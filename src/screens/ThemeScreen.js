@@ -33,7 +33,10 @@ export default function ThemeScreen({ navigation }) {
 
   // 현재 선택된 테마 객체
   const current = useMemo(
-    () => THEME_OPTIONS.find((t) => t.key === themeColor) ?? THEME_OPTIONS[0],
+    () =>
+      THEME_OPTIONS.find(
+        (t) => t.dot.toLowerCase() === (themeColor ?? "").toLowerCase(),
+      ) ?? THEME_OPTIONS[0],
     [themeColor],
   );
 
@@ -105,7 +108,7 @@ export default function ThemeScreen({ navigation }) {
 
           {/* 오른쪽 현재 선택된 색상 + 드롭다운 아이콘 */}
           <View style={styles.rowRight}>
-            <View style={[styles.dot, { backgroundColor: themeColor }]} />
+            <View style={[styles.dot, { backgroundColor: current.dot }]} />
             <MaterialIcons
               name="keyboard-arrow-down"
               size={20}
