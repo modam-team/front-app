@@ -24,7 +24,7 @@ export default function MonthlyCalendar({
   onDayPress, // markedDates에 포함된 날짜를 눌렀을 때 호출
   selectedDayKey, // 선택된 날짜 key
   dateCounts = {}, // 날짜 별 읽은 횟수
-  themeKey = "green", // 테마 설정에서 고른 값
+  themeColor, // 테마 설정에서 고른 값
 }) {
   // 어떤 계절인지
   const season = useMemo(() => monthToSeason(month), [month]);
@@ -60,10 +60,25 @@ export default function MonthlyCalendar({
     return result;
   }, [year, month]);
 
+  const resolvedThemeKey = useMemo(() => {
+    const hex = (themeColor ?? "").trim().toLowerCase();
+
+    if (hex === "#e75a80") return "pink";
+    if (hex === "#ffc209") return "yellow";
+    if (hex === colors.primary[400].toLowerCase()) return "green";
+
+    // 값이 애매하면 기본
+    return "green";
+  }, [themeColor]);
+
   const renderFlower = useCallback(
     (dayKey) => {
       const count = Number(dateCounts?.[dayKey] || 0);
-      const Flower = getFlowerComponent({ themeKey, season, count });
+      const Flower = getFlowerComponent({
+        themeKey: resolvedThemeKey,
+        season,
+        count,
+      });
       if (!Flower) return null;
 
       return (
@@ -78,7 +93,7 @@ export default function MonthlyCalendar({
         </View>
       );
     },
-    [dateCounts, themeKey, season],
+    [dateCounts, resolvedThemeKey, season],
   );
 
   return (

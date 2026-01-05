@@ -82,3 +82,9 @@ export async function updateProfile(payload) {
   const res = await client.patch("/api/user/profile", payload);
   return res.data; // 백엔드가 204면 undefined일 수도 있음
 }
+
+// 테마 변경
+export async function updateThemeColor(themeColor) {
+  const res = await client.patch("/api/user/theme", { themeColor });
+  return res.data;
+}
