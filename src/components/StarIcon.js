@@ -1,3 +1,4 @@
+import { colors } from "@theme/colors";
 import React, { useMemo } from "react";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
@@ -6,8 +7,8 @@ import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
  */
 export default function StarIcon({
   size = 44,
-  color = "#426B1F",
-  emptyColor = "#C6C6C6",
+  color = colors.primary[500],
+  emptyColor = colors.mono[400],
   variant = "full",
 }) {
   const gradientId = useMemo(
