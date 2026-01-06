@@ -3,7 +3,6 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useRef } from "react";
 import {
   Animated,
@@ -89,7 +88,10 @@ export default function MonthlyStats({
       }),
     );
 
-    Animated.parallel(animations).start();
+    const anim = Animated.parallel(animations);
+    anim.start();
+
+    return () => anim.stop();
   }, [animateKey, barAnim, monthData]);
 
   return (
@@ -140,10 +142,7 @@ export default function MonthlyStats({
               outputRange: [0, targetHeight],
             });
 
-            const labelBottom = Animated.add(
-              animatedHeight,
-              new Animated.Value(spacing.s),
-            );
+            const labelBottom = Animated.add(animatedHeight, spacing.s);
 
             return (
               <View
