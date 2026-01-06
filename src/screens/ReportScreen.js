@@ -1,10 +1,10 @@
-import ReportSectionHeader from "../components/report/ReportSectionHeader";
 import { fetchMonthlyReport } from "@apis/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
 import YearMonthPicker from "@components/YearMonthPicker";
 import MonthlyStats from "@components/report/MonthlyStats";
 import PlaceHabits from "@components/report/PlaceHabits";
 import PreferencePagerSection from "@components/report/PreferencePagerSection";
+import ReportSectionHeader from "@components/report/ReportSectionHeader";
 import ReportToggle from "@components/report/ReportToggle";
 import ReportTopHeader from "@components/report/ReportTopHeader";
 import Summary from "@components/report/Summary";
