@@ -98,25 +98,23 @@ export default function MonthlyStats({
       <View style={styles.header}>
         <View style={styles.titleBlock}>
           {/* 날짜 및 드롭다운 */}
-          <View style={styles.dateRow}>
+          <TouchableOpacity
+            onPress={onOpenPicker}
+            activeOpacity={0.7}
+            style={styles.dateRow}
+          >
             {/* 선택된 연도 및 월 */}
             <Text style={[styles.dateText, { color: styleSet.dateColor }]}>
               {year}년 {month}월
             </Text>
 
-            <TouchableOpacity
-              onPress={onOpenPicker}
-              activeOpacity={0.7}
-              style={styles.dateIconButton}
-            >
-              <MaterialIcons
-                name="arrow-forward-ios"
-                size={24}
-                color={styleSet.dateColor}
-                style={{ transform: [{ rotate: "90deg" }] }}
-              />
-            </TouchableOpacity>
-          </View>
+            <MaterialIcons
+              name="arrow-forward-ios"
+              size={24}
+              color={styleSet.dateColor}
+              style={{ transform: [{ rotate: "90deg" }] }}
+            />
+          </TouchableOpacity>
 
           <ReportSectionHeader
             monthVisible={false}
@@ -223,8 +221,9 @@ const styles = StyleSheet.create({
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: spacing.xs,
     marginBottom: spacing.s,
+    alignSelf: "flex-start",
   },
   dateText: {
     fontSize: 28,
