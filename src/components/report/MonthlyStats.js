@@ -1,3 +1,4 @@
+import ReportSectionHeader from "@components/report/ReportSectionHeader";
 import { MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
@@ -37,8 +38,6 @@ const pastMonthStyle = {
 export default function MonthlyStats({
   year,
   month,
-  onChangeYear,
-  onChangeMonth,
   monthlyStatus,
   animateKey,
   resetKey,
@@ -119,17 +118,16 @@ export default function MonthlyStats({
             </TouchableOpacity>
           </View>
 
-          {/* 제목 */}
-          <View style={styles.titleRow}>
-            <Text style={[styles.sectionTitle, { color: styleSet.textColor }]}>
-              독서 통계
-            </Text>
-          </View>
-
-          {/* 캡션 */}
-          <Text style={[styles.caption, { color: styleSet.captionColor }]}>
-            완독으로 표시된 책 기준이에요
-          </Text>
+          <ReportSectionHeader
+            monthVisible={false}
+            title="독서 통계"
+            caption={
+              isCurrentMonth
+                ? "완독으로 표시된 책 기준이에요"
+                : `${year}년에 완독으로 표시된 책 기준이에요`
+            }
+            variant={isCurrentMonth ? "current" : "past"}
+          />
         </View>
       </View>
 
@@ -226,23 +224,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    marginBottom: spacing.s,
   },
   dateText: {
     fontSize: 28,
     fontWeight: "600",
-  },
-  titleRow: {
-    marginTop: spacing.s,
-    flexDirection: "row",
-    alignItems: "baseline",
-  },
-  sectionTitle: {
-    ...typography["heading-1-medium"],
-    fontWeight: "600",
-  },
-
-  caption: {
-    ...typography["body-1-regular"],
   },
 
   chartContainer: {
@@ -273,9 +259,7 @@ const styles = StyleSheet.create({
     width: 23,
     overflow: "hidden",
   },
-  barGradient: {
-    flex: 1,
-  },
+
   monthLabelRow: {
     flexDirection: "row",
     justifyContent: "space-between",
