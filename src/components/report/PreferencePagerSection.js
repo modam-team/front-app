@@ -1,7 +1,6 @@
 import GenrePreferenceCard from "@components/report/GenrePreferenceCard";
 import KeywordReviewCard from "@components/report/KeywordReviewCard";
 import ReportSectionHeader from "@components/report/ReportSectionHeader";
-import useSectionVisibilityAnimation from "@hooks/useSectionVisibilityAnimation";
 import React, {
   useCallback,
   useEffect,
@@ -37,6 +36,8 @@ export default function PreferencePagerSection({
   const [genreAnimateKey, setGenreAnimateKey] = useState(0);
   const [keywordAnimateKey, setKeywordAnimateKey] = useState(0);
 
+  const [hasTriggered, setHasTriggered] = useState(false);
+
   // resetKey 바뀌면 페이저/페이지/노출 트리거 상태 초기화
   useEffect(() => {
     setActivePage(0);
@@ -50,6 +51,8 @@ export default function PreferencePagerSection({
   // 부모에서 animateKey 올라오면 여기서만 카드 애니메이션 트리거
   useEffect(() => {
     if (animateKey === 0) return;
+
+    setHasTriggered(true);
     if (activePage === 0) setGenreAnimateKey((k) => k + 1);
     else setKeywordAnimateKey((k) => k + 1);
   }, [animateKey, activePage]);
@@ -62,11 +65,12 @@ export default function PreferencePagerSection({
       if (pageIndex === activePage) return;
       setActivePage(pageIndex);
 
+      if (!hasTriggered) return; // 섹션 노출 전이면 애니메이션 금지
       // 페이지 바뀌면 해당 카드 애니메이션 재시작
       if (pageIndex === 0) setGenreAnimateKey((k) => k + 1);
       else setKeywordAnimateKey((k) => k + 1);
     },
-    [activePage],
+    [activePage, hasTriggered],
   );
 
   return (
