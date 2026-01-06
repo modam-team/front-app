@@ -1,8 +1,8 @@
+import ReportSectionHeader from "@components/report/ReportSectionHeader";
 import { MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useRef } from "react";
 import {
   Animated,
@@ -37,8 +37,6 @@ const pastMonthStyle = {
 export default function MonthlyStats({
   year,
   month,
-  onChangeYear,
-  onChangeMonth,
   monthlyStatus,
   animateKey,
   resetKey,
@@ -90,7 +88,10 @@ export default function MonthlyStats({
       }),
     );
 
-    Animated.parallel(animations).start();
+    const anim = Animated.parallel(animations);
+    anim.start();
+
+    return () => anim.stop();
   }, [animateKey, barAnim, monthData]);
 
   return (
@@ -99,37 +100,34 @@ export default function MonthlyStats({
       <View style={styles.header}>
         <View style={styles.titleBlock}>
           {/* 날짜 및 드롭다운 */}
-          <View style={styles.dateRow}>
+          <TouchableOpacity
+            onPress={onOpenPicker}
+            activeOpacity={0.7}
+            style={styles.dateRow}
+          >
             {/* 선택된 연도 및 월 */}
             <Text style={[styles.dateText, { color: styleSet.dateColor }]}>
               {year}년 {month}월
             </Text>
 
-            <TouchableOpacity
-              onPress={onOpenPicker}
-              activeOpacity={0.7}
-              style={styles.dateIconButton}
-            >
-              <MaterialIcons
-                name="arrow-forward-ios"
-                size={24}
-                color={styleSet.dateColor}
-                style={{ transform: [{ rotate: "90deg" }] }}
-              />
-            </TouchableOpacity>
-          </View>
+            <MaterialIcons
+              name="arrow-forward-ios"
+              size={24}
+              color={styleSet.dateColor}
+              style={{ transform: [{ rotate: "90deg" }] }}
+            />
+          </TouchableOpacity>
 
-          {/* 제목 */}
-          <View style={styles.titleRow}>
-            <Text style={[styles.sectionTitle, { color: styleSet.textColor }]}>
-              독서 통계
-            </Text>
-          </View>
-
-          {/* 캡션 */}
-          <Text style={[styles.caption, { color: styleSet.captionColor }]}>
-            완독으로 표시된 책 기준이에요
-          </Text>
+          <ReportSectionHeader
+            monthVisible={false}
+            title="독서 통계"
+            caption={
+              isCurrentMonth
+                ? "완독으로 표시된 책 기준이에요"
+                : `${year}년에 완독으로 표시된 책 기준이에요`
+            }
+            variant={isCurrentMonth ? "current" : "past"}
+          />
         </View>
       </View>
 
@@ -144,10 +142,7 @@ export default function MonthlyStats({
               outputRange: [0, targetHeight],
             });
 
-            const labelBottom = Animated.add(
-              animatedHeight,
-              new Animated.Value(spacing.s),
-            );
+            const labelBottom = Animated.add(animatedHeight, spacing.s);
 
             return (
               <View
@@ -225,24 +220,13 @@ const styles = StyleSheet.create({
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: spacing.xs,
+    marginBottom: spacing.s,
+    alignSelf: "flex-start",
   },
   dateText: {
     fontSize: 28,
     fontWeight: "600",
-  },
-  titleRow: {
-    marginTop: spacing.s,
-    flexDirection: "row",
-    alignItems: "baseline",
-  },
-  sectionTitle: {
-    ...typography["heading-1-medium"],
-    fontWeight: "600",
-  },
-
-  caption: {
-    ...typography["body-1-regular"],
   },
 
   chartContainer: {
@@ -273,9 +257,7 @@ const styles = StyleSheet.create({
     width: 23,
     overflow: "hidden",
   },
-  barGradient: {
-    flex: 1,
-  },
+
   monthLabelRow: {
     flexDirection: "row",
     justifyContent: "space-between",
