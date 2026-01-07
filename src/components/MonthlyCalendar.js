@@ -4,7 +4,7 @@ import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -12,6 +12,87 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+const DayCell = memo(
+  function DayCell({
+    year,
+    month,
+    day,
+    isMarked, // 해당 날짜에 독서 기록이 있는지 여부
+    isSelected, // 현재 선택된 날짜인지 여부
+    isSunday, // 일요일인지 여부
+    count, // 해당 날짜의 독서 횟수
+    season, // 현재 월 기준 계절
+    themeKey, // 테마 색상 키
+    onDayPress, // 날짜 클릭 시 호출되는 콜백
+  }) {
+    // yyyy-mm-dd 형태의 날짜 key 생성
+    const dayKey = useMemo(
+      () =>
+        `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+      [year, month, day],
+    );
+
+    // 꽃 컴포넌트 결정
+    const Flower = useMemo(() => {
+      if (!isMarked) return null;
+      return getFlowerComponent({ themeKey, season, count });
+    }, [isMarked, themeKey, season, count]);
+
+    // 날짜 클릭 핸들러 (기록이 있는 날만 클릭 가능)
+    const handlePress = useCallback(() => {
+      if (isMarked) onDayPress?.(dayKey);
+    }, [isMarked, onDayPress, dayKey]);
+
+    return (
+      <View style={styles.dayCell}>
+        <Pressable
+          onPress={handlePress}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.dayBubble,
+            isSelected && styles.dayBubbleSelected,
+            !isMarked && pressed && styles.dayBubblePressedNoMark,
+          ]}
+        >
+          {/* 기록이 있는 날에만 꽃 렌더링 */}
+          {isMarked && Flower ? (
+            <View
+              style={styles.flowerBg}
+              pointerEvents="none"
+            >
+              <Flower
+                width={34}
+                height={34}
+              />
+            </View>
+          ) : null}
+
+          {/* 날짜 숫자 */}
+          <Text
+            style={[
+              styles.dayText,
+              isMarked ? styles.dayTextOnFlower : styles.dayTextNormal,
+              !isMarked && isSunday && styles.dayTextSunday,
+            ]}
+          >
+            {day}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  },
+  // 이 값들이 안 바뀌면 그 칸은 리렌더 안 하게
+  (prev, next) =>
+    prev.isSelected === next.isSelected &&
+    prev.isMarked === next.isMarked &&
+    prev.count === next.count &&
+    prev.themeKey === next.themeKey &&
+    prev.season === next.season &&
+    prev.year === next.year &&
+    prev.month === next.month &&
+    prev.day === next.day,
+);
 
 // 월 단위 달력 컴포넌트
 export default function MonthlyCalendar({
@@ -70,31 +151,6 @@ export default function MonthlyCalendar({
     // 값이 애매하면 기본
     return "green";
   }, [themeColor]);
-
-  const renderFlower = useCallback(
-    (dayKey) => {
-      const count = Number(dateCounts?.[dayKey] || 0);
-      const Flower = getFlowerComponent({
-        themeKey: resolvedThemeKey,
-        season,
-        count,
-      });
-      if (!Flower) return null;
-
-      return (
-        <View
-          style={styles.flowerBg}
-          pointerEvents="none"
-        >
-          <Flower
-            width={34}
-            height={34}
-          />
-        </View>
-      );
-    },
-    [dateCounts, resolvedThemeKey, season],
-  );
 
   return (
     <View style={styles.wrap}>
@@ -156,72 +212,45 @@ export default function MonthlyCalendar({
       </View>
 
       {/* 날짜 그리드 */}
-      {weeks.map((week, idx) => (
+      {weeks.map((week, wIdx) => (
         <View
-          key={idx}
+          key={wIdx}
           style={styles.dayRow}
         >
-          {week.map((day, dIdx) => (
-            <View
-              key={dIdx}
-              style={styles.dayCell}
-            >
-              {day ? (
-                (() => {
-                  const dayKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          {week.map((day, dIdx) => {
+            if (!day) {
+              return (
+                <View
+                  key={`empty-${wIdx}-${dIdx}`}
+                  style={styles.dayCell}
+                >
+                  <Text style={styles.dayTextMuted}> </Text>
+                </View>
+              );
+            }
 
-                  // 기록 있는 날짜인지 여부
-                  const isMarked = markedDates?.has?.(dayKey);
+            const dayKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            const isMarked = markedDates?.has?.(dayKey);
+            const isSelected = selectedDayKey === dayKey;
+            const isSunday = new Date(year, month - 1, day).getDay() === 0;
+            const count = Number(dateCounts?.[dayKey] || 0);
 
-                  // 선택된 날짜인지 여부
-                  const isSelected = selectedDayKey === dayKey;
-
-                  // 일요일인지 여부
-                  const isSunday =
-                    new Date(year, month - 1, day).getDay() === 0;
-
-                  return (
-                    <Pressable
-                      onPress={() => isMarked && onDayPress?.(dayKey)}
-                      hitSlop={8}
-                      style={({ pressed }) => [
-                        // 기본 클릭 영역
-                        styles.dayBubble,
-
-                        // 선택된 날짜 강조
-                        isSelected && styles.dayBubbleSelected,
-
-                        // 기록 없는 날짜는  눌렀을 때만 흐려지게
-                        !isMarked && pressed && styles.dayBubblePressedNoMark,
-                      ]}
-                    >
-                      {/* 기록 있는 날이면 꽃 */}
-                      {isMarked ? renderFlower(dayKey) : null}
-
-                      {/* 날짜 텍스트 */}
-                      <Text
-                        style={[
-                          styles.dayText,
-
-                          // 꽃이 있으면 무조건 흰색
-                          isMarked
-                            ? styles.dayTextOnFlower
-                            : styles.dayTextNormal,
-
-                          // 꽃이 없고 일요일이면 빨간색
-                          !isMarked && isSunday && styles.dayTextSunday,
-                        ]}
-                      >
-                        {day}
-                      </Text>
-                    </Pressable>
-                  );
-                })()
-              ) : (
-                <Text style={styles.dayTextMuted}> </Text>
-              )}
-            </View>
-          ))}
+            return (
+              <DayCell
+                key={dayKey}
+                year={year}
+                month={month}
+                day={day}
+                isMarked={isMarked}
+                isSelected={isSelected}
+                isSunday={isSunday}
+                count={count}
+                season={season}
+                themeKey={resolvedThemeKey}
+                onDayPress={onDayPress}
+              />
+            );
+          })}
         </View>
       ))}
     </View>

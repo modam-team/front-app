@@ -137,6 +137,24 @@ export default function HomeScreen({ navigation }) {
     [toastOpacity],
   );
 
+  const handleDayPress = useCallback(
+    (key) => {
+      if (!key) return;
+      const logs = readingLogs[key] || [];
+      if (logs.length === 0) return;
+      setDayModalKey(key);
+    },
+    [readingLogs],
+  );
+
+  const handleYearChange = useCallback((val) => {
+    if (val === "open") {
+      setYearPickerOpen(true);
+      return;
+    }
+    setYear(val);
+  }, []);
+
   // 테스트용 이번 달 방문 여부 초기화
   const DEV = __DEV__;
 
@@ -212,6 +230,7 @@ export default function HomeScreen({ navigation }) {
     return null;
   }, []);
 
+  // readingLogs의 key(yyyy-mm-dd)들을 set으로 만들어서 캘린더에서 이 날짜에 꽃을 표시할지 판단할 때 사용
   const markedDates = useMemo(
     () => new Set(Object.keys(readingLogs)),
     [readingLogs],
@@ -249,10 +268,25 @@ export default function HomeScreen({ navigation }) {
 
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  const prev = () =>
-    setMonth((m) => (m === 1 ? (setYear((y) => y - 1), 12) : m - 1));
-  const next = () =>
-    setMonth((m) => (m === 12 ? (setYear((y) => y + 1), 1) : m + 1));
+  const prev = useCallback(() => {
+    setMonth((m) => {
+      if (m === 1) {
+        setYear((y) => y - 1);
+        return 12;
+      }
+      return m - 1;
+    });
+  }, []);
+
+  const next = useCallback(() => {
+    setMonth((m) => {
+      if (m === 12) {
+        setYear((y) => y + 1);
+        return 1;
+      }
+      return m + 1;
+    });
+  }, []);
 
   // 독서 현황 바 애니메이션 관련
   const didAnimateOnceRef = useRef(false);
@@ -475,9 +509,10 @@ export default function HomeScreen({ navigation }) {
     [],
   );
 
+  // 서버에서 월별 독서 로그를 가져와서 readingLogs를 yyyy-mm-dd 기준으로 그룹핑함
+  // 리딩 로그가 바뀌면 markedDates랑 dayCounts가 바뀌니까 그러면 달력의 꽃 렌더링이 갱신됨
   useEffect(() => {
     if (!isFocused) return;
-    setReadingLogs({});
     setDayModalKey(null);
     let cancelled = false;
     const loadLogs = async () => {
@@ -488,7 +523,7 @@ export default function HomeScreen({ navigation }) {
         for (const item of list) {
           const dt = parseReadAt(item?.readAt);
           if (!dt || Number.isNaN(dt.getTime())) continue;
-          const key = formatDateKey(dt);
+          const key = formatDateKey(dt); // yyyy-mm-dd (달력 꽃 매칭용 key)
           const entry = {
             id: `${item.readAt}-${item.title || "book"}`,
             title: item.title || "제목 없음",
@@ -497,8 +532,12 @@ export default function HomeScreen({ navigation }) {
               placeLabelMap[item.readingPlace] || item.readingPlace || "이동중",
             time: formatTime(dt),
           };
+
+          // 같은 날짜의 로그를 배열로 누적
           grouped[key] = grouped[key] ? [...grouped[key], entry] : [entry];
         }
+
+        // readingLogs 갱신
         setReadingLogs(grouped);
       } catch (e) {
         console.warn("독서 기록 불러오기 실패:", e.response?.data || e.message);
@@ -510,7 +549,7 @@ export default function HomeScreen({ navigation }) {
     };
   }, [isFocused, year, month, formatDateKey, formatTime, parseReadAt]);
 
-  // 날짜별 카운트
+  // 날짜별 카운트 (캘린더에서 count에 따라 꽃 레벨을 결정함)
   const dateCounts = useMemo(() => {
     const out = {};
     for (const [dayKey, logs] of Object.entries(readingLogs || {})) {
@@ -829,23 +868,12 @@ export default function HomeScreen({ navigation }) {
           month={month}
           onPrev={prev}
           onNext={next}
-          markedDates={markedDates}
-          dateCounts={dateCounts}
+          markedDates={markedDates} // 여기에 포함된 날짜만 꽃이 렌더링 됨
+          dateCounts={dateCounts} // 해당 날짜의 count로 꽃 레벨 결정
           themeColor={themeColor}
           selectedDayKey={dayModalKey}
-          onDayPress={(key) => {
-            if (!key) return;
-            const logs = readingLogs[key] || [];
-            if (logs.length === 0) return;
-            setDayModalKey(key);
-          }}
-          onYearChange={(val) => {
-            if (val === "open") {
-              setYearPickerOpen(true);
-              return;
-            }
-            setYear(val);
-          }}
+          onDayPress={handleDayPress}
+          onYearChange={handleYearChange}
         />
 
         <View style={styles.section}>
@@ -953,6 +981,7 @@ export default function HomeScreen({ navigation }) {
         onClose={() => setReadingStartOpen(false)}
         fetchBookcase={fetchBookcase}
         placeKeyMap={placeKeyMap}
+        // 독서 기록 저장 후에도 서버 기준으로 다시 fetch해서 readingLogs를 재세팅
         onSubmit={async ({ placeLabel, placeCode, selectedBookId, book }) => {
           try {
             // (1) 상태 READING 맞추기
