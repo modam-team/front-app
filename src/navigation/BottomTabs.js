@@ -86,7 +86,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
   const palette = useMemo(() => {
     return {
-      tabBg: isGreen ? colors.primary[500] : colors.background.DEFAULT, // 탭바 배경
+      tabBg: isGreen ? colors.primary[500] : "transparent", // 탭바 배경
       active: colors.primary[500], // 활성 아이콘 및 텍스트
       inactive: isGreen ? colors.mono[0] : colors.mono[950], // 비활성 아이콘 및 텍스트
       focusedBg: isGreen ? colors.primary[0] : colors.primary[0], // 선택 탭 pill 배경
