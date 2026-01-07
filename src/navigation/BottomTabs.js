@@ -1,13 +1,13 @@
-import BookshelfScreen from "../screens/BookshelfScreen";
-import HomeScreen from "../screens/HomeScreen";
-import ReportScreen from "../screens/ReportScreen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ReportStack from "@navigation/ReportStack";
 import {
   TabBarThemeProvider,
   useTabBarTheme,
 } from "@navigation/TabBarThemeContext";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import BookshelfScreen from "@screens/BookshelfScreen";
+import HomeScreen from "@screens/HomeScreen";
+import ReportScreen from "@screens/ReportScreen";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
@@ -16,7 +16,7 @@ import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const Tab = createBottomTabNavigator();
+const Tab = createMaterialTopTabNavigator();
 
 // 탭 라벨 및 아이콘 정의
 const TAB_META = {
@@ -32,15 +32,11 @@ export default function BottomTabs({ navigation }) {
     <TabBarThemeProvider>
       <Tab.Navigator
         initialRouteName="홈"
+        tabBarPosition="bottom"
         screenOptions={{
-          headerTitleAlign: "left",
-          headerTitleStyle: {
-            fontSize: 20,
-            fontWeight: "800",
-            color: colors.text,
-          },
-          headerShown: false,
           animationEnabled: true, // 탭 전환을 조금 더 부드럽게
+          swipeEnabled: false, // 스와이프로 화면 전환은 일단 꺼둠 (책장 안에서 스와이프로 이동 가능한 것 같아서 ..!!)
+          lazy: true,
         }}
         tabBar={(props) => <CustomTabBar {...props} />}
       >
@@ -162,10 +158,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
 const styles = StyleSheet.create({
   root: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: "transparent",
   },
 

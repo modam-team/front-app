@@ -517,6 +517,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
 
   return (
     <SafeAreaView
+      edges={["top"]} // 하단에 배경색 깔리는거 지웠어요
       style={styles.safe}
       {...panResponder.panHandlers}
     >
@@ -1051,7 +1052,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     backgroundColor: "#E9E9E9",
-    paddingBottom: 140,
     paddingTop: 8,
     gap: 8,
   },

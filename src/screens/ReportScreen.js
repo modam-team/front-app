@@ -417,7 +417,6 @@ const styles = StyleSheet.create({
 
   scrollContainer: {
     flexGrow: 1, // 컨텐츠 높이만큼 늘어나서 배경도 같이 스크롤
-    paddingBottom: 70,
   },
   content: {
     padding: spacing.l,
