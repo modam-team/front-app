@@ -99,9 +99,12 @@ export default function YearMonthPicker({
     setShowMonthBottomFade(months.length > VISIBLE_COUNT);
   }, [months.length]);
 
-  // 연도만 고르는 picker 모드면, 연도 선택 시 자동으로 닫아주기
+  // 연도만 고르는 picker 모드일 때
   const handlePressYear = (year) => {
     onSelectYear?.(year);
+    // 연도 선택하면 선택된 연도를 가운데로 보여줌
+    const idx = years.findIndex((y) => y === year);
+    scrollToCenter(yearScrollRef, idx, years.length);
   };
 
   // 연도 스크롤 제어
@@ -135,6 +138,42 @@ export default function YearMonthPicker({
     setShowMonthTopFade(y > 0);
     setShowMonthBottomFade(y < maxScroll);
   };
+
+  const yearScrollRef = useRef(null);
+  const monthScrollRef = useRef(null);
+
+  // 가운데로 보내주는 헬퍼
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+  const scrollToCenter = (ref, index, itemCount) => {
+    if (!ref?.current) return;
+
+    const centerOffsetIndex = Math.floor(VISIBLE_COUNT / 2); // 6개면 3
+    const targetIndex = clamp(
+      index - centerOffsetIndex,
+      0,
+      Math.max(itemCount - VISIBLE_COUNT, 0),
+    );
+    const y = targetIndex * ITEM_HEIGHT;
+
+    ref.current.scrollTo({ y, animated: false });
+  };
+
+  // 모달이 열릴 때 자동으로 스크롤
+  useEffect(() => {
+    if (!visible) return;
+
+    // 애니메이션/레이아웃 이후에 스크롤이 먹히게
+    requestAnimationFrame(() => {
+      const yearIndex = years.findIndex((y) => y === selectedYear);
+      scrollToCenter(yearScrollRef, Math.max(yearIndex, 0), years.length);
+
+      if (mode === "year-month") {
+        const monthIndex = months.findIndex((m) => m === selectedMonth);
+        scrollToCenter(monthScrollRef, Math.max(monthIndex, 0), months.length);
+      }
+    });
+  }, [visible, mode, selectedYear, selectedMonth, years, months]);
 
   // early return
   if (!mounted) return null;
@@ -201,6 +240,7 @@ export default function YearMonthPicker({
                   }
                 >
                   <ScrollView
+                    ref={yearScrollRef}
                     showsVerticalScrollIndicator={false}
                     onScroll={handleYearScroll}
                     scrollEventThrottle={16}
@@ -282,6 +322,7 @@ export default function YearMonthPicker({
                       }
                     >
                       <ScrollView
+                        ref={monthScrollRef}
                         showsVerticalScrollIndicator={false}
                         onScroll={handleMonthScroll}
                         scrollEventThrottle={16}
@@ -292,7 +333,18 @@ export default function YearMonthPicker({
                             <TouchableOpacity
                               key={month}
                               style={styles.itemRowMonth}
-                              onPress={() => onSelectMonth?.(month)}
+                              onPress={() => {
+                                onSelectMonth?.(month);
+                                // 월 선택하면 선택한 월을 가운데로 보여줌
+                                const idx = months.findIndex(
+                                  (m) => m === month,
+                                );
+                                scrollToCenter(
+                                  monthScrollRef,
+                                  idx,
+                                  months.length,
+                                );
+                              }}
                             >
                               <Text
                                 style={[
