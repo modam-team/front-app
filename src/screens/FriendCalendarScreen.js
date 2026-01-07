@@ -296,15 +296,6 @@ export default function FriendCalendarScreen({
           )}
 
           <View style={styles.calendarCard}>
-            <View style={styles.yearRow}>
-              <Text style={styles.yearText}>{year}</Text>
-              <Ionicons
-                name="chevron-down"
-                size={14}
-                color="#191919"
-              />
-            </View>
-
             <MonthlyCalendar
               year={year}
               month={month}
@@ -560,7 +551,6 @@ const styles = StyleSheet.create({
   calendarCard: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 16,
     marginBottom: 20,
     gap: 16,
   },
