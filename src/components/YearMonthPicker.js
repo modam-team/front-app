@@ -59,6 +59,16 @@ export default function YearMonthPicker({
     };
   }, [theme]);
 
+  // 테마별 체크 아이콘 관리
+  const checkIconByTheme = useMemo(() => {
+    const isMono = theme === "mono";
+    return {
+      ActiveCheck: isMono ? CheckGreenIcon : CheckIcon,
+    };
+  }, [theme]);
+
+  const { ActiveCheck } = checkIconByTheme;
+
   // 위아래로 스크롤할 요소가 남아있는지에 따라서 fade 표시 여부 결정
   const [showYearTopFade, setShowYearTopFade] = useState(false);
   const [showYearBottomFade, setShowYearBottomFade] = useState(
@@ -362,7 +372,7 @@ export default function YearMonthPicker({
 
                               <View style={styles.checkWrap}>
                                 {isActive ? (
-                                  <CheckIcon
+                                  <ActiveCheck
                                     width={16}
                                     height={16}
                                   />
