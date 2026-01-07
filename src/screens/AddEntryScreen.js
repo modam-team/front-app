@@ -9,7 +9,7 @@ import {
 import { fetchUserProfile } from "@apis/userApi";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -128,7 +128,9 @@ export default function AddEntryScreen({ navigation }) {
       try {
         const profile = await fetchUserProfile();
         setMyNickname(profile?.nickname || "");
-        setMyProfileImage(profile?.profileImageUrl || profile?.profileUrl || null);
+        setMyProfileImage(
+          profile?.profileImageUrl || profile?.profileUrl || null,
+        );
       } catch (e) {
         console.warn("프로필 닉네임 불러오기 실패", e?.response?.data || e);
       }
@@ -462,7 +464,8 @@ export default function AddEntryScreen({ navigation }) {
                     startDateText?.trim() ||
                     new Date().toISOString().slice(0, 10),
                   endDate:
-                    endDateText?.trim() || new Date().toISOString().slice(0, 10),
+                    endDateText?.trim() ||
+                    new Date().toISOString().slice(0, 10),
                 }
               : {};
           await addBookToBookcase(
@@ -915,8 +918,9 @@ export default function AddEntryScreen({ navigation }) {
                                       setStatus(opt.value);
                                       setShowStatusMenu(false);
                                       if (opt.value === "after") {
-                                        const todayStr =
-                                          new Date().toISOString().slice(0, 10);
+                                        const todayStr = new Date()
+                                          .toISOString()
+                                          .slice(0, 10);
                                         setStartDateText((prev) =>
                                           prev?.trim() ? prev : todayStr,
                                         );
@@ -1021,7 +1025,6 @@ export default function AddEntryScreen({ navigation }) {
                           )}
                         </View>
                       )}
-
                     </View>
                   </View>
                 )}
