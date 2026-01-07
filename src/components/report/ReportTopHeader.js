@@ -1,7 +1,9 @@
+import ModamLogoText from "@components/ModamLogoText";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
-import React from "react";
+import React, { useCallback } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ReportTopHeader({
@@ -9,16 +11,13 @@ export default function ReportTopHeader({
   variant = "light",
 }) {
   const isGreen = variant === "green";
+
   return (
     <View style={styles.wrap}>
-      <Text
-        style={[
-          styles.logo,
-          { color: isGreen ? colors.primary[400] : colors.mono[0] },
-        ]}
-      >
-        modam
-      </Text>
+      <ModamLogoText
+        to="홈"
+        variant={isGreen ? "primary" : "white"}
+      />
       <TouchableOpacity
         onPress={onPressSettings}
         hitSlop={10}

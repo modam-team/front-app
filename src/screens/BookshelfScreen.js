@@ -5,6 +5,7 @@ import {
   fetchBookcase,
   searchBookcase,
 } from "@apis/bookcaseApi";
+import ModamLogoText from "@components/ModamLogoText";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -31,8 +32,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const tabs = [
   { label: "읽고 싶은", value: "before" },
@@ -521,7 +522,10 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
     >
       {/* 상단 영역 */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>modam</Text>
+        <ModamLogoText
+          textStyle={styles.headerTitle}
+          to="홈"
+        />
         <TouchableOpacity
           style={styles.addButton}
           activeOpacity={0.85}
