@@ -1,10 +1,15 @@
 // src/screens/AddEntryScreen.js
 import placeholder from "../../assets/icon.png";
 import { requestBookRegistration, searchBooks } from "@apis/bookApi";
-import { addBookToBookcase, fetchReview } from "@apis/bookcaseApi";
+import {
+  addBookToBookcase,
+  fetchReview,
+  fetchReviewsList,
+} from "@apis/bookcaseApi";
+import { fetchUserProfile } from "@apis/userApi";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   Alert,
   Image,
@@ -80,12 +85,56 @@ export default function AddEntryScreen({ navigation }) {
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [reviewPromptRating, setReviewPromptRating] = useState(0);
   const [reviewPromptText, setReviewPromptText] = useState("");
+  const [reviewPromptCompleted, setReviewPromptCompleted] = useState(false);
+  const [pendingSubmitAfterReview, setPendingSubmitAfterReview] =
+    useState(false);
   const [detailReview, setDetailReview] = useState(null);
   const [detailReviewLoading, setDetailReviewLoading] = useState(false);
+  const [reviewList, setReviewList] = useState([]);
+  const [myNickname, setMyNickname] = useState("");
+  const [myProfileImage, setMyProfileImage] = useState(null);
   const [startDateText, setStartDateText] = useState("");
   const [endDateText, setEndDateText] = useState("");
+  const prevStatusRef = useRef(status);
+
+  // 상태 변경 감시: before/reading -> after 전환 시 강제로 리뷰 모달 노출
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    if (status === "after" && prev !== "after") {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      setStartDateText((v) => (v?.trim() ? v : todayStr));
+      setEndDateText((v) => (v?.trim() ? v : todayStr));
+      setReviewPromptCompleted(false);
+      setPendingSubmitAfterReview(true);
+      setShowReviewPrompt(true);
+    }
+    prevStatusRef.current = status;
+  }, [status]);
+  useEffect(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (status === "after" && !reviewPromptCompleted) {
+      setStartDateText((prev) => (prev?.trim() ? prev : todayStr));
+      setEndDateText((prev) => (prev?.trim() ? prev : todayStr));
+      setPendingSubmitAfterReview(true);
+      setShowReviewPrompt(true);
+    } else if (status !== "after") {
+      setShowReviewPrompt(false);
+      setPendingSubmitAfterReview(false);
+    }
+  }, [status, reviewPromptCompleted]);
 
   useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await fetchUserProfile();
+        setMyNickname(profile?.nickname || "");
+        setMyProfileImage(profile?.profileImageUrl || profile?.profileUrl || null);
+      } catch (e) {
+        console.warn("프로필 닉네임 불러오기 실패", e?.response?.data || e);
+      }
+    };
+    loadProfile();
+
     const trimmed = query.trim();
     const isKeyword = !!trimmed;
 
@@ -156,6 +205,18 @@ export default function AddEntryScreen({ navigation }) {
     setDetailReviewLoading(false);
   };
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await fetchUserProfile();
+        setMyNickname(profile?.nickname || "");
+      } catch (e) {
+        console.warn("프로필 닉네임 불러오기 실패", e?.response?.data || e);
+      }
+    };
+    loadProfile();
+  }, []);
+
   const openManualAdd = () => {
     const manual = {
       title: query || "직접 추가",
@@ -183,6 +244,8 @@ export default function AddEntryScreen({ navigation }) {
     setShowReviewPrompt(false);
     setReviewPromptRating(0);
     setReviewPromptText("");
+    setReviewPromptCompleted(false);
+    setPendingSubmitAfterReview(false);
     setDetailReview(null);
     setDetailReviewLoading(false);
   };
@@ -215,15 +278,49 @@ export default function AddEntryScreen({ navigation }) {
     const bookId = selectedBook?.bookId || selectedBook?.id;
     if (!bookId) {
       setDetailReview(null);
+      setReviewList([]);
       return;
     }
     let cancelled = false;
     const load = async () => {
       try {
         setDetailReviewLoading(true);
+        const list = await fetchReviewsList(bookId);
         const data = await fetchReview(bookId);
         if (cancelled) return;
         setDetailReview(data || null);
+        const normalizedList = Array.isArray(list)
+          ? list.map((item) => ({
+              ...item,
+              nickname: item.nickname || item.userName || item.userId,
+              comment: item.comment ?? item.review ?? "",
+              rating: item.rating ?? item.rate ?? 0,
+              profileImageUrl:
+                item.profileImageUrl ||
+                item.profileUrl ||
+                item.imageUrl ||
+                item.profile ||
+                item.avatar ||
+                null,
+            }))
+          : data
+            ? [
+                {
+                  ...data,
+                  nickname: data.nickname || data.userName || data.userId,
+                  comment: data.comment ?? data.review ?? "",
+                  rating: data.rating ?? data.rate ?? 0,
+                  profileImageUrl:
+                    data.profileImageUrl ||
+                    data.profileUrl ||
+                    data.imageUrl ||
+                    data.profile ||
+                    data.avatar ||
+                    null,
+                },
+              ]
+            : [];
+        setReviewList(normalizedList);
       } catch (e) {
         if (cancelled) return;
         console.error(
@@ -232,6 +329,7 @@ export default function AddEntryScreen({ navigation }) {
           e.response?.data || e.message,
         );
         setDetailReview(null);
+        setReviewList([]);
       } finally {
         if (!cancelled) setDetailReviewLoading(false);
       }
@@ -263,6 +361,15 @@ export default function AddEntryScreen({ navigation }) {
 
   const handleAddToShelf = async () => {
     if (!selectedBook) return;
+    if (status === "after" && !reviewPromptCompleted) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      setStartDateText((prev) => (prev?.trim() ? prev : todayStr));
+      setEndDateText((prev) => (prev?.trim() ? prev : todayStr));
+      setReviewPromptCompleted(false);
+      setShowReviewPrompt(true);
+      setPendingSubmitAfterReview(true);
+      return;
+    }
     const bookId = selectedBook.bookId || selectedBook.id || selectedBook.isbn;
 
     const bookIdNum = Number(bookId);
@@ -298,8 +405,11 @@ export default function AddEntryScreen({ navigation }) {
       status,
     };
     if (status === "after") {
-      const parsedStart = parseDateInput(startDateText);
-      const parsedEnd = parseDateInput(endDateText);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const startText = startDateText?.trim() || todayStr;
+      const endText = endDateText?.trim() || todayStr;
+      const parsedStart = parseDateInput(startText);
+      const parsedEnd = parseDateInput(endText);
       if (!parsedStart || !parsedEnd) {
         Alert.alert("날짜를 확인해주세요", "YYYY-MM-DD 형식으로 입력해주세요.");
         return;
@@ -313,8 +423,8 @@ export default function AddEntryScreen({ navigation }) {
       }
       newBook.readStartAt = parsedStart.getTime();
       newBook.readEndAt = parsedEnd.getTime();
-      newBook.startDate = startDateText.trim();
-      newBook.endDate = endDateText.trim();
+      newBook.startDate = startText;
+      newBook.endDate = endText;
     }
 
     if (localAddOnly) {
@@ -348,8 +458,11 @@ export default function AddEntryScreen({ navigation }) {
           const payloadDates =
             status === "after"
               ? {
-                  startDate: startDateText.trim(),
-                  endDate: endDateText.trim(),
+                  startDate:
+                    startDateText?.trim() ||
+                    new Date().toISOString().slice(0, 10),
+                  endDate:
+                    endDateText?.trim() || new Date().toISOString().slice(0, 10),
                 }
               : {};
           await addBookToBookcase(
@@ -491,7 +604,22 @@ export default function AddEntryScreen({ navigation }) {
   const isDateRangeValid =
     status !== "after" ||
     (parsedStart && parsedEnd && parsedStart.getTime() <= parsedEnd.getTime());
+  // 버튼은 항상 활성화; 완독 상태에서는 누르면 리뷰 모달을 띄우고 날짜만 유효성 체크
   const canSubmit = status === "after" ? isDateRangeValid : true;
+
+  // 상태가 "완독한"으로 전환되면 자동으로 리뷰 작성 모달을 띄워 작성하도록 유도
+  useEffect(() => {
+    if (status === "after") {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      setStartDateText((prev) => (prev?.trim() ? prev : todayStr));
+      setEndDateText((prev) => (prev?.trim() ? prev : todayStr));
+      setReviewPromptCompleted(false);
+      setPendingSubmitAfterReview(true);
+      setShowReviewPrompt(true);
+    } else {
+      setShowReviewPrompt(false);
+    }
+  }, [status]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -786,9 +914,24 @@ export default function AddEntryScreen({ navigation }) {
                                     onPress={() => {
                                       setStatus(opt.value);
                                       setShowStatusMenu(false);
-                                      setShowReviewPrompt(
-                                        opt.value === "after",
-                                      );
+                                      if (opt.value === "after") {
+                                        const todayStr =
+                                          new Date().toISOString().slice(0, 10);
+                                        setStartDateText((prev) =>
+                                          prev?.trim() ? prev : todayStr,
+                                        );
+                                        setEndDateText((prev) =>
+                                          prev?.trim() ? prev : todayStr,
+                                        );
+                                        setReviewPromptCompleted(false);
+                                        setPendingSubmitAfterReview(true);
+                                        setShowReviewPrompt(true);
+                                      } else {
+                                        setStartDateText("");
+                                        setEndDateText("");
+                                        setPendingSubmitAfterReview(false);
+                                        setShowReviewPrompt(false);
+                                      }
                                     }}
                                     activeOpacity={0.9}
                                   >
@@ -840,7 +983,7 @@ export default function AddEntryScreen({ navigation }) {
                         </Text>
                       </View>
 
-                      {status === "after" && (
+                      {status === "after" && reviewPromptCompleted && (
                         <View style={styles.dateBlock}>
                           <Text style={styles.dateBlockTitle}>읽은 기간</Text>
                           <View style={styles.dateRow}>
@@ -878,6 +1021,7 @@ export default function AddEntryScreen({ navigation }) {
                           )}
                         </View>
                       )}
+
                     </View>
                   </View>
                 )}
@@ -887,48 +1031,61 @@ export default function AddEntryScreen({ navigation }) {
                   {detailReviewLoading && (
                     <Text style={styles.helperText}>리뷰 불러오는 중...</Text>
                   )}
-                  {!detailReviewLoading && detailReview && (
-                    <View style={styles.reviewCard}>
-                      <View style={styles.avatar} />
-                      <View style={styles.reviewBody}>
-                        <View style={styles.reviewTop}>
-                          <Text style={styles.reviewNickname}>한줄 리뷰</Text>
-                          <View style={styles.reviewStars}>
-                            {renderStars(
-                              detailReview.rating || 0,
-                              16,
-                              "#426B1F",
-                            )}
-                          </View>
-                        </View>
-                        <Text style={styles.reviewText}>
-                          {detailReview.comment || "리뷰 내용이 없습니다."}
-                        </Text>
-                        {Array.isArray(detailReview.hashtag) &&
-                          detailReview.hashtag.length > 0 && (
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                flexWrap: "wrap",
-                                gap: 6,
-                              }}
-                            >
-                              {detailReview.hashtag.map((tag) => (
-                                <View
-                                  key={tag}
-                                  style={styles.reviewTagChip}
-                                >
-                                  <Text style={styles.reviewTagText}>
-                                    #{tag}
-                                  </Text>
-                                </View>
-                              ))}
+                  {!detailReviewLoading &&
+                    reviewList.map((rev, idx) => (
+                      <View
+                        key={rev.id || rev.userId || `${rev.nickname}-${idx}`}
+                        style={styles.reviewCard}
+                      >
+                        {rev?.profileImageUrl || myProfileImage ? (
+                          <Image
+                            source={{
+                              uri: rev?.profileImageUrl || myProfileImage,
+                            }}
+                            style={styles.avatar}
+                          />
+                        ) : (
+                          <View
+                            style={[styles.avatar, { backgroundColor: "#ddd" }]}
+                          />
+                        )}
+                        <View style={styles.reviewBody}>
+                          <View style={styles.reviewTop}>
+                            <Text style={styles.reviewNickname}>
+                              {rev?.nickname || myNickname || "닉네임"}
+                            </Text>
+                            <View style={styles.reviewStars}>
+                              {renderStars(rev.rating || 0, 16, "#426B1F")}
                             </View>
-                          )}
+                          </View>
+                          <Text style={styles.reviewText}>
+                            {rev.comment || "리뷰 내용이 없습니다."}
+                          </Text>
+                          {Array.isArray(rev.hashtag) &&
+                            rev.hashtag.length > 0 && (
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  flexWrap: "wrap",
+                                  gap: 6,
+                                }}
+                              >
+                                {rev.hashtag.map((tag) => (
+                                  <View
+                                    key={tag}
+                                    style={styles.reviewTagChip}
+                                  >
+                                    <Text style={styles.reviewTagText}>
+                                      #{tag}
+                                    </Text>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+                        </View>
                       </View>
-                    </View>
-                  )}
-                  {!detailReviewLoading && !detailReview && (
+                    ))}
+                  {!detailReviewLoading && reviewList.length === 0 && (
                     <Text style={styles.helperText}>
                       아직 등록된 리뷰가 없습니다.
                     </Text>
@@ -995,7 +1152,14 @@ export default function AddEntryScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.reviewPromptCTA}
                 activeOpacity={0.9}
-                onPress={() => setShowReviewPrompt(false)}
+                onPress={() => {
+                  setReviewPromptCompleted(true);
+                  setShowReviewPrompt(false);
+                  if (pendingSubmitAfterReview) {
+                    setPendingSubmitAfterReview(false);
+                    setTimeout(() => handleAddToShelf(), 0);
+                  }
+                }}
               >
                 <Text style={styles.reviewPromptCTAText}>계속하기</Text>
               </TouchableOpacity>

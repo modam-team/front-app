@@ -55,6 +55,7 @@ export default function BookDetailScreen({ navigation, route }) {
   const [rating, setRating] = useState(book.userRate || 0);
   const [selectedTags, setSelectedTags] = useState([]);
   const [reviewDone, setReviewDone] = useState(initialStatus === "after");
+  const [forceDirty, setForceDirty] = useState(false);
   const [reviewPosted, setReviewPosted] = useState(initialStatus === "after");
   const [reviewBlocked, setReviewBlocked] = useState(false);
   const [pendingAfter, setPendingAfter] = useState(false);
@@ -228,8 +229,15 @@ export default function BookDetailScreen({ navigation, route }) {
     const commentChanged = (noteText || "").trim() !== initialComment;
     const ratingChanged = noteRating !== initialRating;
     const statusChanged = status !== committedStatus;
-    return tagsChanged || commentChanged || ratingChanged || statusChanged;
+    return (
+      forceDirty ||
+      tagsChanged ||
+      commentChanged ||
+      ratingChanged ||
+      statusChanged
+    );
   }, [
+    forceDirty,
     initialTags,
     selectedTags,
     noteText,
@@ -270,6 +278,14 @@ export default function BookDetailScreen({ navigation, route }) {
       return [...prev, tag];
     });
   };
+
+  // 상태를 "완독한"으로 전환하면 즉시 리뷰 모달을 띄워 리뷰를 받는다.
+  useEffect(() => {
+    if (status === "after" && !reviewDone) {
+      setPendingAfter(true);
+      setShowReviewModal(true);
+    }
+  }, [status, reviewDone]);
 
   const submit = async ({ ratingOverride, commentOverride } = {}) => {
     const bookKey = book.id || book.bookId;
@@ -613,13 +629,16 @@ export default function BookDetailScreen({ navigation, route }) {
                               );
                               setShowStatusMenu(false);
                               if (opt.value === "after") {
+                                setStatus("after");
                                 setPendingAfter(true);
                                 setReviewDone(false);
                                 setShowReviewModal(true);
+                                setForceDirty(true);
                               } else {
+                                setStatus(opt.value);
                                 setPendingAfter(false);
                                 setReviewDone(false);
-                                setStatus(opt.value);
+                                setForceDirty(true);
                               }
                             }}
                             activeOpacity={0.9}
@@ -916,7 +935,6 @@ export default function BookDetailScreen({ navigation, route }) {
                           );
                           setSelectedReviewTag(o);
                           setShowReviewTagDropdown(false);
-                          setSelectedTags([]);
                         }}
                         activeOpacity={0.9}
                       >

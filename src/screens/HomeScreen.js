@@ -6,7 +6,7 @@ import {
   fetchReviewListByBookId,
   updateBookcaseState,
 } from "@apis/bookcaseApi";
-import { searchFriends } from "@apis/friendApi";
+import { fetchFriends, searchFriends } from "@apis/friendApi";
 import {
   fetchMonthlyReport,
   fetchReadingLogs,
@@ -27,6 +27,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
 import { useRoute } from "@react-navigation/native";
+import FriendCalendarScreen from "@screens/FriendCalendarScreen";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
@@ -39,6 +40,7 @@ import React, {
 } from "react";
 import {
   Animated,
+  DeviceEventEmitter,
   Image,
   Pressable,
   ScrollView,
@@ -87,6 +89,8 @@ export default function HomeScreen({ navigation }) {
   const [readCount, setReadCount] = useState(0);
   const [goalCandidate, setGoalCandidate] = useState(1);
   const [friendList, setFriendList] = useState([]);
+  const [viewingFriend, setViewingFriend] = useState(null);
+  const [selfProfile, setSelfProfile] = useState(null);
 
   const [readingStartOpen, setReadingStartOpen] = useState(false);
 
@@ -266,17 +270,39 @@ export default function HomeScreen({ navigation }) {
 
   const friends =
     friendList.length > 0
-      ? friendList.map((f) => ({
-          name: f.nickname || "닉네임",
-          avatar: f.profileImageUrl || f.profileUrl || null,
-        }))
-      : [
-          { name: "닉네임", color: "#f4d7d9" },
-          { name: "닉네임", color: "#d7eec4" },
-          { name: "닉네임", color: "#d7eec4" },
-          { name: "닉네임", color: "#d7eec4" },
-          { name: "닉네임", color: "#d7eec4" },
-        ];
+      ? friendList
+          .filter(
+            (f) => f.relationStatus === "FRIENDS" && !!f.userId && !!f.nickname,
+          )
+          .map((f) => ({
+            id: f.userId,
+            name: f.nickname,
+            avatar: f.profileImageUrl || f.profileUrl || null,
+            color: f.color,
+            goalScore: f.goalScore,
+          }))
+      : [];
+
+  const friendsStrip = useMemo(() => {
+    const list = [];
+    const pushIf = (item) => {
+      if (!item || (!item.id && !item.userId && !item.name && !item.nickname)) {
+        return;
+      }
+      const id =
+        item.id || item.userId || item.nickname || item.name || item.avatar;
+      const exists = list.some(
+        (f) =>
+          f.id === id ||
+          f.userId === id ||
+          (id && (f.name === id || f.nickname === id)),
+      );
+      if (!exists) list.push(item);
+    };
+    if (selfProfile) pushIf(selfProfile);
+    friends.forEach(pushIf);
+    return list;
+  }, [friends, selfProfile]);
 
   const [recs, setRecs] = useState([]);
   const [nickname, setNickname] = useState("");
@@ -392,6 +418,13 @@ export default function HomeScreen({ navigation }) {
       setGoalCount(goalCountNumber);
       setGoalCandidate(goalCountNumber || 1);
       setThemeColor(profile?.themeColor ?? null);
+      setSelfProfile({
+        id: profile?.userId,
+        name: profile?.nickname || "",
+        avatar: profile?.profileImageUrl || profile?.profileUrl || null,
+        color: "#d7eec4",
+        goalScore: goalCountNumber || 1,
+      });
 
       // 서버가 필터링해준 추천 리스트
       const list = Array.isArray(reco) ? reco : [];
@@ -514,27 +547,30 @@ export default function HomeScreen({ navigation }) {
     };
   }, [isFocused, getCompletionKey, THIS_MONTH_KEY]);
 
+  const loadFriends = useCallback(async () => {
+    try {
+      const res = await fetchFriends();
+      const list = Array.isArray(res)
+        ? res.filter((f) => f.relationStatus === "FRIENDS")
+        : [];
+      setFriendList(list.slice(0, 6));
+    } catch (e) {
+      console.warn("친구 목록 불러오기 실패:", e.response?.data || e.message);
+      setFriendList([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isFocused) return;
-    let cancelled = false;
-    const loadFriends = async () => {
-      try {
-        const res = await searchFriends("");
-        if (cancelled) return;
-        const onlyFriends = (Array.isArray(res) ? res : []).filter(
-          (f) => f.relationStatus === "FRIENDS",
-        );
-        setFriendList(onlyFriends.slice(0, 6));
-      } catch (e) {
-        console.warn("친구 목록 불러오기 실패:", e.response?.data || e.message);
-        if (!cancelled) setFriendList([]);
-      }
-    };
     loadFriends();
-    return () => {
-      cancelled = true;
-    };
-  }, [isFocused]);
+  }, [isFocused, loadFriends]);
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener("friendAccepted", () => {
+      loadFriends();
+    });
+    return () => sub.remove();
+  }, [loadFriends]);
 
   // 이번 달 첫 방문 체크 및 지난 달 결과 모달
   useEffect(() => {
@@ -683,6 +719,18 @@ export default function HomeScreen({ navigation }) {
   // 목표 권수 설정
   const [isEditingGoal, setIsEditingGoal] = useState(false);
 
+  if (viewingFriend) {
+    return (
+      <FriendCalendarScreen
+        navigation={{
+          goBack: () => setViewingFriend(null),
+        }}
+        route={{ params: { friend: viewingFriend } }}
+        friendsStrip={friendsStrip}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -703,11 +751,22 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.logo}>modam</Text>
         </Pressable>
 
-        <View style={styles.friendsStrip}>
-          {friends.map((f, idx) => (
-            <View
-              key={idx}
+        <View style={styles.friendsStripRow}>
+          {friendsStrip.map((f, idx) => (
+            <Pressable
+              key={`${f.id || f.userId || f.name || f.nickname || "friend"}-${idx}`}
               style={styles.friendItem}
+              hitSlop={6}
+              onPress={() => {
+                // 첫 번째(내 프로필)는 홈 유지
+                if (idx === 0 || f.isSelf) return;
+                setViewingFriend({
+                  userId: f.id || f.userId,
+                  nickname: f.name || f.nickname,
+                  avatar: f.avatar,
+                  goalScore: f.goalScore,
+                });
+              }}
             >
               {f.avatar ? (
                 <Image
@@ -722,24 +781,29 @@ export default function HomeScreen({ navigation }) {
                   ]}
                 >
                   <Text style={styles.avatarInitial}>
-                    {f.name?.slice(0, 1) || "친"}
+                    {(f.name || f.nickname || "친").slice(0, 1)}
                   </Text>
                 </View>
               )}
               <Text
-                style={[styles.avatarName, idx === 0 && styles.avatarNameBold]}
+                style={[
+                  styles.avatarName,
+                  idx === 0 && styles.avatarNameBold,
+                ]}
               >
-                {f.name}
+                {f.name || f.nickname}
               </Text>
-            </View>
+            </Pressable>
           ))}
-          <Pressable
-            style={styles.addCircle}
-            hitSlop={6}
-            onPress={() => navigation?.navigate("FriendList")}
-          >
-            <Text style={styles.addPlus}>＋</Text>
-          </Pressable>
+          <View style={styles.addWrapper}>
+            <Pressable
+              style={styles.addCircle}
+              hitSlop={6}
+              onPress={() => navigation?.navigate("FriendList")}
+            >
+              <Text style={styles.addPlus}>＋</Text>
+            </Pressable>
+          </View>
         </View>
 
         {isEditingGoal ? (
@@ -1002,14 +1066,15 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   logo: { color: "#608540", fontSize: 16, fontWeight: "600" },
-  friendsStrip: {
+  friendsStripRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
     paddingHorizontal: 16,
     paddingBottom: 10,
     paddingTop: 2,
-    alignSelf: "center",
+    width: "100%",
+    justifyContent: "space-between",
   },
   friendItem: { alignItems: "center", width: 49 },
   avatar: {
@@ -1040,6 +1105,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#3f5d2c",
   },
+  addWrapper: { marginLeft: "auto" },
   addPlus: { color: "#fff", fontSize: 24, fontWeight: "700" },
 
   section: { marginTop: 14, paddingHorizontal: 16 },

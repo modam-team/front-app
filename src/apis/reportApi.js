@@ -433,10 +433,42 @@ export async function saveReadingLog({ bookId, readingPlace }) {
   return res?.data?.responseDto ?? null;
 }
 
-export async function fetchReadingLogs({ year, month }) {
+export async function fetchReadingLogs({ year, month, userId, targetUserId }) {
+  const target = userId || targetUserId;
+
+  // 1) 다른 유저 기록 조회 (/api/report/others)
+  if (target) {
+    try {
+      const res = await client.get("/api/report/others", {
+        params: { userId: target },
+      });
+      const list = res?.data?.responseDto ?? res?.data ?? [];
+      if (Array.isArray(list)) return list;
+    } catch (e) {
+      // fallback
+    }
+  }
+
+  // 2) 친구 로그용 별도 엔드포인트 시도
+  if (target) {
+    try {
+      const res = await client.get("/api/report/friend", {
+        params: { targetUserId: target, year, month },
+      });
+      const list = res?.data?.responseDto ?? [];
+      if (Array.isArray(list)) return list;
+    } catch (e) {
+      console.warn(
+        "친구 독서 기록 전용 경로 실패, 기본 경로로 폴백",
+        e?.response?.data || e.message,
+      );
+    }
+  }
+
+  // 3) 기본 경로 (userId가 있으면 함께 전달 시도)
   const res = await client.get("/api/report", {
-    params: { year, month },
+    params: { year, month, ...(target ? { userId: target } : {}) },
   });
-  const list = res?.data?.responseDto ?? [];
+  const list = res?.data?.responseDto ?? res?.data ?? [];
   return Array.isArray(list) ? list : [];
 }

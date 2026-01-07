@@ -180,7 +180,11 @@ export default function DayLogsBottomSheet({
                           <View style={styles.subRow}>
                             <Text style={styles.time}>{log.time}</Text>
                             <View style={[styles.chip]}>
-                              <Text style={styles.chipText}>
+                              <Text
+                                style={styles.chipText}
+                                numberOfLines={1}
+                                ellipsizeMode="clip"
+                              >
                                 {log.place || "이동중"}
                               </Text>
                             </View>
@@ -232,7 +236,11 @@ export default function DayLogsBottomSheet({
                         <View style={styles.subRow}>
                           <Text style={styles.time}>{log.time}</Text>
                           <View style={styles.chip}>
-                            <Text style={styles.chipText}>
+                            <Text
+                              style={styles.chipText}
+                              numberOfLines={1}
+                              ellipsizeMode="clip"
+                            >
                               {log.place || "이동중"}
                             </Text>
                           </View>

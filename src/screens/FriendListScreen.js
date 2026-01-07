@@ -1,48 +1,136 @@
 import {
   acceptFriendRequest,
+  cancelFriendRequest,
+  fetchFriends,
+  fetchReceivedRequests,
+  fetchSentRequests,
   rejectFriendRequest,
   searchFriends,
   sendFriendRequest,
+  unfriend,
 } from "@apis/friendApi";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  DeviceEventEmitter,
+  Alert,
   Pressable,
+  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const LOCAL_SENT_KEY = "LOCAL_SENT_REQUESTS";
 
 export default function FriendListScreen({ navigation }) {
+  const isFocused = useIsFocused();
   const [activeTab, setActiveTab] = useState("friend");
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
+  const [friends, setFriends] = useState([]);
+  const [received, setReceived] = useState([]);
+  const [sent, setSent] = useState([]);
+  const [localSent, setLocalSent] = useState([]); // 서버가 안 주는 보낸 요청을 로컬로 유지
+  const [results, setResults] = useState([]); // 검색 결과
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [sheetTarget, setSheetTarget] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) => {
+        const { dx, dy } = gesture;
+        return Math.abs(dx) > 20 && Math.abs(dx) > Math.abs(dy);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const { dx } = gesture;
+        if (dx > 50) {
+          setActiveTab("friend");
+        } else if (dx < -50) {
+          setActiveTab("request");
+        }
+      },
+    }),
+  ).current;
+
+  const dedupByUser = (list = []) => {
+    const map = new Map();
+    list.forEach((item) => {
+      const key =
+        item?.userId ||
+        item?.id ||
+        (item?.nickname ? `nick-${item.nickname}` : null);
+      if (!key) return;
+      const k = String(key);
+      if (!map.has(k)) map.set(k, item);
+    });
+    return Array.from(map.values());
+  };
+
+  const loadLocalSentFromStorage = async () => {
+    try {
+      const raw = await AsyncStorage.getItem(LOCAL_SENT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setLocalSent(parsed);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const saveLocalSent = async (list) => {
+    try {
+      await AsyncStorage.setItem(LOCAL_SENT_KEY, JSON.stringify(list));
+    } catch (e) {
+      // ignore
+    }
+  };
 
   const statusLabel = useMemo(
     () => ({
       FRIENDS: "친구",
       NOT_FRIENDS: "미친구",
       REQUEST_SENT: "요청 보냄",
+      REQUEST: "요청 보냄",
+      PENDING: "요청 보냄",
       REQUEST_RECEIVED: "요청 받음",
     }),
     [],
   );
 
   const shownList =
-    activeTab === "friend"
-      ? results
-      : results.filter((r) => r.relationStatus === "REQUEST_RECEIVED");
+    results.length > 0
+      ? activeTab === "friend"
+        ? results // 검색 시에는 관계 상태와 무관하게 모두 노출
+        : results.filter((r) =>
+            ["REQUEST_RECEIVED", "REQUEST_SENT", "REQUEST", "PENDING"].includes(
+              r.relationStatus,
+            ),
+          )
+      : activeTab === "friend"
+        ? friends
+        : dedupByUser([...received, ...sent, ...localSent]);
 
   const updateStatus = (userId, relationStatus) => {
     setResults((prev) =>
+      prev.map((r) => (r.userId === userId ? { ...r, relationStatus } : r)),
+    );
+    setFriends((prev) =>
+      prev.map((r) => (r.userId === userId ? { ...r, relationStatus } : r)),
+    );
+    setReceived((prev) =>
+      prev.map((r) => (r.userId === userId ? { ...r, relationStatus } : r)),
+    );
+    setSent((prev) =>
       prev.map((r) => (r.userId === userId ? { ...r, relationStatus } : r)),
     );
     setSheetTarget((prev) =>
@@ -50,19 +138,72 @@ export default function FriendListScreen({ navigation }) {
     );
   };
 
+  const loadAllFriends = async () => {
+    setLoading(true);
+    setErrorText("");
+    try {
+      const [friendsRes, receivedRes, sentRes, searchRes] = await Promise.all([
+        fetchFriends(),
+        fetchReceivedRequests(),
+        fetchSentRequests(),
+        searchFriends("").catch(() => []),
+      ]);
+      const fr = Array.isArray(friendsRes) ? friendsRes : [];
+      const recv = Array.isArray(receivedRes) ? receivedRes : [];
+      const sentDirect = Array.isArray(sentRes) ? sentRes : [];
+      const searchList = Array.isArray(searchRes) ? searchRes : [];
+      const sentList =
+        sentDirect.length > 0
+          ? sentDirect
+          : searchList.filter((r) =>
+              ["REQUEST_SENT", "REQUEST", "PENDING"].includes(
+                r.relationStatus,
+              ),
+            );
+      // 로컬 보낸 목록과 병합 후 중복 제거
+      const mergedSent = dedupByUser([...sentList, ...localSent]);
+      setFriends(fr);
+      setReceived(recv);
+      setSent(mergedSent);
+      saveLocalSent(mergedSent);
+
+      // 요청 탭에서 검색어가 비어 있으면 검색 결과를 그대로 결과 목록으로 사용해 표시
+      if (activeTab === "request" && query.trim() === "") {
+        setResults(searchList);
+      } else {
+        setResults([]); // 기본은 검색 결과 비우고 전체 노출
+      }
+
+      if (
+        fr.length === 0 &&
+        recv.length === 0 &&
+        mergedSent.length === 0 &&
+        (activeTab !== "request" || searchList.length === 0)
+      ) {
+        setErrorText("친구/요청 목록이 없습니다");
+      }
+    } catch (e) {
+      setErrorText("목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+      console.warn("친구 목록 로드 실패:", e.response?.data || e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = async () => {
     const term = query.trim();
+    // 빈 검색어: 전체 목록 재조회 (특히 요청 탭 초기 표시)
     if (!term) {
-      setResults([]);
-      setErrorText("");
+      await loadAllFriends();
       return;
     }
     setLoading(true);
     setErrorText("");
     try {
       const res = await searchFriends(term);
-      setResults(Array.isArray(res) ? res : []);
-      if (!res || res.length === 0) {
+      const list = Array.isArray(res) ? res : [];
+      setResults(list);
+      if (!list || list.length === 0) {
         setErrorText("검색 결과가 없습니다");
       }
     } catch (e) {
@@ -73,12 +214,81 @@ export default function FriendListScreen({ navigation }) {
     }
   };
 
-  const handleSendRequest = async (targetUserId) => {
-    if (!targetUserId) return;
+  useEffect(() => {
+    if (isFocused) {
+      loadLocalSentFromStorage().finally(loadAllFriends);
+    }
+  }, [isFocused]);
+
+  useEffect(() => {
+    // 탭 전환 시에도 최신 목록을 갱신해 반영
+    loadAllFriends();
+  }, [activeTab]);
+
+  const resolveUserId = (id) => {
+    const n = Number(id || sheetTarget?.id || sheetTarget?.userId);
+    return Number.isNaN(n) ? null : n;
+  };
+
+  const addLocalSent = (user) => {
+    if (!user?.userId) return;
+    setLocalSent((prev) => {
+      if (prev.find((p) => p.userId === user.userId)) return prev;
+      const next = [
+        ...prev,
+        {
+          ...user,
+          relationStatus: "REQUEST_SENT",
+        },
+      ];
+      saveLocalSent(next);
+      return next;
+    });
+  };
+
+  const removeLocalSent = (userId) => {
+    setLocalSent((prev) => {
+      const next = prev.filter((p) => p.userId !== userId);
+      saveLocalSent(next);
+      return next;
+    });
+  };
+
+  const handleCancelRequest = async (targetUserId) => {
+    const uid = resolveUserId(targetUserId);
+    if (!uid) return;
     setActionLoading(true);
     try {
-      await sendFriendRequest(targetUserId);
-      updateStatus(targetUserId, "REQUEST_SENT");
+      await cancelFriendRequest(uid);
+      updateStatus(uid, "NOT_FRIENDS");
+      removeLocalSent(uid);
+      await loadAllFriends();
+      setSheetTarget(null);
+    } catch (e) {
+      console.warn("친구 요청 취소 실패:", e.response?.data || e.message);
+      setErrorText(
+        e?.response?.data?.error?.message ||
+          "요청 취소에 실패했어요. 잠시 후 다시 시도해주세요.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSendRequest = async (targetUserId) => {
+    const uid = resolveUserId(targetUserId);
+    if (!uid) return;
+    setActionLoading(true);
+    try {
+      await sendFriendRequest(uid);
+      updateStatus(uid, "REQUEST_SENT");
+      addLocalSent(
+        sheetTarget?.userId === uid
+          ? sheetTarget
+          : results.find((r) => r.userId === uid) ||
+            friends.find((f) => f.userId === uid) || { userId: uid },
+      );
+      await loadAllFriends();
     } catch (e) {
       console.warn("친구 요청 실패:", e.response?.data || e.message);
       setErrorText("친구 요청에 실패했어요. 잠시 후 다시 시도해주세요.");
@@ -88,28 +298,65 @@ export default function FriendListScreen({ navigation }) {
   };
 
   const handleAccept = async (targetUserId) => {
-    if (!targetUserId) return;
+    const uid = resolveUserId(targetUserId);
+    if (!uid) return;
     setActionLoading(true);
     try {
-      await acceptFriendRequest(targetUserId);
-      updateStatus(targetUserId, "FRIENDS");
+      await acceptFriendRequest(uid);
+      updateStatus(uid, "FRIENDS");
+      removeLocalSent(uid);
+      await loadAllFriends();
+      setSheetTarget(null);
+      DeviceEventEmitter.emit("friendAccepted");
     } catch (e) {
       console.warn("친구 요청 수락 실패:", e.response?.data || e.message);
-      setErrorText("수락에 실패했어요. 잠시 후 다시 시도해주세요.");
+      setErrorText(
+        e?.response?.data?.error?.message ||
+          "수락에 실패했어요. 잠시 후 다시 시도해주세요.",
+      );
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleReject = async (targetUserId) => {
-    if (!targetUserId) return;
+    const uid = resolveUserId(targetUserId);
+    if (!uid) return;
     setActionLoading(true);
     try {
-      await rejectFriendRequest(targetUserId);
-      updateStatus(targetUserId, "NOT_FRIENDS");
+      await rejectFriendRequest(uid);
+      updateStatus(uid, "NOT_FRIENDS");
+      removeLocalSent(uid);
+      await loadAllFriends();
+      setSheetTarget(null);
     } catch (e) {
       console.warn("친구 요청 거절 실패:", e.response?.data || e.message);
-      setErrorText("거절에 실패했어요. 잠시 후 다시 시도해주세요.");
+      setErrorText(
+        e?.response?.data?.error?.message ||
+          "거절에 실패했어요. 잠시 후 다시 시도해주세요.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnfriend = async (targetUserId) => {
+    const uid = resolveUserId(targetUserId);
+    if (!uid) return;
+    setActionLoading(true);
+    try {
+      await unfriend(uid);
+      updateStatus(uid, "NOT_FRIENDS");
+      removeLocalSent(uid);
+      await loadAllFriends();
+      DeviceEventEmitter.emit("friendAccepted"); // 홈 상단 동기화용
+      setSheetTarget(null);
+    } catch (e) {
+      console.warn("친구 삭제 실패:", e.response?.data || e.message);
+      setErrorText(
+        e?.response?.data?.error?.message ||
+          "친구 삭제에 실패했어요. 잠시 후 다시 시도해주세요.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -121,6 +368,7 @@ export default function FriendListScreen({ navigation }) {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        {...panResponder.panHandlers}
       >
         <View style={styles.titleRow}>
           <Pressable
@@ -211,7 +459,7 @@ export default function FriendListScreen({ navigation }) {
           {!loading &&
             shownList.map((friend, idx) => (
               <Pressable
-                key={friend.userId || `${friend.nickname}-${idx}`}
+                key={`${friend.userId || friend.nickname || "friend"}-${idx}`}
                 style={styles.friendRow}
                 onPress={() => setSheetTarget(friend)}
               >
@@ -305,11 +553,96 @@ export default function FriendListScreen({ navigation }) {
                 </Pressable>
               )}
 
-              {sheetTarget.relationStatus === "REQUEST_SENT" && (
-                <Text style={styles.sheetInfo}>요청을 보냈어요.</Text>
-              )}
               {sheetTarget.relationStatus === "FRIENDS" && (
-                <Text style={styles.sheetInfo}>이미 친구입니다.</Text>
+                <View style={{ gap: 10 }}>
+                  <Pressable
+                    style={[
+                      styles.actionBtn,
+                      styles.actionBtnPrimary,
+                      { width: "100%" },
+                    ]}
+                    disabled={actionLoading}
+                    onPress={() => {
+                      setSheetTarget(null);
+                      navigation.navigate("FriendCalendar", {
+                        friend: {
+                          userId: sheetTarget.userId,
+                          nickname: sheetTarget.nickname,
+                          avatar: sheetTarget.profileImageUrl,
+                          goalScore:
+                            sheetTarget.goalScore ||
+                            sheetTarget.goal ||
+                            sheetTarget.goalCount ||
+                            1,
+                        },
+                      });
+                    }}
+                  >
+                    <Ionicons
+                      name="calendar-outline"
+                      size={18}
+                      color="#fff"
+                    />
+                    <Text style={styles.actionBtnText}>친구 피드 보기</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[
+                      styles.actionBtn,
+                      styles.actionBtnGhost,
+                      { width: "100%", backgroundColor: colors.mono[700] },
+                    ]}
+                    disabled={actionLoading}
+                    onPress={() =>
+                      Alert.alert("친구 삭제", "정말 친구를 삭제할까요?", [
+                        { text: "취소", style: "cancel" },
+                        {
+                          text: "삭제",
+                          style: "destructive",
+                          onPress: () => handleUnfriend(sheetTarget.userId),
+                        },
+                      ])
+                    }
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={18}
+                      color="#fff"
+                    />
+                    <Text style={styles.actionBtnGhostText}>친구 삭제</Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {sheetTarget.relationStatus === "REQUEST_SENT" && (
+                <View style={{ gap: 10 }}>
+                  <Text style={styles.sheetInfo}>요청을 보냈어요.</Text>
+                  <Pressable
+                    style={[
+                      styles.actionBtn,
+                      styles.actionBtnGhost,
+                      { width: "100%", backgroundColor: colors.mono[700] },
+                    ]}
+                    disabled={actionLoading}
+                    onPress={() =>
+                      Alert.alert("요청 취소", "보낸 요청을 취소할까요?", [
+                        { text: "닫기", style: "cancel" },
+                        {
+                          text: "취소하기",
+                          style: "destructive",
+                          onPress: () =>
+                            handleCancelRequest(sheetTarget.userId),
+                        },
+                      ])
+                    }
+                  >
+                    <Ionicons
+                      name="close-outline"
+                      size={18}
+                      color="#fff"
+                    />
+                    <Text style={styles.actionBtnGhostText}>요청 취소</Text>
+                  </Pressable>
+                </View>
               )}
             </View>
           </View>

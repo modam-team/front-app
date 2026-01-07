@@ -3,6 +3,7 @@ import AddEntryScreen from "./src/screens/AddEntryScreen";
 import AuthGateScreen from "./src/screens/AuthGateScreen";
 import BookDetailScreen from "./src/screens/BookDetailScreen";
 import EditNameScreen from "./src/screens/EditNameScreen";
+import FriendCalendarScreen from "./src/screens/FriendCalendarScreen";
 import FriendListScreen from "./src/screens/FriendListScreen";
 import ProgressBarImg from "@assets/progress-bar-img.png";
 import {
@@ -75,6 +76,11 @@ export default function App() {
         <Stack.Screen
           name="FriendList"
           component={FriendListScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="FriendCalendar"
+          component={FriendCalendarScreen}
           options={{ headerShown: false }}
         />
 

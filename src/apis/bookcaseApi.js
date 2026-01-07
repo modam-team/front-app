@@ -70,6 +70,39 @@ export async function fetchReview(bookId) {
   }
 }
 
+// 리뷰 전체 리스트 조회 (가능한 엔드포인트를 순차 시도)
+export async function fetchReviewsList(bookId) {
+  if (!bookId) return [];
+  // 0) /api/review/search (문서: 책 검색 시 리뷰 조회)
+  try {
+    const res = await client.get("/api/review/search", { params: { bookId } });
+    const list = res.data?.responseDto ?? res.data;
+    if (Array.isArray(list)) return list;
+  } catch (e) {
+    // 계속 진행
+  }
+
+  // 1) /api/review/list 시도
+  try {
+    const res = await client.get("/api/review/list", { params: { bookId } });
+    const list = res.data?.responseDto ?? res.data;
+    if (Array.isArray(list)) return list;
+  } catch (e) {
+    // 계속 진행
+  }
+
+  // 2) /api/review (배열 반환 시) 폴백
+  try {
+    const res = await client.get("/api/review", { params: { bookId } });
+    const data = res.data?.responseDto ?? res.data;
+    if (Array.isArray(data)) return data;
+    if (data) return [data]; // 단일인 경우 배열로 감싸기
+  } catch (e) {
+    console.warn("리뷰 목록 조회 실패:", e?.response?.data || e.message);
+  }
+  return [];
+}
+
 // 리뷰 생성
 export async function createReview({
   bookId,

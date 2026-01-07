@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, {
   useCallback,
   useEffect,
@@ -136,6 +137,7 @@ const getCompletionKey = (book) => {
 };
 
 export default function BookshelfScreen({ route, navigation: navProp }) {
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState("before");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("latest"); // latest | rating
@@ -792,7 +794,12 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
             activeOpacity={1}
             onPress={() => setShowSortSheet(false)}
           />
-          <View style={styles.sortSheet}>
+          <View
+            style={[
+              styles.sortSheet,
+              { paddingBottom: 24 + insets.bottom },
+            ]}
+          >
             <View style={styles.sortHandleWrap}>
               <View style={styles.sortHandle} />
             </View>
@@ -1044,22 +1051,24 @@ const styles = StyleSheet.create({
   scrollContent: {
     backgroundColor: "#E9E9E9",
     paddingBottom: 140,
+    paddingTop: 8,
+    gap: 8,
   },
   shelfArea: {
     backgroundColor: "#E9E9E9",
-    paddingTop: 16,
+    paddingTop: 12,
     alignItems: "center",
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    paddingHorizontal: 12,
+    marginBottom: 10,
   },
   shelfGroup: {
     width: "100%",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
     position: "relative",
   },
   shelfSpacing: {
-    marginTop: 8,
+    marginTop: 6,
   },
   bottomShelfArea: {
     paddingTop: 0,
@@ -1098,15 +1107,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    marginBottom: 12,
+    marginBottom: 10,
     zIndex: 2,
     width: "100%",
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
   },
   bookSlot: {
     flex: 1,
     alignItems: "center",
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingBottom: 0,
   },
   bookWrap: { position: "relative" },
@@ -1239,9 +1248,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F8F8",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    paddingBottom: 24,
     paddingHorizontal: 16,
     paddingTop: 12,
+    paddingBottom: 24,
   },
   sortHandleWrap: {
     alignItems: "center",
