@@ -322,8 +322,8 @@ export default function ReportScreen() {
                       />
                       <ReportEmptyCard
                         height={373}
-                        title="이번 달 취향 분석이 없어요"
-                        caption="완독/리뷰를 남기면 취향 분석이 표시돼요"
+                        title={`${year}년 ${month}월은 별점을 남긴 책이 없어요`}
+                        caption="완독 후 별점을 남기면 취향 분석을 볼 수 있어요"
                       />
                     </View>
                   ) : (
@@ -356,8 +356,8 @@ export default function ReportScreen() {
                     {isSelectedMonthEmpty ? (
                       <ReportEmptyCard
                         height={436}
-                        title="이번 달 습관 분석이 없어요"
-                        caption="독서 기록을 남기면 습관 분석이 표시돼요"
+                        title={`${year}년 ${month}월은 독서한 기록이 없어요`}
+                        caption="독서 기록 버튼을 눌러야 습관 분석을 볼 수 있어요"
                       />
                     ) : (
                       <>
