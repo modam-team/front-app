@@ -17,6 +17,7 @@ import ProgressBarCharacter from "@assets/progress-bar-img.png";
 import Button from "@components/Button";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
+import ModamLogoText from "@components/ModamLogoText";
 import MonthlyCalendar from "@components/MonthlyCalendar";
 import ReadingProgressBar from "@components/ReadingProgressBar";
 import ReadingStartModal from "@components/ReadingStartModal";
@@ -776,19 +777,11 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/*
-        <View style={styles.header}>
-          <Text style={styles.logo}>modam</Text>
-        </View>
-        */}
-
-        {/* 임시로 로고 버튼 길게 누르면 이번 달에 조회했어두 그 기록 초기화 하고 처음 오는 것처럼 보이게 해뒀어용 !*/}
-        <Pressable
+        <ModamLogoText
           style={styles.header}
-          onLongPress={DEV ? resetGoalModalDebug : undefined}
-        >
-          <Text style={styles.logo}>modam</Text>
-        </Pressable>
+          onPress={() => navigation.navigate("홈")}
+          onLongPress={DEV ? resetGoalModalDebug : undefined} // 목표 설정 테스트 용으로, 길게 누르면 목표 권수 설정하는 거 뜨게 함
+        />
 
         <View style={styles.friendsStripRow}>
           {friendsStrip.map((f, idx) => (
