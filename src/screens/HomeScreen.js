@@ -776,7 +776,10 @@ export default function HomeScreen({ navigation }) {
       style={styles.container}
       edges={["top", "left", "right"]}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + spacing.l }}
+      >
         <ModamLogoText
           style={styles.header}
           onPress={() => navigation.navigate("홈")}
@@ -958,7 +961,7 @@ export default function HomeScreen({ navigation }) {
       />
 
       <Pressable
-        style={[styles.fab, { bottom: TAB_BAR_HEIGHT + insets.bottom + 16 }]}
+        style={[styles.fab, { bottom: spacing.m }]}
         onPress={() => setReadingStartOpen(true)}
         hitSlop={6}
       >
@@ -1047,7 +1050,7 @@ export default function HomeScreen({ navigation }) {
           pointerEvents="none"
           style={[
             styles.toastWrap,
-            { bottom: TAB_BAR_HEIGHT + insets.bottom + 12 },
+            { bottom: spacing.m },
             {
               opacity: toastOpacity,
               transform: [
