@@ -18,6 +18,7 @@ export default function SettingsScreen() {
     () => [
       { key: "profile", label: "프로필" },
       { key: "theme", label: "테마" },
+      { key: "genre", label: "선호 장르 변경" },
       { key: "notice", label: "공지사항" },
       { key: "inquiry", label: "1:1 문의" },
     ],
@@ -32,6 +33,9 @@ export default function SettingsScreen() {
         break;
       case "theme":
         navigation.navigate("ThemeScreen");
+        break;
+      case "genre":
+        navigation.navigate("ChangeGenreScreen");
         break;
       case "notice":
         navigation.navigate("NoticeScreen");

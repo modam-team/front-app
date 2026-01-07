@@ -88,3 +88,9 @@ export async function updateThemeColor(themeColor) {
   const res = await client.patch("/api/user/theme", { themeColor });
   return res.data;
 }
+
+// 선호 장르 변경
+export async function changeCategories(categories) {
+  const res = await client.patch("/api/user/categories", { categories });
+  return res.data;
+}
