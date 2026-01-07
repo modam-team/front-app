@@ -256,17 +256,17 @@ export default function ReportScreen() {
   const bgSource = !isEmpty && personaKey ? map[personaKey] : null;
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      style={styles.container}
-      contentContainerStyle={styles.scrollContainer}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
+    <ImageBackground
+      source={bgSource}
+      resizeMode="cover"
+      style={styles.bg}
     >
-      <ImageBackground
-        source={bgSource}
-        resizeMode="cover"
-        style={styles.bg}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.container}
+        contentContainerStyle={styles.scrollContainer}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         <ReportTopHeader
           variant={headerVariant}
@@ -399,19 +399,19 @@ export default function ReportScreen() {
             onSelectMonth={setMonth}
           />
         </View>
-      </ImageBackground>
-    </ScrollView>
+      </ScrollView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.DEFAULT,
+    backgroundColor: "transparent",
   },
 
   bg: {
-    flexGrow: 1,
+    flex: 1,
     width: "100%",
   },
 
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.background.DEFAULT,
+    backgroundColor: "transparent",
   },
 
   dropdownIcon: {
