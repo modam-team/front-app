@@ -10,22 +10,22 @@ import {
   unfriend,
 } from "@apis/friendApi";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useIsFocused } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  DeviceEventEmitter,
   Alert,
-  Pressable,
+  DeviceEventEmitter,
   PanResponder,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LOCAL_SENT_KEY = "LOCAL_SENT_REQUESTS";
 
@@ -156,9 +156,7 @@ export default function FriendListScreen({ navigation }) {
         sentDirect.length > 0
           ? sentDirect
           : searchList.filter((r) =>
-              ["REQUEST_SENT", "REQUEST", "PENDING"].includes(
-                r.relationStatus,
-              ),
+              ["REQUEST_SENT", "REQUEST", "PENDING"].includes(r.relationStatus),
             );
       // 로컬 보낸 목록과 병합 후 중복 제거
       const mergedSent = dedupByUser([...sentList, ...localSent]);
@@ -286,7 +284,7 @@ export default function FriendListScreen({ navigation }) {
         sheetTarget?.userId === uid
           ? sheetTarget
           : results.find((r) => r.userId === uid) ||
-            friends.find((f) => f.userId === uid) || { userId: uid },
+              friends.find((f) => f.userId === uid) || { userId: uid },
       );
       await loadAllFriends();
     } catch (e) {

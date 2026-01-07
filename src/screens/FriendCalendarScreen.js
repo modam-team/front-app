@@ -1,23 +1,23 @@
+import { fetchReadingLogs } from "@apis/reportApi";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import MonthlyCalendar from "@components/MonthlyCalendar";
-import YearMonthPicker from "@components/YearMonthPicker";
-import { fetchReadingLogs } from "@apis/reportApi";
 import StarIcon from "@components/StarIcon";
+import YearMonthPicker from "@components/YearMonthPicker";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
 
 const now = new Date();
 const THIS_MONTH_KEY = `${now.getFullYear()}-${String(
@@ -80,9 +80,10 @@ export default function FriendCalendarScreen({
         list.forEach((item) => {
           const dt = new Date(item.readAt || item.createdAt || item.date);
           if (Number.isNaN(dt.getTime())) return;
-          const key = `${dt.getFullYear()}-${String(
-            dt.getMonth() + 1,
-          ).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+          const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(
+            2,
+            "0",
+          )}-${String(dt.getDate()).padStart(2, "0")}`;
           const log = {
             id: `${item.readAt || item.createdAt}-${item.title || "book"}`,
             title: item.title || "제목 없음",
@@ -92,8 +93,7 @@ export default function FriendCalendarScreen({
               item.publisher ||
               "작가 미상",
             cover: item.cover || null,
-            rating:
-              item.rating || item.rate || item.userRate || item.star || 0,
+            rating: item.rating || item.rate || item.userRate || item.star || 0,
             totalReview: item.totalReview || item.reviewCount || 0,
             time: `${String(dt.getHours()).padStart(2, "0")}:${String(
               dt.getMinutes(),
@@ -148,14 +148,16 @@ export default function FriendCalendarScreen({
               friendsStrip && friendsStrip.length > 0
                 ? friendsStrip
                 : friend
-                ? [friend]
-                : [];
+                  ? [friend]
+                  : [];
 
-            const selfEntry =
-              friendsStrip?.[0] ||
+            const selfEntry = friendsStrip?.[0] ||
               source.find((s) => s?.isSelf) ||
-              route.params?.self ||
-              { isSelf: true, name: "나", nickname: "나" };
+              route.params?.self || {
+                isSelf: true,
+                name: "나",
+                nickname: "나",
+              };
 
             const seen = new Set();
             const selfId = selfEntry.id || selfEntry.userId || "self";
@@ -329,9 +331,11 @@ export default function FriendCalendarScreen({
 
           <View style={styles.historyHeader}>
             <Text style={styles.historyTitle}>
-              {(friend?.nickname || "닉네임")}님의 독서 히스토리
+              {friend?.nickname || "닉네임"}님의 독서 히스토리
             </Text>
-            <Text style={styles.historySub}>클릭하면 독서 노트를 볼 수 있어요</Text>
+            <Text style={styles.historySub}>
+              클릭하면 독서 노트를 볼 수 있어요
+            </Text>
           </View>
 
           <ScrollView

@@ -786,10 +786,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
               )}
               <Text
-                style={[
-                  styles.avatarName,
-                  idx === 0 && styles.avatarNameBold,
-                ]}
+                style={[styles.avatarName, idx === 0 && styles.avatarNameBold]}
               >
                 {f.name || f.nickname}
               </Text>

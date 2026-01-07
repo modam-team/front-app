@@ -10,7 +10,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, {
   useCallback,
   useEffect,
@@ -32,6 +31,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const tabs = [
@@ -795,10 +795,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
             onPress={() => setShowSortSheet(false)}
           />
           <View
-            style={[
-              styles.sortSheet,
-              { paddingBottom: 24 + insets.bottom },
-            ]}
+            style={[styles.sortSheet, { paddingBottom: 24 + insets.bottom }]}
           >
             <View style={styles.sortHandleWrap}>
               <View style={styles.sortHandle} />
