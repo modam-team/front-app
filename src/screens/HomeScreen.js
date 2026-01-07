@@ -778,7 +778,7 @@ export default function HomeScreen({ navigation }) {
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + 12 }}
+        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + spacing.l }}
       >
         <ModamLogoText
           style={styles.header}
