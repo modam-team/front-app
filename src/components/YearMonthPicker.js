@@ -112,6 +112,7 @@ export default function YearMonthPicker({
   // 연도만 고르는 picker 모드일 때
   const handlePressYear = (year) => {
     onSelectYear?.(year);
+
     // 연도 선택하면 선택된 연도를 가운데로 보여줌
     const idx = years.findIndex((y) => y === year);
     scrollToCenter(yearScrollRef, idx, years.length);
@@ -184,6 +185,27 @@ export default function YearMonthPicker({
       }
     });
   }, [visible, mode, selectedYear, selectedMonth, years, months]);
+
+  // months 바뀔 때 selectedMonth가 유효한지 보정
+  useEffect(() => {
+    if (!visible) return;
+    if (mode !== "year-month") return;
+
+    // 해당 연도에 월이 없을 수는 없겠지만 안전장치
+    if (!months || months.length === 0) return;
+
+    const hasSelected = months.includes(selectedMonth);
+
+    // 선택된 월이 현재 연도(months)에 없다면 -> 가장 최근 달로 보정
+    if (!hasSelected) {
+      const latestMonth = months[months.length - 1]; // ex) 1월까지만 있으면 1
+      onSelectMonth?.(latestMonth);
+
+      // 스크롤도 최신 달로 맞춰줌
+      const idx = months.findIndex((m) => m === latestMonth);
+      scrollToCenter(monthScrollRef, Math.max(idx, 0), months.length);
+    }
+  }, [visible, mode, months, selectedMonth, onSelectMonth]);
 
   // early return
   if (!mounted) return null;
