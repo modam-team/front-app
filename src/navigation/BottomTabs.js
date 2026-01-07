@@ -86,7 +86,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
   const palette = useMemo(() => {
     return {
-      tabBg: isGreen ? colors.primary[500] : colors.background.DEFAULT, // 탭바 배경
+      tabBg: isGreen ? colors.primary[500] : colors.mono[0], // 탭바 배경
       active: colors.primary[500], // 활성 아이콘 및 텍스트
       inactive: isGreen ? colors.mono[0] : colors.mono[950], // 비활성 아이콘 및 텍스트
       focusedBg: isGreen ? colors.primary[0] : colors.primary[0], // 선택 탭 pill 배경
@@ -100,20 +100,20 @@ function CustomTabBar({ state, descriptors, navigation }) {
       }}
     >
       {/* 라운드/그림자 문제 방지용 2겹 구조 */}
-      <View style={[styles.tabShadowOuter, { backgroundColor: palette.tabBg }]}>
+      <View
+        style={[
+          styles.tabShadowOuter,
+          {
+            backgroundColor: palette.tabBg,
+            height: TAB_BAR_HEIGHT + insets.bottom,
+            paddingBottom: insets.bottom,
+          },
+        ]}
+      >
         {/* radius + clip 전용 */}
         <View style={styles.tabClip}>
           {/* 실제 탭바 */}
-          <View
-            style={[
-              styles.tabInner,
-              { backgroundColor: palette.tabBg },
-              {
-                height: TAB_BAR_HEIGHT + insets.bottom,
-                paddingBottom: insets.bottom,
-              },
-            ]}
-          >
+          <View style={[styles.tabInner, { backgroundColor: palette.tabBg }]}>
             <View style={styles.row}>
               {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
@@ -188,9 +188,9 @@ const styles = StyleSheet.create({
 
     // iOS shadow
     shadowColor: colors.mono[950],
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: -4 },
-    shadowRadius: 20,
+    shadowRadius: 16,
 
     // Android elevation
     elevation: 10,
@@ -202,11 +202,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius[500],
     borderTopRightRadius: radius[500],
     overflow: "hidden",
+    flex: 1,
   },
 
   tabInner: {
     paddingHorizontal: spacing.m,
     justifyContent: "center",
+    flex: 1,
   },
 
   row: {

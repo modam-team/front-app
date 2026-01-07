@@ -772,7 +772,10 @@ export default function HomeScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "left", "right"]}
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
         <ModamLogoText
           style={styles.header}
