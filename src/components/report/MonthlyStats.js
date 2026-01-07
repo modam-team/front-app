@@ -1,3 +1,4 @@
+import ReportEmptyCard from "./ReportEmptyCard";
 import ReportSectionHeader from "@components/report/ReportSectionHeader";
 import { MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
@@ -42,6 +43,7 @@ export default function MonthlyStats({
   resetKey,
   onOpenPicker,
   isCurrentMonth,
+  isEmpty,
 }) {
   const styleSet = isCurrentMonth ? currentMonthStyle : pastMonthStyle;
 
@@ -133,73 +135,88 @@ export default function MonthlyStats({
 
       {/* 막대 그래프 */}
       <View style={styles.chartContainer}>
-        <View style={styles.barRow}>
-          {monthData.map((item, index) => {
-            const targetHeight = (item.count / maxCount) * BAR_MAX_HEIGHT || 0;
+        {isEmpty ? (
+          <View style={styles.emptyWrap}>
+            <ReportEmptyCard
+              height={265} // chartContainer 높이랑 맞춤
+              title={`${year}년은 독서 기록이 없어요`}
+              caption="완독 후 독서 기록을 남기면 통계가 표시돼요"
+            />
+          </View>
+        ) : (
+          <>
+            <View style={styles.barRow}>
+              {monthData.map((item, index) => {
+                const targetHeight =
+                  (item.count / maxCount) * BAR_MAX_HEIGHT || 0;
 
-            const animatedHeight = barAnim[index].interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, targetHeight],
-            });
+                const animatedHeight = barAnim[index].interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, targetHeight],
+                });
 
-            const labelBottom = Animated.add(animatedHeight, spacing.s);
+                const labelBottom = Animated.add(animatedHeight, spacing.s);
 
-            return (
-              <View
-                key={item.month}
-                style={styles.barWrapper}
-              >
-                {/* 막대 영역 */}
-                <View style={styles.barOuter}>
-                  <Animated.View
-                    style={[
-                      styles.barInner,
-                      {
-                        height: animatedHeight,
-                        backgroundColor: styleSet.barColor,
-                      },
-                    ]}
-                  />
-                </View>
-
-                {/* 막대 위 숫자 */}
-                {item.count > 0 && (
-                  <Animated.Text
-                    style={[
-                      styles.barValue,
-                      {
-                        color: styleSet.textColor,
-                        position: "absolute",
-                        bottom: labelBottom,
-                      },
-                    ]}
+                return (
+                  <View
+                    key={item.month}
+                    style={styles.barWrapper}
                   >
-                    {item.count}
-                  </Animated.Text>
-                )}
-              </View>
-            );
-          })}
-        </View>
+                    {/* 막대 영역 */}
+                    <View style={styles.barOuter}>
+                      <Animated.View
+                        style={[
+                          styles.barInner,
+                          {
+                            height: animatedHeight,
+                            backgroundColor: styleSet.barColor,
+                          },
+                        ]}
+                      />
+                    </View>
 
-        {/* x축 라인 */}
-        <View
-          style={[styles.axisLine, { backgroundColor: styleSet.axisColor }]}
-        />
-
-        {/* 월 라벨 줄 */}
-        <View style={styles.monthLabelRow}>
-          {monthData.map((item) => (
-            <View
-              key={item.month}
-              style={styles.monthLabelWrapper}
-            >
-              <Text style={[styles.monthLabel, { color: styleSet.textColor }]}>
-                {item.month}
-              </Text>
+                    {/* 막대 위 숫자 */}
+                    {item.count > 0 && (
+                      <Animated.Text
+                        style={[
+                          styles.barValue,
+                          {
+                            color: styleSet.textColor,
+                            position: "absolute",
+                            bottom: labelBottom,
+                          },
+                        ]}
+                      >
+                        {item.count}
+                      </Animated.Text>
+                    )}
+                  </View>
+                );
+              })}
             </View>
-          ))}
-        </View>
+
+            {/* x축 라인 */}
+            <View
+              style={[styles.axisLine, { backgroundColor: styleSet.axisColor }]}
+            />
+
+            {/* 월 라벨 줄 */}
+            <View style={styles.monthLabelRow}>
+              {monthData.map((item) => (
+                <View
+                  key={item.month}
+                  style={styles.monthLabelWrapper}
+                >
+                  <Text
+                    style={[styles.monthLabel, { color: styleSet.textColor }]}
+                  >
+                    {item.month}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -275,5 +292,9 @@ const styles = StyleSheet.create({
   axisLine: {
     height: 1.5,
     marginTop: spacing.s,
+  },
+
+  emptyWrap: {
+    flex: 1,
   },
 });
