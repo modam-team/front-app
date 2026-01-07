@@ -137,35 +137,6 @@ export async function fetchRecommendedBooks() {
   const token = await getToken("accessToken");
   if (!token) return [];
 
-  if (__DEV__) {
-    return [
-      {
-        bookId: 101,
-        title: "아주 작은 습관의 힘",
-        author: "제임스 클리어",
-        cover: "https://image.yes24.com/goods/84690614/XL",
-        categoryName: "자기계발",
-        publisher: "비즈니스북스",
-        rate: 4.6,
-        totalReview: 1287,
-        link: "https://www.yes24.com/Product/Goods/84690614",
-        hashtags: ["습관", "자기관리", "성장"],
-      },
-      {
-        bookId: 102,
-        title: "달러구트 꿈 백화점",
-        author: "이미예",
-        cover: "https://image.yes24.com/goods/91084580/XL",
-        categoryName: "소설",
-        publisher: "팩토리나인",
-        rate: 4.4,
-        totalReview: 3421,
-        link: "https://www.yes24.com/Product/Goods/91084580",
-        hashtags: ["힐링", "판타지", "위로"],
-      },
-    ];
-  }
-
   const res = await client.get("/api/bookcase/recommend");
   return res.data?.responseDto || [];
 }
@@ -173,30 +144,6 @@ export async function fetchRecommendedBooks() {
 // 책 검색 시 리뷰 리스트 조회 (다른 유저들 리뷰)
 export async function fetchReviewListByBookId(bookId) {
   if (!bookId) return [];
-
-  // DEV에서는 항상 리뷰가 내려온 것처럼 임시로 넣어 뒀습니다 !
-  if (__DEV__) {
-    return [
-      {
-        userName: "모담이",
-        rating: 3.5,
-        comment: "문장력이 좋아서 술술 읽혀요!",
-        image: "https://i.pravatar.cc/150?img=12",
-      },
-      {
-        userName: "책벌레",
-        rating: 3,
-        comment: "몰입감 미쳤음... 새벽에 끝까지 읽음",
-        image: "https://i.pravatar.cc/150?img=32",
-      },
-      {
-        userName: "독서중",
-        rating: 4,
-        comment: "초반은 잔잔한데 후반이 재밌어요",
-        image: null,
-      },
-    ];
-  }
 
   try {
     const res = await client.get("/api/review/search", {
