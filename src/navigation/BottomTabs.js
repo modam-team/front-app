@@ -1,13 +1,13 @@
-import BookshelfScreen from "../screens/BookshelfScreen";
-import HomeScreen from "../screens/HomeScreen";
-import ReportScreen from "../screens/ReportScreen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ReportStack from "@navigation/ReportStack";
 import {
   TabBarThemeProvider,
   useTabBarTheme,
 } from "@navigation/TabBarThemeContext";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import BookshelfScreen from "@screens/BookshelfScreen";
+import HomeScreen from "@screens/HomeScreen";
+import ReportScreen from "@screens/ReportScreen";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
@@ -16,7 +16,7 @@ import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const Tab = createBottomTabNavigator();
+const Tab = createMaterialTopTabNavigator();
 
 // 탭 라벨 및 아이콘 정의
 const TAB_META = {
@@ -27,37 +27,49 @@ const TAB_META = {
 
 const TAB_BAR_HEIGHT = 52;
 
-export default function BottomTabs({ navigation }) {
+export default function BottomTabs() {
   return (
     <TabBarThemeProvider>
-      <Tab.Navigator
-        initialRouteName="홈"
-        screenOptions={{
-          headerTitleAlign: "left",
-          headerTitleStyle: {
-            fontSize: 20,
-            fontWeight: "800",
-            color: colors.text,
-          },
-          headerShown: false,
-          animationEnabled: true, // 탭 전환을 조금 더 부드럽게
-        }}
-        tabBar={(props) => <CustomTabBar {...props} />}
-      >
-        <Tab.Screen
-          name="책장"
-          component={BookshelfScreen}
-        />
-        <Tab.Screen
-          name="홈"
-          component={HomeScreen}
-        />
-        <Tab.Screen
-          name="리포트"
-          component={ReportStack}
-        />
-      </Tab.Navigator>
+      <TabsInner />
     </TabBarThemeProvider>
+  );
+}
+
+function TabsInner() {
+  const { theme } = useTabBarTheme();
+  const isGreen = theme === "reportCurrent";
+
+  return (
+    <Tab.Navigator
+      initialRouteName="홈"
+      tabBarPosition="bottom"
+      screenOptions={{
+        animationEnabled: true,
+        swipeEnabled: false,
+        lazy: true,
+
+        sceneContainerStyle: {
+          backgroundColor: isGreen ? colors.primary[500] : colors.mono[0],
+        },
+        style: {
+          backgroundColor: isGreen ? colors.primary[500] : colors.mono[0],
+        },
+      }}
+      tabBar={(props) => <CustomTabBar {...props} />}
+    >
+      <Tab.Screen
+        name="책장"
+        component={BookshelfScreen}
+      />
+      <Tab.Screen
+        name="홈"
+        component={HomeScreen}
+      />
+      <Tab.Screen
+        name="리포트"
+        component={ReportStack}
+      />
+    </Tab.Navigator>
   );
 }
 
@@ -74,7 +86,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
   const palette = useMemo(() => {
     return {
-      tabBg: isGreen ? colors.primary[500] : colors.mono[0], // 탭바 배경
+      tabBg: isGreen ? colors.primary[500] : colors.background.DEFAULT, // 탭바 배경
       active: colors.primary[500], // 활성 아이콘 및 텍스트
       inactive: isGreen ? colors.mono[0] : colors.mono[950], // 비활성 아이콘 및 텍스트
       focusedBg: isGreen ? colors.primary[0] : colors.primary[0], // 선택 탭 pill 배경
@@ -82,9 +94,13 @@ function CustomTabBar({ state, descriptors, navigation }) {
   }, [isGreen]);
 
   return (
-    <View style={styles.root}>
+    <View
+      style={{
+        backgroundColor: palette.tabBg,
+      }}
+    >
       {/* 라운드/그림자 문제 방지용 2겹 구조 */}
-      <View style={styles.tabShadowOuter}>
+      <View style={[styles.tabShadowOuter, { backgroundColor: palette.tabBg }]}>
         {/* radius + clip 전용 */}
         <View style={styles.tabClip}>
           {/* 실제 탭바 */}
@@ -162,10 +178,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
 const styles = StyleSheet.create({
   root: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: "transparent",
   },
 
@@ -182,7 +194,7 @@ const styles = StyleSheet.create({
 
     // Android elevation
     elevation: 10,
-    backgroundColor: "transparent",
+    backgroundColor: colors.mono[0],
   },
 
   // 클립 레이어
