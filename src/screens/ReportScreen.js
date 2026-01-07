@@ -4,6 +4,7 @@ import YearMonthPicker from "@components/YearMonthPicker";
 import MonthlyStats from "@components/report/MonthlyStats";
 import PlaceHabits from "@components/report/PlaceHabits";
 import PreferencePagerSection from "@components/report/PreferencePagerSection";
+import ReportEmptyCard from "@components/report/ReportEmptyCard";
 import ReportSectionHeader from "@components/report/ReportSectionHeader";
 import ReportToggle from "@components/report/ReportToggle";
 import ReportTopHeader from "@components/report/ReportTopHeader";
@@ -178,6 +179,57 @@ export default function ReportScreen() {
     ];
   }, [data]);
 
+  const isSelectedMonthEmpty = useMemo(() => {
+    if (!data) return true;
+
+    // 1) 요일별 기록 합
+    const weekdayTotal = (data.readingCountsByWeekday || []).reduce(
+      (sum, d) => {
+        const slots = d?.slots || {};
+        return (
+          sum +
+          (slots.morning || 0) +
+          (slots.afternoon || 0) +
+          (slots.evening || 0)
+        );
+      },
+      0,
+    );
+
+    // 2) 장소 비율 합
+    const placeTotal = (data.readingPlaces || []).reduce(
+      (sum, p) => sum + (Number(p.ratio) || 0),
+      0,
+    );
+
+    // 3) 장르 비율 합
+    const genreTotal = (data.genreDistribution || []).reduce(
+      (sum, g) => sum + (Number(g.ratio) || 0),
+      0,
+    );
+
+    // 4) 키워드 합
+    const keywordTotal = (data.reviewKeywords || []).reduce(
+      (sum, k) => sum + (Number(k.weight) || 0),
+      0,
+    );
+
+    // 백엔드가 기본값을 내려줘도 합계는 0으로 남아있으니까 여기서 기록이 없는 달을 판별 가능
+    return (
+      weekdayTotal === 0 &&
+      placeTotal === 0 &&
+      genreTotal === 0 &&
+      keywordTotal === 0
+    );
+  }, [data]);
+
+  const hasAnyRecordInYear = useMemo(() => {
+    const list = data?.monthlyStatus || [];
+    // monthlyStatus가 12개 고정으로 내려오더라도 count 합이 1 이상이면 "있다"
+    const yearTotal = list.reduce((sum, m) => sum + (Number(m.count) || 0), 0);
+    return yearTotal > 0;
+  }, [data]);
+
   const scrollInfoRef = useRef({ y: 0, h: 0 });
 
   // 세로 스크롤할 때 섹션들이 화면에 보이는지 체크
@@ -255,21 +307,38 @@ export default function ReportScreen() {
                       resetKey={statsResetKey}
                       onOpenPicker={openPicker}
                       isCurrentMonth={isCurrentMonth}
+                      isEmpty={!hasAnyRecordInYear}
                     />
                   </View>
 
                   {/* 취향 분석 스와이프 페이저 섹션 */}
-                  <PreferencePagerSection
-                    year={year}
-                    month={month}
-                    variant={isCurrentMonth ? "current" : "past"}
-                    isCurrentMonth={isCurrentMonth}
-                    genreDistribution={data.genreDistribution}
-                    reviewKeywords={data.reviewKeywords}
-                    resetKey={preferenceResetKey}
-                    onLayout={prefAnim.onLayout}
-                    animateKey={prefAnim.animateKey}
-                  />
+                  {isSelectedMonthEmpty ? (
+                    <View onLayout={prefAnim.onLayout}>
+                      <ReportSectionHeader
+                        month={month}
+                        title="취향 분석"
+                        caption="나의 별점을 기준으로 작성된 표예요"
+                        variant={isCurrentMonth ? "current" : "past"}
+                      />
+                      <ReportEmptyCard
+                        height={373}
+                        title={`${year}년 ${month}월은 별점을 남긴 책이 없어요`}
+                        caption="완독 후 별점을 남기면 취향 분석을 볼 수 있어요"
+                      />
+                    </View>
+                  ) : (
+                    <PreferencePagerSection
+                      year={year}
+                      month={month}
+                      variant={isCurrentMonth ? "current" : "past"}
+                      isCurrentMonth={isCurrentMonth}
+                      genreDistribution={data.genreDistribution}
+                      reviewKeywords={data.reviewKeywords}
+                      resetKey={preferenceResetKey}
+                      onLayout={prefAnim.onLayout}
+                      animateKey={prefAnim.animateKey}
+                    />
+                  )}
 
                   {/* 습관 분석 섹션 */}
                   <View
@@ -284,25 +353,35 @@ export default function ReportScreen() {
                       variant={isCurrentMonth ? "current" : "past"}
                     />
 
-                    {/* 토글 */}
-                    <ReportToggle
-                      value={habitTab}
-                      onChange={setHabitTab}
-                    />
-
-                    {/* 카드 */}
-                    {habitTab === "time" ? (
-                      <TimeHabits
-                        readingCountsByWeekday={data.readingCountsByWeekday}
-                        animateKey={habitAnim.animateKey}
-                        resetKey={habitResetKey}
+                    {isSelectedMonthEmpty ? (
+                      <ReportEmptyCard
+                        height={436}
+                        title={`${year}년 ${month}월은 독서한 기록이 없어요`}
+                        caption="독서 기록 버튼을 눌러야 습관 분석을 볼 수 있어요"
                       />
                     ) : (
-                      <PlaceHabits
-                        places={places}
-                        animateKey={habitAnim.animateKey}
-                        resetKey={habitResetKey}
-                      />
+                      <>
+                        {/* 토글 */}
+                        <ReportToggle
+                          value={habitTab}
+                          onChange={setHabitTab}
+                        />
+
+                        {/* 카드 */}
+                        {habitTab === "time" ? (
+                          <TimeHabits
+                            readingCountsByWeekday={data.readingCountsByWeekday}
+                            animateKey={habitAnim.animateKey}
+                            resetKey={habitResetKey}
+                          />
+                        ) : (
+                          <PlaceHabits
+                            places={places}
+                            animateKey={habitAnim.animateKey}
+                            resetKey={habitResetKey}
+                          />
+                        )}
+                      </>
                     )}
                   </View>
                 </>
