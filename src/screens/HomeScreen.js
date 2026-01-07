@@ -924,7 +924,7 @@ export default function HomeScreen({ navigation }) {
       <YearMonthPicker
         visible={yearPickerOpen}
         onClose={() => setYearPickerOpen(false)}
-        mode="year" // 연도만 고르도록
+        mode="year-month" // 연도와 월 모두 선택 가능하게
         theme="mono" // 테마는 모노
         selectedYear={year}
         selectedMonth={month} // props 맞춰야 해서 전달
