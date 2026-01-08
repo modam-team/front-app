@@ -284,13 +284,16 @@ export default function FriendCalendarScreen({
               item.publisher ||
               "작가 미상",
             cover: item.cover || null,
-            rating: item.rating || item.rate || item.userRate || item.star || 0,
+            rating: 0,
             avgRate:
               item.avgRate ||
               item.avgRating ||
               item.averageRating ||
               item.reviewAvg ||
               item.reviewAverage ||
+              item.totalRate ||
+              item.bookRate ||
+              item.rate ||
               null,
             totalReview: item.totalReview || item.reviewCount || 0,
             time: `${String(dt.getHours()).padStart(2, "0")}:${String(
@@ -372,6 +375,26 @@ export default function FriendCalendarScreen({
             match.hashtags,
         ),
       });
+      if (Number.isFinite(Number(log?.bookId))) {
+        const ratingValue =
+          Number(match.averageRating ?? match.avgRating ?? match.avgRate ?? 0) ||
+          Number(match.totalRate ?? match.bookRate ?? 0) ||
+          Number(match.rating ?? match.rate ?? 0) ||
+          0;
+        const totalValue =
+          Number(match.totalReview ?? match.reviewCount ?? 0) || 0;
+        setHistory((prev) =>
+          prev.map((h) =>
+            h.bookId === log.bookId
+              ? {
+                  ...h,
+                  avgRate: ratingValue || h.avgRate || h.rate,
+                  totalReview: totalValue || h.totalReview,
+                }
+              : h,
+          ),
+        );
+      }
     } catch (e) {
       console.warn("친구 독서록 조회 실패:", e.response?.data || e.message);
       setNoteData(null);
@@ -600,7 +623,16 @@ export default function FriendCalendarScreen({
           >
             {history.map((item) => {
               const rating =
-                Number(item.avgRate ?? item.avgRating ?? item.rate ?? 0) || 0;
+                Number(
+                  item.avgRate ??
+                    item.avgRating ??
+                    item.totalRate ??
+                    item.bookRate ??
+                    item.rate ??
+                    0,
+                ) || 0;
+              const totalCount =
+                Number(item.totalReview ?? item.reviewCount ?? 0) || 0;
               const author =
                 item.author ||
                 (Array.isArray(item.authors)
@@ -683,7 +715,7 @@ export default function FriendCalendarScreen({
                       );
                     })}
                     <Text style={styles.starCount}>
-                      ({item.totalReview || 0})
+                      ({totalCount})
                     </Text>
                   </View>
                 </Pressable>
