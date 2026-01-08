@@ -452,8 +452,7 @@ export default function BookDetailScreen({ navigation, route }) {
                 });
                 reviewCreated = true;
                 setSelectedTags([]);
-              } else
-              if (
+              } else if (
                 status === 409 ||
                 code === "409" ||
                 code === "4093" ||
@@ -543,10 +542,7 @@ export default function BookDetailScreen({ navigation, route }) {
           ? totalReviews || book.totalReview || 0
           : book.totalReview || 0,
         finishedAt: isAfterOnServer
-          ? book.finishedAt ||
-            book.finishedAtTime ||
-            book.endDate ||
-            todayStr
+          ? book.finishedAt || book.finishedAtTime || book.endDate || todayStr
           : book.finishedAt,
       };
 

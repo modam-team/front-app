@@ -824,7 +824,10 @@ export default function HomeScreen({ navigation }) {
                   style={styles.avatarImage}
                 />
                 <Text
-                  style={[styles.avatarName, idx === 0 && styles.avatarNameBold]}
+                  style={[
+                    styles.avatarName,
+                    idx === 0 && styles.avatarNameBold,
+                  ]}
                 >
                   {f.name || f.nickname}
                 </Text>
