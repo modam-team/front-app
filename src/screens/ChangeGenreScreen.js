@@ -3,6 +3,7 @@ import AppHeader from "@components/AppHeader";
 import Button from "@components/Button";
 import Chip from "@components/Chip";
 import { GENRES } from "@constants/genres";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
@@ -10,7 +11,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function ChangeGnereScreen({ navigation }) {
+const PREF_GENRES_KEY = "preferredGenres";
+
+export default function ChangeGenreScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -112,6 +115,9 @@ export default function ChangeGnereScreen({ navigation }) {
     try {
       setSaving(true);
       await changeCategories(categories);
+
+      // 서버 저장에 성공했으면 로컬 캐시를 갱신에서 선호 장르 기반 문구를 추천해줌
+      await AsyncStorage.setItem(PREF_GENRES_KEY, JSON.stringify(categories));
 
       setInitialCategories(categories); // 저장 성공했으니까 초깃값을 바꿔줌
       navigation.goBack();

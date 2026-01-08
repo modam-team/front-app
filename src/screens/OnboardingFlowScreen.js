@@ -5,6 +5,7 @@ import Chip from "@components/Chip";
 import ProgressBar from "@components/ProgressBar";
 import TextField from "@components/TextField";
 import { GENRES } from "@constants/genres";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useOnboardingStore } from "@store/onboardingStore";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
@@ -22,6 +23,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const PREF_GENRES_KEY = "preferredGenres";
 
 const AUTH_BYPASS =
   (process.env.EXPO_PUBLIC_AUTH_BYPASS || "").toLowerCase() === "true";
@@ -124,6 +127,9 @@ export default function OnboardingFlowScreen({ navigation, route }) {
             categories,
           });
         }
+
+        // 선호 장르를 캐시에 저장
+        await AsyncStorage.setItem(PREF_GENRES_KEY, JSON.stringify(categories));
 
         navigation.replace("Root");
       } catch (e) {
