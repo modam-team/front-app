@@ -1,6 +1,7 @@
 import { withdrawUser } from "@apis/userApi";
 import AppHeader from "@components/AppHeader";
 import BottomTabs from "@navigation/BottomTabs";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
@@ -9,6 +10,8 @@ import { clearAuth } from "@utils/auth";
 import React, { useMemo } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const PREF_GENRES_KEY = "preferredGenres";
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -81,6 +84,7 @@ export default function SettingsScreen() {
             try {
               await withdrawUser(); // 서버 탈퇴
               await clearAuth(); // 토큰 완전 삭제
+              await AsyncStorage.removeItem(PREF_GENRES_KEY); // 선호 장르 기반 문구 추천하던거도 지움
 
               Alert.alert("완료", "회원탈퇴가 완료됐어요.");
 

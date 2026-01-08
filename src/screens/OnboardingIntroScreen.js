@@ -1,18 +1,37 @@
 import { ONBOARDING_QUOTES } from "@constants/onboardingQuotes";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors } from "@theme/colors";
 import { typography } from "@theme/typography";
+import { pickOnboardingQuote } from "@utils/pickOnboardingQuotes";
 import { splitToLines } from "@utils/textSplit";
 import React, { useEffect, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SvgXml } from "react-native-svg";
 
-export default function OnboardingIntroScreen({ navigation }) {
-  const quote = useMemo(() => {
-    const idx = Math.floor(Math.random() * ONBOARDING_QUOTES.length);
-    return ONBOARDING_QUOTES[idx];
-  }, []);
+const PREF_GENRES_KEY = "preferredGenres";
 
-  const lines = useMemo(() => splitToLines(quote.text, 20), [quote.text]);
+export default function OnboardingIntroScreen({ navigation }) {
+  const [quote, setQuote] = React.useState(null);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(PREF_GENRES_KEY);
+        const preferredGenres = raw ? JSON.parse(raw) : [];
+        const q = pickOnboardingQuote(preferredGenres);
+        if (alive) setQuote(q);
+      } catch {
+        const q = pickOnboardingQuote([]);
+        if (alive) setQuote(q);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -20,6 +39,28 @@ export default function OnboardingIntroScreen({ navigation }) {
     }, 3000);
     return () => clearTimeout(timer);
   }, [navigation]);
+
+  const lines = useMemo(() => {
+    if (!quote?.text) return [];
+    return splitToLines(quote.text, 20);
+  }, [quote?.text]);
+
+  // quote 없으면 먼저 렌더 종료
+  if (!quote) {
+    return (
+      <View style={styles.root}>
+        <View style={styles.content}>
+          <View style={styles.logoWrap}>
+            <SvgXml
+              xml={MODAM_LOGO_XML}
+              width={180}
+              height={180}
+            />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
