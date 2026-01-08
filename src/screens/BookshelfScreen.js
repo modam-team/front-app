@@ -5,6 +5,7 @@ import {
   fetchBookcase,
   searchBookcase,
 } from "@apis/bookcaseApi";
+import BookShelfTabs from "@components/BookshelfTabs";
 import ModamLogoText from "@components/ModamLogoText";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
@@ -501,24 +502,11 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
       </View>
 
       {/* 탭 */}
-      <View style={styles.tabsRow}>
-        {tabs.map((t) => {
-          const active = tab === t.value;
-          return (
-            <TouchableOpacity
-              key={t.value}
-              style={[styles.tabItem, active && styles.tabItemActive]}
-              onPress={() => switchTab(tabOrder.indexOf(t.value))}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-                {t.label}
-              </Text>
-              {active && <View style={styles.tabUnderline} />}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <BookShelfTabs
+        tabs={tabs}
+        activeTab={tab}
+        onPressTab={(value) => switchTab(tabOrder.indexOf(value))}
+      />
 
       {/* 검색 */}
       <View style={styles.searchWrap}>
@@ -893,35 +881,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  tabsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FAFAF5",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E5E5",
-  },
-  tabItem: {
-    flex: 1,
-    height: 46,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 14,
-    paddingBottom: 4,
-  },
-  tabItemActive: {},
-  tabLabel: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#B1B1B1",
-  },
-  tabLabelActive: { color: "#426B1F" },
-  tabUnderline: {
-    marginTop: 6,
-    width: 112,
-    height: 2,
-    backgroundColor: "#426B1F",
-    borderRadius: 2,
-  },
+
   searchWrap: {
     backgroundColor: "#FAFAF5",
     paddingHorizontal: 16,
