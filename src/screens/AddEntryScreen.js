@@ -7,11 +7,11 @@ import {
   fetchReview,
   fetchReviewsList,
 } from "@apis/bookcaseApi";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { fetchUserProfile } from "@apis/userApi";
 import Avatar from "@components/Avatar";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -613,7 +613,8 @@ export default function AddEntryScreen({ navigation }) {
                 comment: "",
               });
             } catch (e) {
-              const code = e.response?.data?.error?.code || e.response?.data?.code;
+              const code =
+                e.response?.data?.error?.code || e.response?.data?.code;
               if (code === "4039") {
                 try {
                   await createReview({
@@ -629,10 +630,7 @@ export default function AddEntryScreen({ navigation }) {
                   );
                 }
               } else {
-                console.warn(
-                  "리뷰 생성 실패:",
-                  e.response?.data || e.message,
-                );
+                console.warn("리뷰 생성 실패:", e.response?.data || e.message);
               }
             }
           }
@@ -1161,7 +1159,8 @@ export default function AddEntryScreen({ navigation }) {
                                 <Text
                                   style={[
                                     styles.dateInputText,
-                                    !startDateText && styles.datePlaceholderText,
+                                    !startDateText &&
+                                      styles.datePlaceholderText,
                                   ]}
                                 >
                                   {startDateText || "YYYY-MM-DD"}
@@ -1283,57 +1282,55 @@ export default function AddEntryScreen({ navigation }) {
                     reviewList
                       .filter((rev) => (rev?.comment || "").trim().length > 0)
                       .map((rev, idx) => (
-                      <View
-                        key={rev.id || rev.userId || `${rev.nickname}-${idx}`}
-                        style={styles.reviewCard}
-                      >
-                        <Avatar
-                          uri={
-                            rev?.profileImageUrl ||
-                            rev?.profileUrl ||
-                            rev?.avatar ||
-                            rev?.image ||
-                            null
-                          }
-                          size={46}
-                          style={styles.avatar}
-                        />
-                        <View style={styles.reviewBody}>
-                          <View style={styles.reviewTop}>
-                            <Text style={styles.reviewNickname}>
-                              {rev?.nickname || "닉네임"}
-                            </Text>
-                            <View style={styles.reviewStars}>
-                              {renderStars(rev.rating || 0, 16, "#426B1F")}
-                            </View>
-                          </View>
-                          <Text style={styles.reviewText}>
-                            {rev.comment}
-                          </Text>
-                          {Array.isArray(rev.hashtag) &&
-                            rev.hashtag.length > 0 && (
-                              <View
-                                style={{
-                                  flexDirection: "row",
-                                  flexWrap: "wrap",
-                                  gap: 6,
-                                }}
-                              >
-                                {rev.hashtag.slice(0, 3).map((tag) => (
-                                  <View
-                                    key={tag}
-                                    style={styles.reviewTagChip}
-                                  >
-                                    <Text style={styles.reviewTagText}>
-                                      #{tag}
-                                    </Text>
-                                  </View>
-                                ))}
+                        <View
+                          key={rev.id || rev.userId || `${rev.nickname}-${idx}`}
+                          style={styles.reviewCard}
+                        >
+                          <Avatar
+                            uri={
+                              rev?.profileImageUrl ||
+                              rev?.profileUrl ||
+                              rev?.avatar ||
+                              rev?.image ||
+                              null
+                            }
+                            size={46}
+                            style={styles.avatar}
+                          />
+                          <View style={styles.reviewBody}>
+                            <View style={styles.reviewTop}>
+                              <Text style={styles.reviewNickname}>
+                                {rev?.nickname || "닉네임"}
+                              </Text>
+                              <View style={styles.reviewStars}>
+                                {renderStars(rev.rating || 0, 16, "#426B1F")}
                               </View>
-                            )}
+                            </View>
+                            <Text style={styles.reviewText}>{rev.comment}</Text>
+                            {Array.isArray(rev.hashtag) &&
+                              rev.hashtag.length > 0 && (
+                                <View
+                                  style={{
+                                    flexDirection: "row",
+                                    flexWrap: "wrap",
+                                    gap: 6,
+                                  }}
+                                >
+                                  {rev.hashtag.slice(0, 3).map((tag) => (
+                                    <View
+                                      key={tag}
+                                      style={styles.reviewTagChip}
+                                    >
+                                      <Text style={styles.reviewTagText}>
+                                        #{tag}
+                                      </Text>
+                                    </View>
+                                  ))}
+                                </View>
+                              )}
+                          </View>
                         </View>
-                      </View>
-                    ))}
+                      ))}
                   {!detailReviewLoading && reviewList.length === 0 && (
                     <Text style={styles.helperText}>
                       아직 등록된 리뷰가 없습니다.
@@ -1407,7 +1404,9 @@ export default function AddEntryScreen({ navigation }) {
                         >
                           <StarIcon
                             size={44}
-                            variant={isFull ? "full" : isHalf ? "half" : "empty"}
+                            variant={
+                              isFull ? "full" : isHalf ? "half" : "empty"
+                            }
                             color="#426B1F"
                           />
                         </TouchableOpacity>
@@ -1446,9 +1445,7 @@ export default function AddEntryScreen({ navigation }) {
                       </Text>
                       <Ionicons
                         name={
-                          showReviewTagDropdown
-                            ? "chevron-up"
-                            : "chevron-down"
+                          showReviewTagDropdown ? "chevron-up" : "chevron-down"
                         }
                         size={18}
                         color="#333"
@@ -1528,7 +1525,9 @@ export default function AddEntryScreen({ navigation }) {
                       setShowReviewPrompt(false);
                     }}
                   >
-                    <Text style={styles.reviewModalCTAText}>리뷰 작성 완료</Text>
+                    <Text style={styles.reviewModalCTAText}>
+                      리뷰 작성 완료
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>

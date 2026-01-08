@@ -65,9 +65,10 @@ const darkenHex = (hex, amount = 0.2) => {
   const g = parseInt(normalized.slice(3, 5), 16);
   const b = parseInt(normalized.slice(5, 7), 16);
   const factor = Math.max(0, Math.min(1, 1 - amount));
-  const toHex = (v) => Math.max(0, Math.min(255, Math.round(v * factor)))
-    .toString(16)
-    .padStart(2, "0");
+  const toHex = (v) =>
+    Math.max(0, Math.min(255, Math.round(v * factor)))
+      .toString(16)
+      .padStart(2, "0");
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 };
 
@@ -102,8 +103,7 @@ export default function FriendCalendarScreen({
         const fr = Array.isArray(friendsRes) ? friendsRes : [];
         const mappedFriends = fr
           .filter(
-            (f) =>
-              f.relationStatus === "FRIENDS" && !!f.userId && !!f.nickname,
+            (f) => f.relationStatus === "FRIENDS" && !!f.userId && !!f.nickname,
           )
           .map((f) => ({
             id: f.userId,
@@ -165,9 +165,10 @@ export default function FriendCalendarScreen({
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteData, setNoteData] = useState(null);
   const stripThemeColor = useMemo(() => {
-    const source = (friendsStrip && friendsStrip.length > 0
-      ? friendsStrip
-      : fallbackStrip) || [];
+    const source =
+      (friendsStrip && friendsStrip.length > 0
+        ? friendsStrip
+        : fallbackStrip) || [];
     const match = source.find((s) => {
       const sid = s?.id || s?.userId;
       return sid != null && Number(sid) === friendId;
@@ -296,15 +297,9 @@ export default function FriendCalendarScreen({
               dt.getMinutes(),
             ).padStart(2, "0")}`,
             place:
-              placeLabelMap[item.readingPlace] ||
-              item.readingPlace ||
-              "이동중",
+              placeLabelMap[item.readingPlace] || item.readingPlace || "이동중",
             bookId:
-              item.bookId ||
-              item.bookID ||
-              item.book?.id ||
-              item.id ||
-              null,
+              item.bookId || item.bookID || item.book?.id || item.id || null,
           };
           grouped[key] = grouped[key] ? [...grouped[key], log] : [log];
           const uniqKey = String(
@@ -406,97 +401,97 @@ export default function FriendCalendarScreen({
             contentContainerStyle={styles.friendsStripRow}
           >
             {(() => {
-            // strip을 한 번에 구성: 첫 번째는 내 프로필 고정, 나머지는 유니크하게
-            const sourceBase =
-              friendsStrip && friendsStrip.length > 0
-                ? friendsStrip
-                : fallbackStrip;
-            const source =
-              sourceBase && sourceBase.length > 0
-                ? sourceBase
-                : friend
-                  ? [friend]
-                  : [];
+              // strip을 한 번에 구성: 첫 번째는 내 프로필 고정, 나머지는 유니크하게
+              const sourceBase =
+                friendsStrip && friendsStrip.length > 0
+                  ? friendsStrip
+                  : fallbackStrip;
+              const source =
+                sourceBase && sourceBase.length > 0
+                  ? sourceBase
+                  : friend
+                    ? [friend]
+                    : [];
 
-            const selfEntry = friendsStrip?.[0] ||
-              source.find((s) => s?.isSelf) ||
-              route.params?.self || {
-                isSelf: true,
-                name: "나",
-                nickname: "나",
-              };
+              const selfEntry = friendsStrip?.[0] ||
+                source.find((s) => s?.isSelf) ||
+                route.params?.self || {
+                  isSelf: true,
+                  name: "나",
+                  nickname: "나",
+                };
 
-            const seen = new Set();
-            const selfId = selfEntry.id || selfEntry.userId || "self";
-            seen.add(String(selfId));
+              const seen = new Set();
+              const selfId = selfEntry.id || selfEntry.userId || "self";
+              seen.add(String(selfId));
 
-            const others = source.filter((s) => {
-              const sid = s?.id || s?.userId;
-              if (sid == null) return false;
-              const key = String(sid);
-              if (seen.has(key)) return false;
-              seen.add(key);
-              return true;
-            });
+              const others = source.filter((s) => {
+                const sid = s?.id || s?.userId;
+                if (sid == null) return false;
+                const key = String(sid);
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+              });
 
-            // 선택된 친구가 strip에 없으면 추가
-            if (friend) {
-              const fid = friend.id || friend.userId;
-              if (fid != null && !seen.has(String(fid))) {
-                others.push(friend);
-                seen.add(String(fid));
+              // 선택된 친구가 strip에 없으면 추가
+              if (friend) {
+                const fid = friend.id || friend.userId;
+                if (fid != null && !seen.has(String(fid))) {
+                  others.push(friend);
+                  seen.add(String(fid));
+                }
               }
-            }
 
-            return [selfEntry, ...others];
-          })().map((f, idx) => {
-            const id = f.id || f.userId;
-            const isSelf = idx === 0 || f.isSelf;
-            const active =
-              friendId && !Number.isNaN(friendId) ? id === friendId : isSelf;
-            const name = f.name || f.nickname || "친구";
-            const avatar =
-              f.avatar ||
-              f.profileImageUrl ||
-              f.profileUrl ||
-              f.image ||
-              null;
-            return (
-              <Pressable
-                key={`${isSelf ? "self" : id || name}-${idx}`}
-                style={styles.friendItem}
-                hitSlop={6}
-                onPress={() => {
-                  if (isSelf) {
-                    // 내 버블 → 홈으로만 이동
-                    if (goBackNav) goBackNav();
-                    else nav?.navigate?.("Root", { screen: "홈" });
-                    return;
-                  }
-                  if (id === friendId) return;
-                  nav?.navigate?.("FriendCalendar", { friend: f });
-                }}
-              >
-                <Avatar
-                  uri={avatar}
-                  size={49}
-                  style={[
-                    styles.avatarImage,
-                    active && { borderWidth: 2, borderColor: themeColor },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.avatarName,
-                    active && { fontWeight: "700", color: themeColor },
-                  ]}
-                  numberOfLines={1}
+              return [selfEntry, ...others];
+            })().map((f, idx) => {
+              const id = f.id || f.userId;
+              const isSelf = idx === 0 || f.isSelf;
+              const active =
+                friendId && !Number.isNaN(friendId) ? id === friendId : isSelf;
+              const name = f.name || f.nickname || "친구";
+              const avatar =
+                f.avatar ||
+                f.profileImageUrl ||
+                f.profileUrl ||
+                f.image ||
+                null;
+              return (
+                <Pressable
+                  key={`${isSelf ? "self" : id || name}-${idx}`}
+                  style={styles.friendItem}
+                  hitSlop={6}
+                  onPress={() => {
+                    if (isSelf) {
+                      // 내 버블 → 홈으로만 이동
+                      if (goBackNav) goBackNav();
+                      else nav?.navigate?.("Root", { screen: "홈" });
+                      return;
+                    }
+                    if (id === friendId) return;
+                    nav?.navigate?.("FriendCalendar", { friend: f });
+                  }}
                 >
-                  {name}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <Avatar
+                    uri={avatar}
+                    size={49}
+                    style={[
+                      styles.avatarImage,
+                      active && { borderWidth: 2, borderColor: themeColor },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.avatarName,
+                      active && { fontWeight: "700", color: themeColor },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {name}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
           <View style={styles.addWrapper}>
             <Pressable
@@ -632,7 +627,8 @@ export default function FriendCalendarScreen({
                         cover: item.cover,
                         coverImage: item.cover,
                         thumbnail: item.cover,
-                        categoryName: item.categoryName || item.category || null,
+                        categoryName:
+                          item.categoryName || item.category || null,
                       },
                     });
                   }}
