@@ -390,21 +390,41 @@ export default function BookDetailScreen({ navigation, route }) {
             ? Number(ratingOverride ?? rating)
             : 0;
           const hasExistingReview =
-            reviewPosted || (fetchedReview && fetchedReview.bookId === bookKey);
+            !!fetchedReview && fetchedReview.bookId === bookKey;
 
           let appliedRating = finalRating;
           if (hasExistingReview) {
             // 서버 스펙: PATCH는 comment만, 별점/태그 수정 불가
-            await updateReview({
-              bookId: bookKey,
-              comment: trimmedComment,
-            });
-            appliedRating =
-              fetchedReview?.rating ||
-              book.userRate ||
-              book.rate ||
-              finalRating;
-            reviewCreated = false;
+            try {
+              await updateReview({
+                bookId: bookKey,
+                comment: trimmedComment,
+              });
+              appliedRating =
+                fetchedReview?.rating ||
+                book.userRate ||
+                book.rate ||
+                finalRating;
+              reviewCreated = false;
+            } catch (err) {
+              const status = err.response?.status;
+              const msgText =
+                err.response?.data?.error?.message ||
+                err.response?.data?.message ||
+                err.message;
+              if (status === 500 && /review/i.test(msgText || "")) {
+                await createReview({
+                  bookId: bookKey,
+                  rating: finalRating,
+                  hashtag: sanitizedTags,
+                  comment: trimmedComment,
+                });
+                appliedRating = finalRating;
+                reviewCreated = true;
+              } else {
+                throw err;
+              }
+            }
           } else {
             // 리뷰 생성(첫 작성)으로 별점/태그/코멘트 저장
             try {
@@ -423,6 +443,16 @@ export default function BookDetailScreen({ navigation, route }) {
                 err.response?.data?.error?.message ||
                 err.response?.data?.message ||
                 err.message;
+              if (code === "4039") {
+                await createReview({
+                  bookId: bookKey,
+                  rating: finalRating,
+                  hashtag: [],
+                  comment: trimmedComment,
+                });
+                reviewCreated = true;
+                setSelectedTags([]);
+              } else
               if (
                 status === 409 ||
                 code === "409" ||
@@ -512,6 +542,12 @@ export default function BookDetailScreen({ navigation, route }) {
         totalReview: isAfterOnServer
           ? totalReviews || book.totalReview || 0
           : book.totalReview || 0,
+        finishedAt: isAfterOnServer
+          ? book.finishedAt ||
+            book.finishedAtTime ||
+            book.endDate ||
+            todayStr
+          : book.finishedAt,
       };
 
       setCommittedStatus(isAfterOnServer ? "after" : status);
@@ -734,6 +770,18 @@ export default function BookDetailScreen({ navigation, route }) {
             <Text style={styles.noteSubtitle}>
               별점을 수정하고{"\n"}직접 독서 노트를 기록할 수 있어요!
             </Text>
+            {selectedTags.length > 0 && (
+              <View style={styles.noteTagRow}>
+                {selectedTags.slice(0, 3).map((tag) => (
+                  <View
+                    key={tag}
+                    style={styles.noteTagChip}
+                  >
+                    <Text style={styles.noteTagText}>#{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
 
             <View
               style={[
@@ -1280,6 +1328,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
+  noteTagRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  noteTagChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#F1F6EC",
+    borderWidth: 1,
+    borderColor: "#7E9F61",
+  },
+  noteTagText: { fontSize: 12, color: "#426B1F" },
   noteBookCard: {
     width: "100%",
     backgroundColor: "#F6F6F6",

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
+import Avatar from "@components/Avatar";
 import { colors } from "@theme/colors";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -462,11 +463,16 @@ export default function FriendListScreen({ navigation }) {
                 onPress={() => setSheetTarget(friend)}
               >
                 <View style={styles.friendMeta}>
-                  <View
-                    style={[
-                      styles.avatar,
-                      { backgroundColor: colors.primary[0] },
-                    ]}
+                  <Avatar
+                    uri={
+                      friend.profileImageUrl ||
+                      friend.profileUrl ||
+                      friend.avatar ||
+                      friend.image ||
+                      null
+                    }
+                    size={44}
+                    style={styles.avatar}
                   />
                   <Text style={styles.friendName}>{friend.nickname}</Text>
                 </View>
@@ -498,7 +504,17 @@ export default function FriendListScreen({ navigation }) {
           <View style={styles.sheetCard}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <View style={styles.sheetAvatar} />
+              <Avatar
+                uri={
+                  sheetTarget.profileImageUrl ||
+                  sheetTarget.profileUrl ||
+                  sheetTarget.avatar ||
+                  sheetTarget.image ||
+                  null
+                }
+                size={49}
+                style={styles.sheetAvatar}
+              />
               <Text style={styles.sheetName}>{sheetTarget.nickname}</Text>
             </View>
 
@@ -567,6 +583,7 @@ export default function FriendListScreen({ navigation }) {
                           userId: sheetTarget.userId,
                           nickname: sheetTarget.nickname,
                           avatar: sheetTarget.profileImageUrl,
+                          themeColor: sheetTarget.themeColor,
                           goalScore:
                             sheetTarget.goalScore ||
                             sheetTarget.goal ||

@@ -211,13 +211,10 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
   }, [afterMonthOptions, afterMonthKey]);
   const tabBooks = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const listFromSearch = q && searchResults[tab] ? searchResults[tab] : null;
-    const baseList = listFromSearch ?? books[tab] ?? [];
-    let filtered = listFromSearch
-      ? baseList
-      : q
-        ? baseList.filter((b) => (b.title || "").toLowerCase().includes(q))
-        : baseList;
+    const baseList = books[tab] ?? [];
+    let filtered = q
+      ? baseList.filter((b) => (b.title || "").toLowerCase().includes(q))
+      : baseList;
 
     if (tab === "after" && afterMonthKey) {
       filtered = filtered.filter((b) => {
@@ -229,7 +226,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
       return [...filtered].sort((a, b) => (b.rate || 0) - (a.rate || 0));
     }
     return sortByLatest(filtered);
-  }, [books, tab, search, sortBy, searchResults, afterMonthKey]);
+  }, [books, tab, search, sortBy, afterMonthKey]);
   const navigationFromHook = useNavigation();
   const navigation = navProp ?? navigationFromHook;
 
@@ -246,56 +243,10 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
     setBooks(bookshelfCache);
   }, []);
 
-  // 상태+제목 검색 (서버)
+  // 제목 검색은 현재 탭의 로컬 목록만 사용
   useEffect(() => {
-    const q = search.trim();
-    if (!q) {
-      setSearchResults({ before: null, reading: null, after: null });
-      setSearchLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setSearchLoading(true);
-    const timer = setTimeout(async () => {
-      try {
-        const stateParam = tab.toUpperCase();
-        const res = await searchBookcase(q, stateParam);
-        if (cancelled) return;
-        const mapped = (res || []).map((b) => ({
-          id: b.bookId,
-          title: b.title,
-          author: b.author || b.publisher || "",
-          coverUri: b.cover || null,
-          status: (b.status || tab).toLowerCase(),
-          rate: typeof b.userRate === "number" ? b.userRate : b.rate || 0,
-          categoryName:
-            b.categoryName || b.category || b.genre || b.genreName || "기타",
-          enrollAt: b.enrollAt,
-          startedAt: b.startedAt,
-          finishedAt: b.endDate || b.finishedAt || b.finishedAtTime,
-          userRate: b.userRate,
-        }));
-        setSearchResults((prev) => ({
-          ...prev,
-          [tab]: sortByLatest(mapped),
-        }));
-      } catch (e) {
-        if (cancelled) return;
-        console.error(
-          "책장 검색 실패:",
-          e.response?.status,
-          e.response?.data || e.message,
-        );
-        setSearchResults((prev) => ({ ...prev, [tab]: [] }));
-      } finally {
-        if (!cancelled) setSearchLoading(false);
-      }
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+    setSearchResults({ before: null, reading: null, after: null });
+    setSearchLoading(false);
   }, [search, tab]);
 
   // 단일 업데이트 반영 (상태 이동)
@@ -321,6 +272,15 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
       ];
       return cleaned;
     });
+    if (status === "after") {
+      const info = getCompletionKey(updated);
+      const now = new Date();
+      const fallbackKey = `${now.getFullYear()}-${String(
+        now.getMonth() + 1,
+      ).padStart(2, "0")}`;
+      setAfterMonthKey(info?.key || fallbackKey);
+      setTab("after");
+    }
   }, [route?.params?.updatedBook]);
 
   const loadBookcase = useCallback(async () => {

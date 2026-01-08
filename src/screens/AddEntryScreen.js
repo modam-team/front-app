@@ -3,23 +3,30 @@ import placeholder from "../../assets/icon.png";
 import { requestBookRegistration, searchBooks } from "@apis/bookApi";
 import {
   addBookToBookcase,
+  createReview,
   fetchReview,
   fetchReviewsList,
 } from "@apis/bookcaseApi";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { fetchUserProfile } from "@apis/userApi";
+import Avatar from "@components/Avatar";
 import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
+import { useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
+  LayoutAnimation,
   Modal,
   PanResponder,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  UIManager,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -69,6 +76,7 @@ const bestsellers = [
 const DETAIL_TOP_BAR_HEIGHT = 38;
 
 export default function AddEntryScreen({ navigation }) {
+  const route = useRoute();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -84,10 +92,10 @@ export default function AddEntryScreen({ navigation }) {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [reviewPromptRating, setReviewPromptRating] = useState(0);
-  const [reviewPromptText, setReviewPromptText] = useState("");
   const [reviewPromptCompleted, setReviewPromptCompleted] = useState(false);
-  const [pendingSubmitAfterReview, setPendingSubmitAfterReview] =
-    useState(false);
+  const [showReviewTagDropdown, setShowReviewTagDropdown] = useState(false);
+  const [selectedReviewTag, setSelectedReviewTag] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
   const [detailReview, setDetailReview] = useState(null);
   const [detailReviewLoading, setDetailReviewLoading] = useState(false);
   const [reviewList, setReviewList] = useState([]);
@@ -95,33 +103,76 @@ export default function AddEntryScreen({ navigation }) {
   const [myProfileImage, setMyProfileImage] = useState(null);
   const [startDateText, setStartDateText] = useState("");
   const [endDateText, setEndDateText] = useState("");
+  const [activeDatePicker, setActiveDatePicker] = useState(null); // "start" | "end" | null
+  const [pickerDate, setPickerDate] = useState(new Date());
+  const [pendingAutoOpenTitle, setPendingAutoOpenTitle] = useState(null);
   const prevStatusRef = useRef(status);
+  const reviewPromptVisible = showReviewPrompt;
+  const tagCatalog = {
+    "감정 키워드": [
+      "감동적인",
+      "따뜻한",
+      "여운이 남는",
+      "위로가 되는",
+      "웃긴",
+      "스릴 있는",
+      "무거운",
+      "희망적인",
+    ],
+    "경험 키워드": [
+      "잘 읽히는",
+      "어려운",
+      "다시 읽고 싶은",
+      "집중이 필요한",
+      "출퇴근길에 딱",
+      "잠들기 전에 딱",
+      "생각하게 되는",
+      "한 번에 읽은",
+    ],
+    "문체 키워드": [
+      "서정적인",
+      "직설적인",
+      "속도감 있는 전개",
+      "유머러스한",
+      "간결한",
+      "사실적인",
+      "추상적인",
+      "비유적인",
+    ],
+  };
+  const reviewTagOptions = ["감정 키워드", "경험 키워드", "문체 키워드"];
+  const allowedTagsSet = useMemo(() => {
+    const set = new Set();
+    Object.values(tagCatalog).forEach((arr) => {
+      (arr || []).forEach((t) => set.add(t));
+    });
+    return set;
+  }, []);
+  const canSubmitReviewModal = useMemo(
+    () => reviewPromptRating > 0 && (selectedTags?.length || 0) > 0,
+    [reviewPromptRating, selectedTags],
+  );
 
-  // 상태 변경 감시: before/reading -> after 전환 시 강제로 리뷰 모달 노출
-  useEffect(() => {
-    const prev = prevStatusRef.current;
-    if (status === "after" && prev !== "after") {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      setStartDateText((v) => (v?.trim() ? v : todayStr));
-      setEndDateText((v) => (v?.trim() ? v : todayStr));
-      setReviewPromptCompleted(false);
-      setPendingSubmitAfterReview(true);
-      setShowReviewPrompt(true);
-    }
-    prevStatusRef.current = status;
-  }, [status]);
+  if (
+    Platform.OS === "android" &&
+    UIManager.setLayoutAnimationEnabledExperimental
+  ) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+
   useEffect(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
-    if (status === "after" && !reviewPromptCompleted) {
+    if (status === "after" && !reviewPromptCompleted && selectedBook) {
       setStartDateText((prev) => (prev?.trim() ? prev : todayStr));
       setEndDateText((prev) => (prev?.trim() ? prev : todayStr));
-      setPendingSubmitAfterReview(true);
-      setShowReviewPrompt(true);
-    } else if (status !== "after") {
+      if (!showReviewPrompt) setShowReviewPrompt(true);
+    } else if (status !== "after" && showReviewPrompt) {
       setShowReviewPrompt(false);
-      setPendingSubmitAfterReview(false);
     }
-  }, [status, reviewPromptCompleted]);
+    if (status !== "after") {
+      prevStatusRef.current = status;
+    }
+  }, [status, reviewPromptCompleted, selectedBook, showReviewPrompt]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -172,6 +223,37 @@ export default function AddEntryScreen({ navigation }) {
     return () => clearTimeout(timeout);
   }, [query]);
 
+  useEffect(() => {
+    const prefill = route?.params?.prefillBook;
+    if (!prefill) return;
+    openDetail(prefill);
+    if (navigation?.setParams) {
+      navigation.setParams({ prefillBook: null });
+    }
+  }, [route?.params?.prefillBook, navigation]);
+
+  useEffect(() => {
+    const prefillQuery = route?.params?.prefillQuery;
+    if (!prefillQuery) return;
+    setPendingAutoOpenTitle(prefillQuery);
+    setQuery(prefillQuery);
+    if (navigation?.setParams) {
+      navigation.setParams({ prefillQuery: null });
+    }
+  }, [route?.params?.prefillQuery, navigation]);
+
+  useEffect(() => {
+    if (!pendingAutoOpenTitle || results.length === 0) return;
+    const q = pendingAutoOpenTitle.trim().toLowerCase();
+    const match =
+      results.find((item) => (item.title || "").toLowerCase() === q) ||
+      results[0];
+    if (match) {
+      openDetail(match);
+      setPendingAutoOpenTitle(null);
+    }
+  }, [pendingAutoOpenTitle, results]);
+
   const renderStars = (count = 3, size = 16, color = "#426B1F") => {
     return (
       <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -202,7 +284,10 @@ export default function AddEntryScreen({ navigation }) {
     setEndDateText("");
     setShowReviewPrompt(false);
     setReviewPromptRating(0);
-    setReviewPromptText("");
+    setReviewPromptCompleted(false);
+    setShowReviewTagDropdown(false);
+    setSelectedReviewTag(null);
+    setSelectedTags([]);
     setDetailReview(null);
     setDetailReviewLoading(false);
   };
@@ -245,9 +330,7 @@ export default function AddEntryScreen({ navigation }) {
     setEndDateText("");
     setShowReviewPrompt(false);
     setReviewPromptRating(0);
-    setReviewPromptText("");
     setReviewPromptCompleted(false);
-    setPendingSubmitAfterReview(false);
     setDetailReview(null);
     setDetailReviewLoading(false);
   };
@@ -275,6 +358,19 @@ export default function AddEntryScreen({ navigation }) {
     book?.thumbnail ||
     book?.thumbnailUrl ||
     null;
+
+  const normalizeHashtags = (raw) => {
+    if (Array.isArray(raw)) {
+      return raw.filter((t) => typeof t === "string" && t.trim().length > 0);
+    }
+    if (typeof raw === "string") {
+      return raw
+        .split(/[#,\s]+/)
+        .map((t) => t.trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
 
   useEffect(() => {
     const bookId = selectedBook?.bookId || selectedBook?.id;
@@ -304,6 +400,14 @@ export default function AddEntryScreen({ navigation }) {
                 item.profile ||
                 item.avatar ||
                 null,
+              hashtag: normalizeHashtags(
+                item.hashtag ||
+                  item.hashTag ||
+                  item.tags ||
+                  item.reviewTags ||
+                  item.reviewHashTag ||
+                  item.hashtags,
+              ),
             }))
           : data
             ? [
@@ -319,6 +423,14 @@ export default function AddEntryScreen({ navigation }) {
                     data.profile ||
                     data.avatar ||
                     null,
+                  hashtag: normalizeHashtags(
+                    data.hashtag ||
+                      data.hashTag ||
+                      data.tags ||
+                      data.reviewTags ||
+                      data.reviewHashTag ||
+                      data.hashtags,
+                  ),
                 },
               ]
             : [];
@@ -360,6 +472,21 @@ export default function AddEntryScreen({ navigation }) {
     }
     return dt;
   };
+  const formatDateInput = (dateObj) => {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const openDatePicker = (type) => {
+    const base =
+      type === "start"
+        ? parseDateInput(startDateText)
+        : parseDateInput(endDateText);
+    setPickerDate(base || new Date());
+    setActiveDatePicker(type);
+  };
 
   const handleAddToShelf = async () => {
     if (!selectedBook) return;
@@ -369,7 +496,6 @@ export default function AddEntryScreen({ navigation }) {
       setEndDateText((prev) => (prev?.trim() ? prev : todayStr));
       setReviewPromptCompleted(false);
       setShowReviewPrompt(true);
-      setPendingSubmitAfterReview(true);
       return;
     }
     const bookId = selectedBook.bookId || selectedBook.id || selectedBook.isbn;
@@ -427,6 +553,8 @@ export default function AddEntryScreen({ navigation }) {
       newBook.readEndAt = parsedEnd.getTime();
       newBook.startDate = startText;
       newBook.endDate = endText;
+      newBook.startedAt = startText;
+      newBook.finishedAt = endText;
     }
 
     if (localAddOnly) {
@@ -473,6 +601,41 @@ export default function AddEntryScreen({ navigation }) {
             status.toUpperCase(),
             payloadDates,
           );
+          if (status === "after" && reviewPromptCompleted) {
+            const safeTags = Array.isArray(selectedTags)
+              ? selectedTags.filter((t) => allowedTagsSet.has(t))
+              : [];
+            try {
+              await createReview({
+                bookId: bookIdNum,
+                rating: reviewPromptRating,
+                hashtag: safeTags,
+                comment: "",
+              });
+            } catch (e) {
+              const code = e.response?.data?.error?.code || e.response?.data?.code;
+              if (code === "4039") {
+                try {
+                  await createReview({
+                    bookId: bookIdNum,
+                    rating: reviewPromptRating,
+                    hashtag: [],
+                    comment: "",
+                  });
+                } catch (err) {
+                  console.warn(
+                    "리뷰 생성 실패(태그 제거 재시도):",
+                    err.response?.data || err.message,
+                  );
+                }
+              } else {
+                console.warn(
+                  "리뷰 생성 실패:",
+                  e.response?.data || e.message,
+                );
+              }
+            }
+          }
         }
         closeDetail();
         navigation.navigate("Root", {
@@ -617,7 +780,6 @@ export default function AddEntryScreen({ navigation }) {
       setStartDateText((prev) => (prev?.trim() ? prev : todayStr));
       setEndDateText((prev) => (prev?.trim() ? prev : todayStr));
       setReviewPromptCompleted(false);
-      setPendingSubmitAfterReview(true);
       setShowReviewPrompt(true);
     } else {
       setShowReviewPrompt(false);
@@ -928,12 +1090,10 @@ export default function AddEntryScreen({ navigation }) {
                                           prev?.trim() ? prev : todayStr,
                                         );
                                         setReviewPromptCompleted(false);
-                                        setPendingSubmitAfterReview(true);
                                         setShowReviewPrompt(true);
                                       } else {
                                         setStartDateText("");
                                         setEndDateText("");
-                                        setPendingSubmitAfterReview(false);
                                         setShowReviewPrompt(false);
                                       }
                                     }}
@@ -991,36 +1151,54 @@ export default function AddEntryScreen({ navigation }) {
                         <View style={styles.dateBlock}>
                           <Text style={styles.dateBlockTitle}>읽은 기간</Text>
                           <View style={styles.dateRow}>
-                            <View style={{ flex: 1 }}>
-                              <Text style={styles.formLabel}>시작일</Text>
-                              <TextInput
+                            <View style={styles.dateField}>
+                              <Text style={styles.dateLabel}>시작일</Text>
+                              <TouchableOpacity
                                 style={styles.dateInput}
-                                placeholder="YYYY-MM-DD"
-                                placeholderTextColor="#B1B1B1"
-                                value={startDateText}
-                                onChangeText={setStartDateText}
-                                keyboardType="numbers-and-punctuation"
-                                maxLength={10}
-                              />
+                                activeOpacity={0.9}
+                                onPress={() => openDatePicker("start")}
+                              >
+                                <Text
+                                  style={[
+                                    styles.dateInputText,
+                                    !startDateText && styles.datePlaceholderText,
+                                  ]}
+                                >
+                                  {startDateText || "YYYY-MM-DD"}
+                                </Text>
+                                <Ionicons
+                                  name="calendar-outline"
+                                  size={16}
+                                  color="#7E9F61"
+                                />
+                              </TouchableOpacity>
                             </View>
-                            <View style={{ width: 12 }} />
-                            <View style={{ flex: 1 }}>
-                              <Text style={styles.formLabel}>완독일</Text>
-                              <TextInput
+                            <View style={styles.dateField}>
+                              <Text style={styles.dateLabel}>완독일</Text>
+                              <TouchableOpacity
                                 style={styles.dateInput}
-                                placeholder="YYYY-MM-DD"
-                                placeholderTextColor="#B1B1B1"
-                                value={endDateText}
-                                onChangeText={setEndDateText}
-                                keyboardType="numbers-and-punctuation"
-                                maxLength={10}
-                              />
+                                activeOpacity={0.9}
+                                onPress={() => openDatePicker("end")}
+                              >
+                                <Text
+                                  style={[
+                                    styles.dateInputText,
+                                    !endDateText && styles.datePlaceholderText,
+                                  ]}
+                                >
+                                  {endDateText || "YYYY-MM-DD"}
+                                </Text>
+                                <Ionicons
+                                  name="calendar-outline"
+                                  size={16}
+                                  color="#7E9F61"
+                                />
+                              </TouchableOpacity>
                             </View>
                           </View>
                           {!isDateRangeValid && (
                             <Text style={styles.dateError}>
-                              날짜를 YYYY-MM-DD로 입력하고 시작일이 완독일보다
-                              늦지 않도록 해주세요.
+                              시작일이 완독일보다 늦을 수 없어요.
                             </Text>
                           )}
                         </View>
@@ -1029,40 +1207,108 @@ export default function AddEntryScreen({ navigation }) {
                   </View>
                 )}
 
+                {activeDatePicker && Platform.OS !== "ios" && (
+                  <DateTimePicker
+                    value={pickerDate}
+                    mode="date"
+                    display="default"
+                    locale="ko-KR"
+                    maximumDate={new Date()}
+                    onChange={(event, date) => {
+                      if (event?.type === "dismissed") {
+                        setActiveDatePicker(null);
+                        return;
+                      }
+                      if (!date) return;
+                      if (activeDatePicker === "start") {
+                        setStartDateText(formatDateInput(date));
+                      } else {
+                        setEndDateText(formatDateInput(date));
+                      }
+                      setActiveDatePicker(null);
+                    }}
+                  />
+                )}
+                {activeDatePicker && Platform.OS === "ios" && (
+                  <Modal
+                    visible
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setActiveDatePicker(null)}
+                  >
+                    <View style={styles.pickerOverlay}>
+                      <View style={styles.pickerCard}>
+                        <View style={styles.pickerHeader}>
+                          <TouchableOpacity
+                            onPress={() => setActiveDatePicker(null)}
+                          >
+                            <Text style={styles.pickerActionText}>취소</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => {
+                              if (activeDatePicker === "start") {
+                                setStartDateText(formatDateInput(pickerDate));
+                              } else {
+                                setEndDateText(formatDateInput(pickerDate));
+                              }
+                              setActiveDatePicker(null);
+                            }}
+                          >
+                            <Text style={styles.pickerActionText}>완료</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <DateTimePicker
+                          value={pickerDate}
+                          mode="date"
+                          display="spinner"
+                          locale="ko-KR"
+                          maximumDate={new Date()}
+                          textColor="#222"
+                          onChange={(event, date) => {
+                            if (!date) return;
+                            setPickerDate(date);
+                          }}
+                        />
+                      </View>
+                    </View>
+                  </Modal>
+                )}
+
                 <Text style={styles.reviewSectionTitle}>리뷰</Text>
                 <View style={styles.reviewList}>
                   {detailReviewLoading && (
                     <Text style={styles.helperText}>리뷰 불러오는 중...</Text>
                   )}
                   {!detailReviewLoading &&
-                    reviewList.map((rev, idx) => (
+                    reviewList
+                      .filter((rev) => (rev?.comment || "").trim().length > 0)
+                      .map((rev, idx) => (
                       <View
                         key={rev.id || rev.userId || `${rev.nickname}-${idx}`}
                         style={styles.reviewCard}
                       >
-                        {rev?.profileImageUrl || myProfileImage ? (
-                          <Image
-                            source={{
-                              uri: rev?.profileImageUrl || myProfileImage,
-                            }}
-                            style={styles.avatar}
-                          />
-                        ) : (
-                          <View
-                            style={[styles.avatar, { backgroundColor: "#ddd" }]}
-                          />
-                        )}
+                        <Avatar
+                          uri={
+                            rev?.profileImageUrl ||
+                            rev?.profileUrl ||
+                            rev?.avatar ||
+                            rev?.image ||
+                            null
+                          }
+                          size={46}
+                          style={styles.avatar}
+                        />
                         <View style={styles.reviewBody}>
                           <View style={styles.reviewTop}>
                             <Text style={styles.reviewNickname}>
-                              {rev?.nickname || myNickname || "닉네임"}
+                              {rev?.nickname || "닉네임"}
                             </Text>
                             <View style={styles.reviewStars}>
                               {renderStars(rev.rating || 0, 16, "#426B1F")}
                             </View>
                           </View>
                           <Text style={styles.reviewText}>
-                            {rev.comment || "리뷰 내용이 없습니다."}
+                            {rev.comment}
                           </Text>
                           {Array.isArray(rev.hashtag) &&
                             rev.hashtag.length > 0 && (
@@ -1073,7 +1319,7 @@ export default function AddEntryScreen({ navigation }) {
                                   gap: 6,
                                 }}
                               >
-                                {rev.hashtag.map((tag) => (
+                                {rev.hashtag.slice(0, 3).map((tag) => (
                                   <View
                                     key={tag}
                                     style={styles.reviewTagChip}
@@ -1112,64 +1358,184 @@ export default function AddEntryScreen({ navigation }) {
               </View>
             </>
           )}
-        </SafeAreaView>
-      </Modal>
-
-      {showReviewPrompt && (
-        <Modal
-          visible
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowReviewPrompt(false)}
-        >
-          <View style={styles.reviewPromptOverlay}>
-            <View style={styles.reviewPromptBox}>
-              <Text style={styles.reviewPromptTitle}>리뷰 작성</Text>
-              <Text style={styles.reviewPromptDesc}>
-                완독한 책의 별점과 한 줄 리뷰를 먼저 남겨주세요.
-              </Text>
-              <View style={styles.reviewPromptStars}>
-                {[1, 2, 3, 4, 5].map((i) => (
+          {reviewPromptVisible && (
+            <View style={styles.reviewOverlay}>
+              <View style={styles.reviewModalCard}>
+                <View style={styles.reviewModalHeader}>
                   <TouchableOpacity
-                    key={i}
-                    onPress={() => setReviewPromptRating(i)}
-                    activeOpacity={0.8}
+                    style={styles.reviewModalBack}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setShowReviewPrompt(false);
+                      if (status === "after") {
+                        setStatus(prevStatusRef.current || "before");
+                      }
+                    }}
                   >
-                    <StarIcon
-                      size={24}
-                      color="#426B1F"
-                      emptyColor="#C6C6C6"
-                      variant={reviewPromptRating >= i ? "full" : "empty"}
+                    <Ionicons
+                      name="chevron-back"
+                      size={22}
+                      color="#000"
                     />
                   </TouchableOpacity>
-                ))}
+                </View>
+                <View style={styles.reviewModalContent}>
+                  <Text style={styles.reviewModalTitle}>리뷰 작성</Text>
+                  <Text style={styles.reviewModalSubtitle}>
+                    완독한 책의 별점을 남기고{"\n"}해시태그를 작성해주세요
+                  </Text>
+
+                  <View style={styles.reviewModalStarsRow}>
+                    {[1, 2, 3, 4, 5].map((i) => {
+                      const full = i;
+                      const half = i - 0.5;
+                      const isFull = reviewPromptRating >= full;
+                      const isHalf = !isFull && reviewPromptRating >= half;
+                      return (
+                        <TouchableOpacity
+                          key={i}
+                          activeOpacity={0.9}
+                          onPress={() => {
+                            if (reviewPromptRating === full) {
+                              setReviewPromptRating(half);
+                            } else if (reviewPromptRating === half) {
+                              setReviewPromptRating(full);
+                            } else {
+                              setReviewPromptRating(full);
+                            }
+                          }}
+                        >
+                          <StarIcon
+                            size={44}
+                            variant={isFull ? "full" : isHalf ? "half" : "empty"}
+                            color="#426B1F"
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <View style={styles.reviewModalTags}>
+                    <View style={styles.reviewModalTagHeader}>
+                      <Text style={styles.reviewModalTagTitle}>태그 선택</Text>
+                      {selectedTags.length > 0 && (
+                        <View style={styles.reviewModalSelectedTags}>
+                          {selectedTags.map((tag) => (
+                            <Text
+                              key={tag}
+                              style={styles.reviewModalSelectedTagText}
+                            >
+                              #{tag}
+                            </Text>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                    <TouchableOpacity
+                      style={styles.reviewModalDropdown}
+                      activeOpacity={0.9}
+                      onPress={() => {
+                        LayoutAnimation.configureNext(
+                          LayoutAnimation.Presets.easeInEaseOut,
+                        );
+                        setShowReviewTagDropdown((v) => !v);
+                      }}
+                    >
+                      <Text style={styles.reviewModalDropdownText}>
+                        {selectedReviewTag || "키워드 카테고리"}
+                      </Text>
+                      <Ionicons
+                        name={
+                          showReviewTagDropdown
+                            ? "chevron-up"
+                            : "chevron-down"
+                        }
+                        size={18}
+                        color="#333"
+                      />
+                    </TouchableOpacity>
+                    {showReviewTagDropdown && (
+                      <View style={styles.reviewModalTagList}>
+                        {reviewTagOptions.map((o) => (
+                          <TouchableOpacity
+                            key={o}
+                            style={styles.reviewModalTagLine}
+                            onPress={() => {
+                              setSelectedReviewTag(o);
+                              setShowReviewTagDropdown(false);
+                            }}
+                          >
+                            <Text style={styles.reviewModalTagLineText}>
+                              {o}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                    {selectedReviewTag && !showReviewTagDropdown && (
+                      <View style={styles.reviewModalChipWrap}>
+                        {(tagCatalog[selectedReviewTag] || []).map((tag) => {
+                          const active = selectedTags.includes(tag);
+                          const disabled = !active && selectedTags.length >= 3;
+                          return (
+                            <TouchableOpacity
+                              key={tag}
+                              style={[
+                                styles.reviewModalChip,
+                                active && styles.reviewModalChipActive,
+                                disabled && styles.reviewModalChipDisabled,
+                              ]}
+                              disabled={disabled}
+                              onPress={() => {
+                                if (active) {
+                                  setSelectedTags((prev) =>
+                                    prev.filter((t) => t !== tag),
+                                  );
+                                  return;
+                                }
+                                setSelectedTags((prev) => [...prev, tag]);
+                              }}
+                            >
+                              <Text
+                                style={[
+                                  styles.reviewModalChipText,
+                                  active && styles.reviewModalChipTextActive,
+                                ]}
+                              >
+                                {tag}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.reviewModalCTAWrapper}>
+                  <TouchableOpacity
+                    style={[
+                      styles.reviewModalCTA,
+                      !canSubmitReviewModal && styles.reviewModalCTADisabled,
+                    ]}
+                    activeOpacity={0.9}
+                    disabled={!canSubmitReviewModal}
+                    onPress={() => {
+                      const sanitizedTags = (selectedTags || []).filter((t) =>
+                        allowedTagsSet.has(t),
+                      );
+                      setSelectedTags(sanitizedTags);
+                      setReviewPromptCompleted(true);
+                      setShowReviewPrompt(false);
+                    }}
+                  >
+                    <Text style={styles.reviewModalCTAText}>리뷰 작성 완료</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <TextInput
-                style={styles.reviewPromptInput}
-                placeholder="어떤 점이 좋았나요?"
-                placeholderTextColor="#B1B1B1"
-                multiline
-                value={reviewPromptText}
-                onChangeText={setReviewPromptText}
-              />
-              <TouchableOpacity
-                style={styles.reviewPromptCTA}
-                activeOpacity={0.9}
-                onPress={() => {
-                  setReviewPromptCompleted(true);
-                  setShowReviewPrompt(false);
-                  if (pendingSubmitAfterReview) {
-                    setPendingSubmitAfterReview(false);
-                    setTimeout(() => handleAddToShelf(), 0);
-                  }
-                }}
-              >
-                <Text style={styles.reviewPromptCTAText}>계속하기</Text>
-              </TouchableOpacity>
             </View>
-          </View>
-        </Modal>
-      )}
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1547,33 +1913,57 @@ const styles = StyleSheet.create({
   },
   dateBlock: {
     marginTop: 10,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: "#FFF",
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: "#FAFAF5",
     borderWidth: 1,
-    borderColor: "#E6E6E6",
-    gap: 8,
+    borderColor: "#E0E9D7",
+    gap: 6,
   },
   dateBlockTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#000",
+    color: "#333",
   },
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 10,
   },
+  dateField: { flex: 1, gap: 6 },
+  dateLabel: { fontSize: 12, color: "#6B6B6B" },
   dateInput: {
-    height: 40,
+    height: 38,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#D7EEC4",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    backgroundColor: "#FFF",
-    marginTop: 4,
-    fontSize: 14,
-    color: "#191919",
+    borderColor: "#CFE0BE",
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    backgroundColor: "#F7FAF4",
   },
+  dateInputText: { fontSize: 13, color: "#1F1F1F" },
+  datePlaceholderText: { color: "#9AA28F" },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  pickerCard: {
+    backgroundColor: "#FAFAF5",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingBottom: 10,
+  },
+  pickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  pickerActionText: { fontSize: 15, color: "#426B1F", fontWeight: "600" },
   dateError: {
     fontSize: 12,
     color: "#D0312D",
@@ -1689,55 +2079,164 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFF",
   },
-  reviewPromptOverlay: {
+  reviewOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 50,
+    backgroundColor: "rgba(0,0,0,0.7)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    paddingHorizontal: 12,
   },
-  reviewPromptBox: {
+  reviewModalCard: {
     width: "100%",
+    maxWidth: 360,
+    height: 550,
     backgroundColor: "#FFF",
     borderRadius: 16,
     padding: 20,
-    gap: 12,
+    borderWidth: 1,
+    borderColor: "#B1B1B1",
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 6,
+    alignItems: "center",
+    gap: 16,
   },
-  reviewPromptTitle: {
-    fontSize: 18,
+  reviewModalHeader: {
+    width: "100%",
+    alignItems: "flex-start",
+  },
+  reviewModalBack: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#EDEDED",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reviewModalContent: {
+    flex: 1,
+    width: "100%",
+    alignItems: "center",
+    gap: 16,
+    paddingHorizontal: 4,
+  },
+  reviewModalTitle: {
+    fontSize: 22,
     fontWeight: "700",
-    color: "#191919",
+    color: "#000",
   },
-  reviewPromptDesc: {
-    fontSize: 14,
-    color: "#555",
+  reviewModalSubtitle: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
   },
-  reviewPromptStars: {
+  reviewModalStarsRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 18,
+    marginBottom: 18,
   },
-  reviewPromptInput: {
-    minHeight: 90,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 14,
-    color: "#191919",
-    textAlignVertical: "top",
+  reviewModalCTAWrapper: {
+    width: "100%",
+    marginTop: "auto",
   },
-  reviewPromptCTA: {
+  reviewModalCTA: {
+    width: "100%",
     height: 44,
     borderRadius: 12,
     backgroundColor: "#426B1F",
-    justifyContent: "center",
     alignItems: "center",
-    marginTop: 4,
+    justifyContent: "center",
   },
-  reviewPromptCTAText: {
+  reviewModalCTADisabled: {
+    backgroundColor: "#9FB37B",
+  },
+  reviewModalCTAText: {
+    fontSize: 16,
+    fontWeight: "700",
     color: "#FFF",
+  },
+  reviewModalTags: {
+    width: "100%",
+    gap: 10,
+  },
+  reviewModalTagHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  reviewModalSelectedTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  reviewModalSelectedTagText: { fontSize: 12, color: "#426B1F" },
+  reviewModalTagTitle: {
     fontSize: 15,
     fontWeight: "700",
+    color: "#000",
   },
+  reviewModalDropdown: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#7E9F61",
+    backgroundColor: "#FAFAF5",
+  },
+  reviewModalDropdownText: { fontSize: 15, color: "#333", flex: 1 },
+  reviewModalTagList: {
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: "#C6C6C6",
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#FFF",
+  },
+  reviewModalTagLine: {
+    height: 32,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#B1B1B1",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
+  reviewModalTagLineText: { fontSize: 14, color: "#333" },
+  reviewModalChipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+  },
+  reviewModalChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: "#F1F6EC",
+    borderWidth: 1,
+    borderColor: "#7E9F61",
+  },
+  reviewModalChipActive: {
+    backgroundColor: "#426B1F",
+    borderColor: "#426B1F",
+  },
+  reviewModalChipDisabled: {
+    opacity: 0.4,
+  },
+  reviewModalChipText: { fontSize: 14, color: "#426B1F" },
+  reviewModalChipTextActive: { color: "#FFF", fontWeight: "700" },
 });

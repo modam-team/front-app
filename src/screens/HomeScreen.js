@@ -14,6 +14,7 @@ import {
 } from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import ProgressBarCharacter from "@assets/progress-bar-img.png";
+import Avatar from "@components/Avatar";
 import Button from "@components/Button";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
@@ -313,6 +314,7 @@ export default function HomeScreen({ navigation }) {
             id: f.userId,
             name: f.nickname,
             avatar: f.profileImageUrl || f.profileUrl || null,
+            themeColor: f.themeColor,
             color: f.color,
             goalScore: f.goalScore,
           }))
@@ -457,6 +459,7 @@ export default function HomeScreen({ navigation }) {
         id: profile?.userId,
         name: profile?.nickname || "",
         avatar: profile?.profileImageUrl || profile?.profileUrl || null,
+        themeColor: profile?.themeColor || null,
         color: "#d7eec4",
         goalScore: goalCountNumber || 1,
       });
@@ -786,47 +789,48 @@ export default function HomeScreen({ navigation }) {
           onLongPress={DEV ? resetGoalModalDebug : undefined} // 목표 설정 테스트 용으로, 길게 누르면 목표 권수 설정하는 거 뜨게 함
         />
 
-        <View style={styles.friendsStripRow}>
-          {friendsStrip.map((f, idx) => (
-            <Pressable
-              key={`${f.id || f.userId || f.name || f.nickname || "friend"}-${idx}`}
-              style={styles.friendItem}
-              hitSlop={6}
-              onPress={() => {
-                // 첫 번째(내 프로필)는 홈 유지
-                if (idx === 0 || f.isSelf) return;
-                setViewingFriend({
-                  userId: f.id || f.userId,
-                  nickname: f.name || f.nickname,
-                  avatar: f.avatar,
-                  goalScore: f.goalScore,
-                });
-              }}
-            >
-              {f.avatar ? (
-                <Image
-                  source={{ uri: f.avatar }}
+        <View style={styles.friendsStripWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.friendsStripRow}
+          >
+            {friendsStrip.map((f, idx) => (
+              <Pressable
+                key={`${f.id || f.userId || f.name || f.nickname || "friend"}-${idx}`}
+                style={styles.friendItem}
+                hitSlop={6}
+                onPress={() => {
+                  // 첫 번째(내 프로필)는 홈 유지
+                  if (idx === 0 || f.isSelf) return;
+                  setViewingFriend({
+                    userId: f.id || f.userId,
+                    nickname: f.name || f.nickname,
+                    avatar: f.avatar,
+                    themeColor: f.themeColor,
+                    goalScore: f.goalScore,
+                  });
+                }}
+              >
+                <Avatar
+                  uri={
+                    f.avatar ||
+                    f.profileImageUrl ||
+                    f.profileUrl ||
+                    f.image ||
+                    null
+                  }
+                  size={49}
                   style={styles.avatarImage}
                 />
-              ) : (
-                <View
-                  style={[
-                    styles.avatar,
-                    { backgroundColor: f.color || "#d7eec4" },
-                  ]}
+                <Text
+                  style={[styles.avatarName, idx === 0 && styles.avatarNameBold]}
                 >
-                  <Text style={styles.avatarInitial}>
-                    {(f.name || f.nickname || "친").slice(0, 1)}
-                  </Text>
-                </View>
-              )}
-              <Text
-                style={[styles.avatarName, idx === 0 && styles.avatarNameBold]}
-              >
-                {f.name || f.nickname}
-              </Text>
-            </Pressable>
-          ))}
+                  {f.name || f.nickname}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
           <View style={styles.addWrapper}>
             <Pressable
               style={styles.addCircle}
@@ -1088,15 +1092,18 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   logo: { color: "#608540", fontSize: 16, fontWeight: "600" },
+  friendsStripWrap: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    paddingTop: 2,
+  },
   friendsStripRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    paddingTop: 2,
-    width: "100%",
-    justifyContent: "space-between",
+    paddingRight: 12,
   },
   friendItem: { alignItems: "center", width: 49 },
   avatar: {

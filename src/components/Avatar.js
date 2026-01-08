@@ -22,8 +22,8 @@ export default function Avatar({ uri, size = 49, style }) {
       ]}
     >
       <BasicCharacter
-        width={size * 0.7}
-        height={size * 0.7}
+        width={size}
+        height={size}
       />
     </View>
   );
