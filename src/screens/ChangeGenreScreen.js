@@ -1,7 +1,7 @@
 import { changeCategories, fetchUserProfile } from "@apis/userApi";
 import AppHeader from "@components/AppHeader";
 import Button from "@components/Button";
-import Chip from "@components/Chip";
+import Chip from "@components/common/Chip";
 import { GENRES } from "@constants/genres";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors } from "@theme/colors";
