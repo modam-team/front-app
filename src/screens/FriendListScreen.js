@@ -9,7 +9,7 @@ import {
   sendFriendRequest,
   unfriend,
 } from "@apis/friendApi";
-import Avatar from "@components/Avatar";
+import Avatar from "@components/common/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";

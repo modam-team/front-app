@@ -2,11 +2,11 @@ import { fetchReviewListByBookId } from "@apis/bookcaseApi";
 import { fetchFriends } from "@apis/friendApi";
 import { fetchReadingLogs } from "@apis/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
-import Avatar from "@components/Avatar";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import MonthlyCalendar from "@components/MonthlyCalendar";
 import StarIcon from "@components/StarIcon";
 import YearMonthPicker from "@components/YearMonthPicker";
+import Avatar from "@components/common/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
@@ -377,7 +377,9 @@ export default function FriendCalendarScreen({
       });
       if (Number.isFinite(Number(log?.bookId))) {
         const ratingValue =
-          Number(match.averageRating ?? match.avgRating ?? match.avgRate ?? 0) ||
+          Number(
+            match.averageRating ?? match.avgRating ?? match.avgRate ?? 0,
+          ) ||
           Number(match.totalRate ?? match.bookRate ?? 0) ||
           Number(match.rating ?? match.rate ?? 0) ||
           0;
@@ -714,9 +716,7 @@ export default function FriendCalendarScreen({
                         />
                       );
                     })}
-                    <Text style={styles.starCount}>
-                      ({totalCount})
-                    </Text>
+                    <Text style={styles.starCount}>({totalCount})</Text>
                   </View>
                 </Pressable>
               );

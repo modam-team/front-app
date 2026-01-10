@@ -1,7 +1,7 @@
-import Avatar from "@components/Avatar";
 import BookCover from "@components/BookCover";
 import StarIcon from "@components/StarIcon";
 import Tag from "@components/Tag";
+import Avatar from "@components/common/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";

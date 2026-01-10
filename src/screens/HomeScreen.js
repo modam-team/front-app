@@ -14,7 +14,6 @@ import {
 } from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import ProgressBarCharacter from "@assets/progress-bar-img.png";
-import Avatar from "@components/Avatar";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
 import MonthlyCalendar from "@components/MonthlyCalendar";
@@ -23,6 +22,7 @@ import ReadingStartModal from "@components/ReadingStartModal";
 import RecommendationDetailModal from "@components/RecommendationDetailModal";
 import RecommendationSectionCard from "@components/RecommendationSectionCard";
 import YearMonthPicker from "@components/YearMonthPicker";
+import Avatar from "@components/common/Avatar";
 import Button from "@components/common/Button";
 import ModamLogoText from "@components/common/ModamLogoText";
 import { Ionicons } from "@expo/vector-icons";
