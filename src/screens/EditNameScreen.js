@@ -1,7 +1,7 @@
-import TextField from "../components/TextField";
 import { checkNicknameAvailable, updateProfile } from "@apis/userApi";
 import AppHeader from "@components/common/AppHeader";
 import Button from "@components/common/Button";
+import TextField from "@components/common/TextField";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
