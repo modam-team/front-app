@@ -1,6 +1,6 @@
 import { fetchUserProfile, updateThemeColor } from "@apis/userApi";
 import ActionBottomSheet from "@components/ActionBottomSheet";
-import AppHeader from "@components/AppHeader";
+import AppHeader from "@components/common/AppHeader";
 import { MaterialIcons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";

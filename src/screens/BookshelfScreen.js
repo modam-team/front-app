@@ -6,8 +6,8 @@ import {
   searchBookcase,
 } from "@apis/bookcaseApi";
 import BookShelfTabs from "@components/BookshelfTabs";
-import ModamLogoText from "@components/ModamLogoText";
 import StarIcon from "@components/StarIcon";
+import ModamLogoText from "@components/common/ModamLogoText";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";

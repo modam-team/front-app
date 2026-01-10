@@ -1,9 +1,9 @@
 import { checkNicknameAvailable, completeOnboarding } from "@apis/userApi";
-import AppHeader from "@components/AppHeader";
-import Button from "@components/Button";
-import Chip from "@components/Chip";
 import ProgressBar from "@components/ProgressBar";
-import TextField from "@components/TextField";
+import AppHeader from "@components/common/AppHeader";
+import Button from "@components/common/Button";
+import Chip from "@components/common/Chip";
+import TextField from "@components/common/TextField";
 import { GENRES } from "@constants/genres";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useOnboardingStore } from "@store/onboardingStore";

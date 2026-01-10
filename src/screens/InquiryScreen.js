@@ -1,5 +1,5 @@
 import { fetchUserProfile } from "@apis/userApi";
-import AppHeader from "@components/AppHeader";
+import AppHeader from "@components/common/AppHeader";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";

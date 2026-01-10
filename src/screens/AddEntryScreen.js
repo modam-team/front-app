@@ -8,8 +8,8 @@ import {
   fetchReviewsList,
 } from "@apis/bookcaseApi";
 import { fetchUserProfile } from "@apis/userApi";
-import Avatar from "@components/Avatar";
 import StarIcon from "@components/StarIcon";
+import Avatar from "@components/common/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRoute } from "@react-navigation/native";

@@ -1,5 +1,5 @@
 import BasicCharacter from "@assets/basic-profile.svg";
-import Button from "@components/Button";
+import Button from "@components/common/Button";
 import {
   PERSONA_SLUG_MAP,
   PLACE_SLUG_MAP,
