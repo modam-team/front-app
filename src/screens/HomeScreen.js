@@ -15,7 +15,6 @@ import {
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import ProgressBarCharacter from "@assets/progress-bar-img.png";
 import Avatar from "@components/Avatar";
-import Button from "@components/Button";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
 import ModamLogoText from "@components/ModamLogoText";
@@ -25,6 +24,7 @@ import ReadingStartModal from "@components/ReadingStartModal";
 import RecommendationDetailModal from "@components/RecommendationDetailModal";
 import RecommendationSectionCard from "@components/RecommendationSectionCard";
 import YearMonthPicker from "@components/YearMonthPicker";
+import Button from "@components/common/Button";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";

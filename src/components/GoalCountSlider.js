@@ -1,5 +1,5 @@
 import BookIcon from "@assets/icons/book-icon.svg";
-import Button from "@components/Button";
+import Button from "@components/common/Button";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";

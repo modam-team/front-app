@@ -3,7 +3,7 @@ import CafeIcon from "@assets/icons/cafe-icon.svg";
 import HomeIcon from "@assets/icons/home-icon.svg";
 import MoveIcon from "@assets/icons/move-icon.svg";
 import BookCover from "@components/BookCover";
-import Button from "@components/Button";
+import Button from "@components/common/Button";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
