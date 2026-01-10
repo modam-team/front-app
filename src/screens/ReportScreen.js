@@ -1,6 +1,6 @@
 import { fetchMonthlyReport } from "@apis/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
-import YearMonthPicker from "@components/YearMonthPicker";
+import YearMonthPicker from "@components/common/YearMonthPicker";
 import MonthlyStats from "@components/report/MonthlyStats";
 import PlaceHabits from "@components/report/PlaceHabits";
 import PreferencePagerSection from "@components/report/PreferencePagerSection";
