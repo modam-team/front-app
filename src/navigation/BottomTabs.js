@@ -4,19 +4,25 @@ import {
   TabBarThemeProvider,
   useTabBarTheme,
 } from "@navigation/TabBarThemeContext";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import BookshelfScreen from "@screens/BookshelfScreen";
 import HomeScreen from "@screens/HomeScreen";
-import ReportScreen from "@screens/ReportScreen";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  Easing,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const Tab = createMaterialTopTabNavigator();
+const Tab = createBottomTabNavigator();
 
 // 탭 라벨 및 아이콘 정의
 const TAB_META = {
@@ -35,6 +41,8 @@ export default function BottomTabs() {
   );
 }
 
+const W = Dimensions.get("window").width;
+
 function TabsInner() {
   const { theme } = useTabBarTheme();
   const isGreen = theme === "reportCurrent";
@@ -42,16 +50,32 @@ function TabsInner() {
   return (
     <Tab.Navigator
       initialRouteName="홈"
-      tabBarPosition="bottom"
       screenOptions={{
-        animationEnabled: true,
-        swipeEnabled: false,
-        lazy: true,
+        headerShown: false,
 
-        sceneContainerStyle: {
-          backgroundColor: isGreen ? colors.primary[500] : colors.mono[0],
+        transitionSpec: {
+          animation: "timing",
+          config: {
+            duration: 300,
+            easing: Easing.out(Easing.cubic),
+          },
         },
-        style: {
+
+        // 슬라이드 효과
+        sceneStyleInterpolator: ({ current }) => ({
+          sceneStyle: {
+            transform: [
+              {
+                translateX: current.progress.interpolate({
+                  //-1(왼쪽) / 0(현재) / 1(오른쪽) :contentReference[oaicite:2]{index=2}
+                  inputRange: [-1, 0, 1],
+                  outputRange: [-W, 0, W],
+                }),
+              },
+            ],
+          },
+        }),
+        sceneContainerStyle: {
           backgroundColor: isGreen ? colors.primary[500] : colors.mono[0],
         },
       }}
@@ -81,8 +105,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
   // 초록 테마 여부
   const isGreen = theme === "reportCurrent";
-
-  const currentRouteName = state.routes[state.index]?.name;
 
   const palette = useMemo(() => {
     return {

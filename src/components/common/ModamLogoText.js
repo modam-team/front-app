@@ -9,6 +9,7 @@ export default function ModamLogoText({
   label = "modam",
   to = "홈",
   onPress,
+  onLongPress,
   style,
   textStyle,
   hitSlop = 8,
@@ -35,6 +36,7 @@ export default function ModamLogoText({
     <Pressable
       hitSlop={hitSlop}
       onPress={handlePress}
+      onLongPress={onLongPress}
       style={style}
     >
       <Text style={[styles.text, { color: resolvedColor }, textStyle]}>
