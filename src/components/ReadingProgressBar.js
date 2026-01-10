@@ -16,6 +16,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 const INDICATOR_W = 36; // 캐릭터 가로 사이즈
+const INDICATOR_H = 34; // 기준 캐릭터 세로
 const TRACK_BORDER = 8; // 테두리보다 살짝 여유있게
 
 /**
@@ -23,21 +24,30 @@ const TRACK_BORDER = 8; // 테두리보다 살짝 여유있게
  * - goalCount: 이번 달 목표 권수 (0이면 목표 없음)
  * - readCount: 이번 달 읽은 권수
  * - onPress: 카드 클릭 시 동작 (ex. 목표 모달 열기)
- * - characterSource: 진행바 위에 올라가는 캐릭터 이미지 source
+ * - CharacterComponent: SVG 캐릭터 컴포넌트
+ * - characterPersona: 캐릭터 성향 (크리에이터일 때만 캐릭터 크기 키워주기 위해서)
+ * - animateKey: 애니메이션 재실행 트리거
+ * - animate: 애니메이션 실행 여부
+ * - duration: 애니메이션 지속 시간
  */
 function ReadingProgressBar({
   goalCount = 0,
   readCount = 0,
   onPress,
-  characterSource,
-  animateKey = 0, // 애니메이션 다시 실행 시점 제어
-  animate = true, // 애니메이션 실행 할지 말지
+  CharacterComponent,
+  characterPersona,
+  animateKey = 0,
+  animate = true,
   duration = 700,
 }) {
   // 진행 바의 가로 길이 저장
   const [progressWidth, setProgressWidth] = useState(0);
 
-  // 진행률 계산
+  // 크리에이터일 때만 캐릭터 크기좀 키워주기
+  const isCreator = characterPersona === "크리에이터";
+  const characterScale = isCreator ? 1.3 : 1;
+
+  // 퍼센트, 채워진 바 길이, 캐릭터 위치 계산
   //  goalCount, readCount, progressWidth가 바뀔 때만 다시 계산
   const { percent, fillWidth, markerLeftPx, minLeftPx } = useMemo(() => {
     // 목표가 없으면 0으로 처리 (0으로 나누기 방지)
@@ -46,7 +56,7 @@ function ReadingProgressBar({
     // 퍼센트 텍스트는 0 ~ 100 범위로 clamp
     const p = goalCount > 0 ? Math.min(100, Math.round(rawRatio * 100)) : 0;
 
-    // fillRatio도 0 ~ 1 범위로 clamp
+    // 진행바 비율도 0 ~ 1 범위로 clamp
     const fillRatio = Math.min(1, Math.max(0, rawRatio));
 
     // progressWidth 없을 땐 fw를 쓰지 말고 0으로 리턴
@@ -54,10 +64,13 @@ function ReadingProgressBar({
       return { percent: p, fillWidth: 0, markerLeftPx: 0, minLeftPx: 0 };
     }
 
+    // 트랙 내부 실제 사용 가능한 너비
     const innerWidth = Math.max(0, progressWidth - TRACK_BORDER * 2);
+
+    // 초록색 바 길이
     const fw = fillRatio * innerWidth;
 
-    // indicator의 left 계산
+    // indicator의 left 계산 (캐릭터 기본 위치)
     const rawLeft = TRACK_BORDER + fw - INDICATOR_W / 2;
 
     // left 범위를 트랙 안쪽으로 clamp
@@ -74,7 +87,7 @@ function ReadingProgressBar({
     };
   }, [goalCount, readCount, progressWidth]);
 
-  // 실제 렌더링 용 animated 값
+  // 실제 렌더링 용 animated 값 (초록 바 width, 캐릭터 left)
   const fillAnim = useRef(new Animated.Value(0)).current;
   const leftAnim = useRef(new Animated.Value(0)).current;
 
@@ -100,6 +113,7 @@ function ReadingProgressBar({
     fillAnim.setValue(0);
     leftAnim.setValue(minLeftPx);
 
+    // 초록바 + 캐릭터 동시에 이동
     Animated.parallel([
       Animated.timing(fillAnim, {
         toValue: fillWidth,
@@ -155,11 +169,17 @@ function ReadingProgressBar({
 
           {/* 캐릭터 표시 영역 */}
           <Animated.View style={[styles.progressIndicator, { left: leftAnim }]}>
-            <Image
-              source={characterSource}
-              style={{ width: 36, height: 34 }}
-              resizeMode="contain"
-            />
+            <View
+              style={[
+                styles.characterWrap,
+                { transform: [{ scale: characterScale }] },
+              ]}
+            >
+              <CharacterComponent
+                width={INDICATOR_W}
+                height={INDICATOR_H}
+              />
+            </View>
           </Animated.View>
         </View>
       </View>
@@ -192,7 +212,9 @@ export default memo(
     prev.characterSource === next.characterSource &&
     prev.animateKey === next.animateKey &&
     prev.animate === next.animate &&
-    prev.duration === next.duration,
+    prev.duration === next.duration &&
+    prev.characterPersona === next.characterPersona && // persona 바뀌면 리렌더
+    prev.CharacterComponent === next.CharacterComponent, // 컴포넌트 바뀌면 리렌더
 );
 
 const styles = StyleSheet.create({
@@ -208,7 +230,7 @@ const styles = StyleSheet.create({
   },
 
   // 퍼센트 + 진행바 영역
-  progressHeader: { flexDirection: "column", paddingBottom: 10 },
+  progressHeader: { flexDirection: "column", paddingBottom: 16 },
 
   // 오른쪽 상단 퍼센트 텍스트
   progressPercent: {
@@ -247,10 +269,19 @@ const styles = StyleSheet.create({
   // 캐릭터 위치 박스
   progressIndicator: {
     position: "absolute",
-    top: -14,
+    top: -12,
     width: 36,
     height: 34,
     zIndex: 3,
+    transform: [{ translateX: -2 }],
+  },
+
+  // scale은 내부 wrapper에만 적용 (기준점 가운데 유지)
+  characterWrap: {
+    width: INDICATOR_W,
+    height: INDICATOR_H,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // 아래 줄(문구 + 목표 텍스트)
