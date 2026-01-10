@@ -1,7 +1,7 @@
 import { checkNicknameAvailable, completeOnboarding } from "@apis/userApi";
-import AppHeader from "@components/AppHeader";
 import ProgressBar from "@components/ProgressBar";
 import TextField from "@components/TextField";
+import AppHeader from "@components/common/AppHeader";
 import Button from "@components/common/Button";
 import Chip from "@components/common/Chip";
 import { GENRES } from "@constants/genres";

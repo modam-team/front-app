@@ -1,5 +1,5 @@
 import { changeCategories, fetchUserProfile } from "@apis/userApi";
-import AppHeader from "@components/AppHeader";
+import AppHeader from "@components/common/AppHeader";
 import Button from "@components/common/Button";
 import Chip from "@components/common/Chip";
 import { GENRES } from "@constants/genres";

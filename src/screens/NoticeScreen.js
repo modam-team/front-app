@@ -1,4 +1,4 @@
-import AppHeader from "@components/AppHeader";
+import AppHeader from "@components/common/AppHeader";
 import { NOTICES } from "@constants/notices";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
