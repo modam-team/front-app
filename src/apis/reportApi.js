@@ -22,7 +22,7 @@ export const reportMonthlyApiMock = {
   error: null,
   responseDto: {
     manyPlace: "MOVING", // 가장 많이 읽은 장소
-    readingTendency: "몰입·공감형", // 독서 성향(캐릭터 성향)
+    readingTendency: "성취·발전형", // 독서 성향(캐릭터 성향)
     userTotalNum: 100, // 전체 유저 수
     characterNum: 15, // 해당 캐릭터 유저 수
 
