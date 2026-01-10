@@ -339,7 +339,7 @@ export async function fetchMonthlyReport({ year, month }) {
       return { month: i + 1, count: Array.isArray(list) ? list.length : 0 };
     });
 
-    // 2) 해시태그 Top 10
+    // 2) 해시태그 Top 8
     const hashtagCount = new Map();
     for (const r of records) {
       const tags = r?.hashtags;
@@ -352,7 +352,7 @@ export async function fetchMonthlyReport({ year, month }) {
     const reviewKeywords = Array.from(hashtagCount.entries())
       .map(([word, weight]) => ({ word, weight }))
       .sort((a, b) => b.weight - a.weight)
-      .slice(0, 10);
+      .slice(0, 8);
 
     // 3) 카테고리(장르) 분포
     const genreDistribution = buildGenreDistribution(records);
