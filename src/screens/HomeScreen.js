@@ -13,6 +13,7 @@ import {
   saveReadingLog,
 } from "@apis/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
+import BasicProfile from "@assets/basic-profile.svg";
 import ProgressBarCharacter from "@assets/progress-bar-img.png";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import GoalCountSlider from "@components/GoalCountSlider";
@@ -25,6 +26,7 @@ import Avatar from "@components/common/Avatar";
 import Button from "@components/common/Button";
 import ModamLogoText from "@components/common/ModamLogoText";
 import YearMonthPicker from "@components/common/YearMonthPicker";
+import { pickDefaultCharacterByTendency } from "@constants/defaultCharacterMap";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
@@ -87,9 +89,16 @@ export default function HomeScreen({ navigation }) {
 
   const [readingLogs, setReadingLogs] = useState({});
   const [dayModalKey, setDayModalKey] = useState(null);
-  const [goalCount, setGoalCount] = useState(0);
-  const [readCount, setReadCount] = useState(0);
-  const [goalCandidate, setGoalCandidate] = useState(1);
+
+  // [진행바에 필요한 상태들]
+  const [goalCount, setGoalCount] = useState(0); // 이번 달 목표 권수 (프로필 goalScore에서 받아옴)
+  const [readCount, setReadCount] = useState(0); // 이번 달 완독 권수 (bookcase.after 중 이번달 완료된 책 개수)
+  const [goalCandidate, setGoalCandidate] = useState(1); // 목표 슬라이더에서 임시로 조정 중인 값
+  const [ProgressCharacter, setProgressCharacter] = useState(
+    () => BasicProfile,
+  ); // 진행바 캐릭터 뭘로 할지
+  const [progressPersona, setProgressPersona] = useState(null); // 어떤 캐릭터인지 알 수 있게
+
   const [friendList, setFriendList] = useState([]);
   const [viewingFriend, setViewingFriend] = useState(null);
   const [selfProfile, setSelfProfile] = useState(null);
@@ -197,13 +206,14 @@ export default function HomeScreen({ navigation }) {
     });
   };
 
+  // 이번 달 키 계산 (완독 카운트에서 사용)
   const getMonthKey = (date = new Date()) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
     return `${y}-${m}`;
   };
 
-  const THIS_MONTH_KEY = useMemo(() => getMonthKey(new Date()), []); // 이번달 독서 현황을 보여주는 용도
+  const THIS_MONTH_KEY = useMemo(() => getMonthKey(new Date()), []); // 이번달 키 (완독한 책의 완료 월이 이 값이면 readCount로 카운트함)
 
   const getPrevMonthKey = (date = new Date()) => {
     const d = new Date(date.getFullYear(), date.getMonth() - 1, 1);
@@ -290,9 +300,9 @@ export default function HomeScreen({ navigation }) {
     });
   }, []);
 
-  // 독서 현황 바 애니메이션 관련
+  // 독서 현황 바 애니메이션 관련 (홈에 처음 진입할 때만 애니메이션 실행하려고 만듦)
   const didAnimateOnceRef = useRef(false);
-  const [progressAnimateKey, setProgressAnimateKey] = useState(0);
+  const [progressAnimateKey, setProgressAnimateKey] = useState(0); // animateKey가 바뀌면 ReadingProgressBar 내부에서 애니메이션 다시 실행
 
   useEffect(() => {
     if (!isFocused) return;
@@ -452,8 +462,8 @@ export default function HomeScreen({ navigation }) {
       const goalCountNumber = Number(profile?.goalScore) || 0;
 
       setNickname(profile?.nickname || "");
-      setGoalCount(goalCountNumber);
-      setGoalCandidate(goalCountNumber || 1);
+      setGoalCount(goalCountNumber); // 진행바 목표 값
+      setGoalCandidate(goalCountNumber || 1); // 목표 편집 슬라이더 열었을 때 기본값으로 쓰기
       setThemeColor(profile?.themeColor ?? null);
       setSelfProfile({
         id: profile?.userId,
@@ -562,6 +572,7 @@ export default function HomeScreen({ navigation }) {
     return out;
   }, [readingLogs]);
 
+  // 완독(readCount) 로드: bookcase.after에서 이번달 완료된 책 개수 세기
   useEffect(() => {
     if (!isFocused) return;
 
@@ -571,16 +582,24 @@ export default function HomeScreen({ navigation }) {
       try {
         const bookcase = await fetchBookcase();
         if (cancelled) return;
+
+        // 완료된 책 목록 (after)
         const after = bookcase?.after || bookcase?.AFTER || [];
+
+        // 완료일을 "YYYY-MM"으로 변환해서, THIS_MONTH_KEY랑 같은 책만 카운트
         const count = after.filter(
           (b) => getCompletionKey(b)?.key === THIS_MONTH_KEY,
         ).length;
+
+        // 진행바 readCount에 반영
         setReadCount(count);
       } catch (e) {
         console.warn(
           "완독 카운트 불러오기 실패:",
           e.response?.data || e.message,
         );
+
+        // 실패하면 0으로 fallback
         setReadCount(0);
       }
     };
@@ -736,6 +755,37 @@ export default function HomeScreen({ navigation }) {
     };
   }, [isFocused, getCompletionKey, navigation, isEditingGoal]);
 
+  // 진행바 캐릭터 로드: monthly report에서 readingTendency -> persona -> 캐릭터 컴포넌트 선택
+  useEffect(() => {
+    if (!isFocused) return;
+
+    let cancelled = false;
+
+    const loadProgressCharacter = async () => {
+      // 월간 리포트 가져오기
+      const report = await fetchMonthlyReport({ year, month }).catch(
+        () => null,
+      );
+
+      // 서버에서 내려오는 readingTendency
+      const tendency = report?.readingTendency;
+
+      // tendency를 기반으로 기본 캐릭터(SVG 컴포넌트) 선택
+      const Comp = pickDefaultCharacterByTendency(tendency);
+
+      if (!cancelled) {
+        setProgressCharacter(() => Comp); // 진행바 캐릭터 컴포넌트 세팅
+        setProgressPersona(report?.persona); // 어떤 캐릭터인지 세팅 (ex. 크리에이터)
+      }
+    };
+
+    loadProgressCharacter();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isFocused, year, month]);
+
   const maxGoal = 30;
 
   const saveGoal = async () => {
@@ -845,21 +895,25 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
+        {/* 진행바 렌더링 */}
         {isEditingGoal ? (
+          // 목표 편집 모드면 슬라이더 보여준 후, 저장하면 goalCount 업데이트
           <GoalCountSlider
             value={goalCandidate}
             onChange={setGoalCandidate}
             onSave={async () => {
-              await saveGoal(); // 기존 함수 그대로 사용
+              await saveGoal();
               setIsEditingGoal(false); // 완료하면 다시 진행바로
             }}
             max={maxGoal}
           />
         ) : (
+          // 일반 모드면 진행바 보여줌
           <ReadingProgressBar
             goalCount={goalCount}
             readCount={readCount}
-            characterSource={ProgressBarCharacter}
+            CharacterComponent={ProgressCharacter}
+            characterPersona={progressPersona}
             animateKey={progressAnimateKey}
             animate={true}
             duration={700}

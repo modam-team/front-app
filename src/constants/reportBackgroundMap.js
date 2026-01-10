@@ -18,7 +18,7 @@ export const REPORT_BACKGROUND_MAP = {
   탐구자: bgExplorer,
   갓생러: bgAchiever,
   크리에이터: bgCreator,
-  낭만가: bgRomantic,
+  낭만러: bgRomantic,
   탐험가: bgAdventurer,
   꿈나무: bgLearner,
 };
@@ -28,7 +28,7 @@ export const REPORT_BACKGROUND_MAP_PAST = {
   탐구자: bgExplorer2,
   갓생러: bgAchiever2,
   크리에이터: bgCreator2,
-  낭만가: bgRomantic2,
+  낭만러: bgRomantic2,
   탐험가: bgAdventurer2,
   꿈나무: bgLearner2,
 };

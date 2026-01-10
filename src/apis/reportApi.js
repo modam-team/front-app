@@ -3,16 +3,30 @@ import { PLACE_MOOD_MAP } from "@constants/placeMoodMap";
 import { READING_TENDENCY_MAP } from "@constants/readingTendencyMap";
 import { getToken } from "@utils/secureStore";
 
+// mock 리포트 사용할지 여부 (env에서 바꾸면 돼요)
 const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
 
+// 리포트가 없는 신규 유저(RR404) 테스트용 mock
+export const reportMonthlyApiMockRR404Error = {
+  success: false,
+  responseDto: null,
+  error: {
+    code: "RR404",
+    message: "리포트가 존재하지 않습니다.",
+  },
+};
+
+// 정상 리포트 mock 데이터
 export const reportMonthlyApiMock = {
   success: true,
   error: null,
   responseDto: {
-    manyPlace: "MOVING",
-    readingTendency: "몰입·공감형",
-    userTotalNum: 100,
-    characterNum: 15,
+    manyPlace: "MOVING", // 가장 많이 읽은 장소
+    readingTendency: "성취·발전형", // 독서 성향(캐릭터 성향)
+    userTotalNum: 100, // 전체 유저 수
+    characterNum: 15, // 해당 캐릭터 유저 수
+
+    // 연도 > 월 > 독서 배열 순서
     data: {
       2024: {
         11: [
@@ -143,8 +157,10 @@ export const reportMonthlyApiMock = {
   },
 };
 
+// 요일 라벨
 const WEEKDAY_LABEL = ["일", "월", "화", "수", "목", "금", "토"];
 
+// 장소를 한글로 라벨링
 const PLACE_LABEL = {
   HOME: "집",
   CAFE: "카페",
@@ -152,13 +168,14 @@ const PLACE_LABEL = {
   MOVING: "이동중",
 };
 
+// 시간대 구분 (12시 전까진 아침, 18시 전까진 오후, 나머진 저녁)
 function slotFromHour(h) {
   if (h < 12) return "morning";
   if (h < 18) return "afternoon";
   return "evening";
 }
 
-// 을 or 를 선택하기
+// 받침 있는지 확인
 function hasFinalConsonant(word = "") {
   if (!word) return false;
   const last = word[word.length - 1];
@@ -167,6 +184,7 @@ function hasFinalConsonant(word = "") {
   return (code - 0xac00) % 28 !== 0;
 }
 
+// 받침이 있으면 을 / 없으면 를 선택하기
 function objParticle(word = "") {
   return hasFinalConsonant(word) ? "을" : "를";
 }
@@ -189,10 +207,14 @@ function makeEmptyReport({ year, month }) {
       isEmpty: true,
       characterKey: "empty",
     },
+
+    // 월별 독서 수 (전부 0)
     monthlyStatus: Array.from({ length: 12 }, (_, i) => ({
       month: i + 1,
       count: 0,
     })),
+
+    // 이하 데이터는 전부 빈 값
     reviewKeywords: [],
     genreDistribution: [],
     readingCountsByWeekday: Array.from({ length: 7 }, (_, w) => ({
@@ -204,9 +226,11 @@ function makeEmptyReport({ year, month }) {
   };
 }
 
+// 가장 최신 월의 기록 찾기
 function findLatestRecords(data) {
   if (!data) return null;
 
+  // 연도 내림차순
   const years = Object.keys(data)
     .map(Number)
     .filter((n) => !Number.isNaN(n))
@@ -214,11 +238,14 @@ function findLatestRecords(data) {
 
   for (const y of years) {
     const yearMap = data[String(y)] ?? {};
+
+    // 월 내림차순
     const months = Object.keys(yearMap)
       .map(Number)
       .filter((n) => !Number.isNaN(n))
       .sort((a, b) => b - a);
 
+    // 기록이 하나라도 있는 가장 최신 월 반환
     for (const m of months) {
       const list = yearMap[String(m)];
       if (Array.isArray(list) && list.length > 0) {
@@ -229,15 +256,18 @@ function findLatestRecords(data) {
   return null;
 }
 
+// 장르 분포 계산
 function buildGenreDistribution(records) {
   const total = Array.isArray(records) ? records.length : 0;
   const categoryCount = new Map();
 
+  // 장르별 카운트
   for (const r of records ?? []) {
     const c = r?.category ?? "기타";
     categoryCount.set(c, (categoryCount.get(c) ?? 0) + 1);
   }
 
+  // 비율 계산 + 정렬
   return Array.from(categoryCount.entries())
     .map(([name, count]) => ({
       name,
@@ -247,10 +277,12 @@ function buildGenreDistribution(records) {
     .sort((a, b) => b.count - a.count);
 }
 
+// 월간 리포트 조회 메인 함수
 export async function fetchMonthlyReport({ year, month }) {
   try {
+    // mock 또는 실제 API 선택
     const body = USE_REPORT_MOCK
-      ? reportMonthlyApiMock
+      ? reportMonthlyApiMock // 신규 유저 테스트 할거면 'reportMonthlyApiMockRR404Error'로 바꿔서 ㄱㄱ
       : (await client.get("/api/report/monthly")).data;
 
     // 404 & RR404일 땐 빈 리포트, 그 외 에러는 진짜 에러
@@ -258,9 +290,11 @@ export async function fetchMonthlyReport({ year, month }) {
       return makeEmptyReport({ year, month });
     }
 
+    // 서버 응답 구조 분해
     const { manyPlace, readingTendency, data, userTotalNum, characterNum } =
       body.responseDto;
 
+    // 캐릭터 비율 계산
     const percent =
       !userTotalNum || userTotalNum <= 0
         ? null
@@ -269,25 +303,28 @@ export async function fetchMonthlyReport({ year, month }) {
             Math.min(100, Math.round((characterNum / userTotalNum) * 100)),
           );
 
+    // 연 / 월 키
     const yearKey = String(year);
     const monthKey = String(month);
 
-    // 전체 기록이 있는지 먼저 판단하도록
+    // 전체 기록이 하나라도 있는지 확인
     const hasAnyRecord = Object.values(data ?? {}).some((yearMap) =>
       Object.values(yearMap ?? {}).some(
         (monthList) => Array.isArray(monthList) && monthList.length > 0,
       ),
     );
 
-    // 신규 유저인 경우 empty 처리
+    // 기록 하나도 없으면 신규 유저 (empty 처리)
     if (!hasAnyRecord) {
       return makeEmptyReport({ year, month });
     }
 
+    // 해당 월 기록
     const yearMap = data?.[yearKey] ?? {};
     const records = yearMap?.[monthKey] ?? [];
     const total = Array.isArray(records) ? records.length : 0;
 
+    // 최신 기록 월 찾기
     const latest = findLatestRecords(data);
     if (!latest) return makeEmptyReport({ year, month });
 
@@ -318,18 +355,7 @@ export async function fetchMonthlyReport({ year, month }) {
       .slice(0, 10);
 
     // 3) 카테고리(장르) 분포
-    const categoryCount = new Map();
-    for (const r of records) {
-      const c = r?.category ?? "기타";
-      categoryCount.set(c, (categoryCount.get(c) ?? 0) + 1);
-    }
-    const genreDistribution = Array.from(categoryCount.entries())
-      .map(([name, count]) => ({
-        name,
-        count,
-        ratio: total ? count / total : 0,
-      }))
-      .sort((a, b) => b.count - a.count);
+    const genreDistribution = buildGenreDistribution(records);
 
     // 4) 요일 + 시간대
     const readingCountsByWeekday = Array.from({ length: 7 }, (_, w) => ({
@@ -410,6 +436,8 @@ export async function fetchMonthlyReport({ year, month }) {
       genreDistribution,
       readingCountsByWeekday,
       readingPlaces,
+      readingTendency: rawTendency,
+      persona: characterName,
     };
   } catch (e) {
     const status = e?.response?.status;
