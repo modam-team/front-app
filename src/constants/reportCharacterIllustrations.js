@@ -34,7 +34,6 @@ export const PERSONA_SLUG_MAP = {
   갓생러: "achiever",
   크리에이터: "creator",
   낭만러: "romantic",
-  낭만가: "romantic",
   탐험가: "adventurer",
   꿈나무: "learner",
 };
