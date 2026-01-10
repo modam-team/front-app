@@ -1,4 +1,4 @@
-import ModamLogoText from "@components/ModamLogoText";
+import ModamLogoText from "@components/common/ModamLogoText";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
