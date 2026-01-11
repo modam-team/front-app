@@ -80,21 +80,23 @@ export default function ReportScreen() {
   const isCurrentMonth =
     year === now.getFullYear() && month === now.getMonth() + 1;
 
-  // 리포트 화면이 포커스일 때만 탭바 테마를 바꿈
-  useEffect(() => {
-    if (!isFocused) return;
-
-    // 현재 달이면 초록, 아니면 기본(흰색)
-    setTheme(isCurrentMonth ? "reportCurrent" : "default");
-
-    // 화면 나가면 무조건 원복
-    return () => setTheme("default");
-  }, [isFocused, isCurrentMonth, setTheme]);
-
   // 리포트 데이터
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const isEmpty = !!data?.summary?.isEmpty;
+
+  // 리포트 화면이 포커스일 때만 탭바 테마를 바꿈
+  useEffect(() => {
+    if (!isFocused) return;
+
+    // 현재 달이면 초록, 아니면 기본(흰색) + 신규 유저면 past 테마로
+    setTheme(isCurrentMonth && !isEmpty ? "reportCurrent" : "default");
+
+    // 화면 나가면 무조건 원복
+    return () => setTheme("default");
+  }, [isFocused, isCurrentMonth, isEmpty, setTheme]);
 
   // 연도랑 월 선택 관리
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -246,13 +248,15 @@ export default function ReportScreen() {
     habitAnim.checkAndAnimate(y, h);
   };
 
-  const isEmpty = !!data?.summary?.isEmpty;
+  // 신규 유저면 current월이어도 past 스타일로
+  const styleVariant = isCurrentMonth && !isEmpty ? "current" : "past";
   const headerVariant = isCurrentMonth && !isEmpty ? "light" : "green";
 
   const personaKey = data?.summary?.title?.trim().split(/\s+/).pop();
-  const map = isCurrentMonth
-    ? REPORT_BACKGROUND_MAP
-    : REPORT_BACKGROUND_MAP_PAST;
+  const map =
+    styleVariant === "current"
+      ? REPORT_BACKGROUND_MAP
+      : REPORT_BACKGROUND_MAP_PAST;
 
   const bgSource = !isEmpty && personaKey ? map[personaKey] : null;
 
@@ -290,7 +294,7 @@ export default function ReportScreen() {
                 onPressEditProfile={() => navigation.navigate("ProfileScreen")}
               />
 
-              {/* Summary는 신규 유저여도 항상 */}
+              {/* Summary는 이번 달을 조회할 때만 보여줌 */}
               {isCurrentMonth ? (
                 <Summary
                   summary={data.summary}
@@ -305,100 +309,95 @@ export default function ReportScreen() {
                 />
               ) : null}
 
-              {/* 신규 유저면 나머지 섹션만 숨김 */}
-              {isEmpty ? null : (
-                <>
-                  {/* 월별 통계 섹션 */}
-                  <View onLayout={statsAnim.onLayout}>
-                    <MonthlyStats
-                      year={year}
-                      month={month}
-                      monthlyStatus={data.monthlyStatus}
-                      onChangeYear={setYear}
-                      onChangeMonth={setMonth}
-                      animateKey={statsAnim.animateKey}
-                      resetKey={statsResetKey}
-                      onOpenPicker={openPicker}
-                      isCurrentMonth={isCurrentMonth}
-                      isEmpty={!hasAnyRecordInYear}
-                    />
-                  </View>
+              {/* 월별 통계 섹션 */}
+              <View onLayout={statsAnim.onLayout}>
+                <MonthlyStats
+                  year={year}
+                  month={month}
+                  monthlyStatus={data.monthlyStatus}
+                  onChangeYear={setYear}
+                  onChangeMonth={setMonth}
+                  animateKey={statsAnim.animateKey}
+                  resetKey={statsResetKey}
+                  onOpenPicker={openPicker}
+                  isCurrentMonth={isCurrentMonth && !isEmpty}
+                  isEmpty={!hasAnyRecordInYear}
+                />
+              </View>
 
-                  {/* 취향 분석 스와이프 페이저 섹션 */}
-                  {isSelectedMonthEmpty ? (
-                    <View onLayout={prefAnim.onLayout}>
-                      <ReportSectionHeader
-                        month={month}
-                        title="취향 분석"
-                        caption="나의 별점을 기준으로 작성된 표예요"
-                        variant={isCurrentMonth ? "current" : "past"}
-                      />
-                      <ReportEmptyCard
-                        height={373}
-                        title={`${year}년 ${month}월은 별점을 남긴 책이 없어요`}
-                        caption="완독 후 별점을 남기면 취향 분석을 볼 수 있어요"
-                      />
-                    </View>
-                  ) : (
-                    <PreferencePagerSection
-                      year={year}
-                      month={month}
-                      variant={isCurrentMonth ? "current" : "past"}
-                      isCurrentMonth={isCurrentMonth}
-                      genreDistribution={data.genreDistribution}
-                      reviewKeywords={data.reviewKeywords}
-                      resetKey={preferenceResetKey}
-                      onLayout={prefAnim.onLayout}
-                      animateKey={prefAnim.animateKey}
-                    />
-                  )}
+              {/* 취향 분석 스와이프 페이저 섹션 */}
+              {isSelectedMonthEmpty ? (
+                <View onLayout={prefAnim.onLayout}>
+                  <ReportSectionHeader
+                    month={month}
+                    title="취향 분석"
+                    caption="나의 별점을 기준으로 작성된 표예요"
+                    variant={styleVariant}
+                  />
+                  <ReportEmptyCard
+                    height={373}
+                    title={`${year}년 ${month}월은 별점을 남긴 책이 없어요`}
+                    caption="완독 후 별점을 남기면 취향 분석을 볼 수 있어요"
+                  />
+                </View>
+              ) : (
+                <PreferencePagerSection
+                  year={year}
+                  month={month}
+                  variant={styleVariant}
+                  isCurrentMonth={isCurrentMonth && !isEmpty}
+                  genreDistribution={data.genreDistribution}
+                  reviewKeywords={data.reviewKeywords}
+                  resetKey={preferenceResetKey}
+                  onLayout={prefAnim.onLayout}
+                  animateKey={prefAnim.animateKey}
+                />
+              )}
 
-                  {/* 습관 분석 섹션 */}
-                  <View
-                    style={{ marginTop: 30 }}
-                    onLayout={habitAnim.onLayout}
-                  >
-                    {/* 섹션 헤더*/}
-                    <ReportSectionHeader
-                      month={month}
-                      title="습관 분석"
-                      caption="독서 기록 버튼을 누른 기록으로 분석했어요"
-                      variant={isCurrentMonth ? "current" : "past"}
+              {/* 습관 분석 섹션 */}
+              <View
+                style={{ marginTop: 30 }}
+                onLayout={habitAnim.onLayout}
+              >
+                {/* 섹션 헤더*/}
+                <ReportSectionHeader
+                  month={month}
+                  title="습관 분석"
+                  caption="독서 기록 버튼을 누른 기록으로 분석했어요"
+                  variant={styleVariant}
+                />
+
+                {isSelectedMonthEmpty ? (
+                  <ReportEmptyCard
+                    height={436}
+                    title={`${year}년 ${month}월은 독서한 기록이 없어요`}
+                    caption="독서 기록 버튼을 눌러야 습관 분석을 볼 수 있어요"
+                  />
+                ) : (
+                  <>
+                    {/* 토글 */}
+                    <ReportToggle
+                      value={habitTab}
+                      onChange={setHabitTab}
                     />
 
-                    {isSelectedMonthEmpty ? (
-                      <ReportEmptyCard
-                        height={436}
-                        title={`${year}년 ${month}월은 독서한 기록이 없어요`}
-                        caption="독서 기록 버튼을 눌러야 습관 분석을 볼 수 있어요"
+                    {/* 카드 */}
+                    {habitTab === "time" ? (
+                      <TimeHabits
+                        readingCountsByWeekday={data.readingCountsByWeekday}
+                        animateKey={habitAnim.animateKey}
+                        resetKey={habitResetKey}
                       />
                     ) : (
-                      <>
-                        {/* 토글 */}
-                        <ReportToggle
-                          value={habitTab}
-                          onChange={setHabitTab}
-                        />
-
-                        {/* 카드 */}
-                        {habitTab === "time" ? (
-                          <TimeHabits
-                            readingCountsByWeekday={data.readingCountsByWeekday}
-                            animateKey={habitAnim.animateKey}
-                            resetKey={habitResetKey}
-                          />
-                        ) : (
-                          <PlaceHabits
-                            places={places}
-                            animateKey={habitAnim.animateKey}
-                            resetKey={habitResetKey}
-                          />
-                        )}
-                      </>
+                      <PlaceHabits
+                        places={places}
+                        animateKey={habitAnim.animateKey}
+                        resetKey={habitResetKey}
+                      />
                     )}
-                  </View>
-                </>
-              )}
+                  </>
+                )}
+              </View>
             </>
           )}
 
