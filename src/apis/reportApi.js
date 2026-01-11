@@ -525,16 +525,6 @@ export async function fetchMonthlyReport({ year, month }) {
     const finishRecords = getMonthList(finishMap, year, month); // 완독 월 리스트
     const logRecords = getMonthList(logMap, year, month); // 로그 월 리스트
 
-    console.log(
-      "selected",
-      year,
-      month,
-      "finishRecords",
-      finishRecords.length,
-      "logRecords",
-      logRecords.length,
-    );
-
     // 전체 기록이 하나라도 있는지 확인
     const emptyByCode =
       data?.code === "EMPTY_FINISH" || logData?.code === "EMPTY_LOG";
@@ -584,7 +574,7 @@ export async function fetchMonthlyReport({ year, month }) {
 
     const hasSummarySource = !!latest; // 지난달까지 완독 데이터가 있는지 여부
 
-    // ✅ null-safe fallback
+    // null-safe fallback
     const latestYear = latest?.year ?? year;
     const latestMonth = latest?.month ?? month;
     const latestRecords = latest?.records ?? [];
@@ -649,34 +639,7 @@ export async function fetchMonthlyReport({ year, month }) {
     const hasCharacter =
       hasSummarySource && !!character && !!manyPlace && !!readingTendency;
 
-    console.log("[hasCharacter check]", {
-      character,
-      manyPlace,
-      readingTendency,
-      hasCharacter: !!character && !!manyPlace && !!readingTendency,
-    });
-
     if (!hasCharacter) {
-      console.log(
-        "[report payload check]",
-        "keywords",
-        reviewKeywords?.length,
-        "genres",
-        genreDistribution?.length,
-        "places",
-        readingPlaces?.length,
-        "weekdayTotal",
-        readingCountsByWeekday.reduce(
-          (s, d) => s + (d.slots.morning + d.slots.afternoon + d.slots.evening),
-          0,
-        ),
-        "placeTotal",
-        readingPlaces.reduce((s, p) => s + (p.ratio || 0), 0),
-        "genreTotal",
-        genreDistribution.reduce((s, g) => s + (g.ratio || 0), 0),
-        "keywordTotal",
-        reviewKeywords.reduce((s, k) => s + (k.weight || 0), 0),
-      );
       return {
         summary: {
           year,
