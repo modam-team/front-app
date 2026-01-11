@@ -363,6 +363,7 @@ export default function ReportScreen() {
                     navigation.navigate("ProfileScreen")
                   }
                   profileImageUrl={profileImageUrl}
+                  isCurrentUI={isCurrentUI}
                 />
               ) : null}
 

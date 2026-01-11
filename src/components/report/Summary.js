@@ -22,6 +22,7 @@ export default function Summary({
   onPressEditProfile,
   onPressProfile,
   profileImageUrl,
+  isCurrentUI = false,
 }) {
   const { title, description, percent, isEmpty, characterKey, placeKey } =
     summary;
@@ -50,7 +51,7 @@ export default function Summary({
     monthText: colors.primary[500],
   };
 
-  const styleSet = isEmpty ? pastMonthStyle : currentMonthStyle;
+  const styleSet = !isEmpty && isCurrentUI ? currentMonthStyle : pastMonthStyle;
 
   return (
     <View style={styles.wrap}>
