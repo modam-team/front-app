@@ -17,7 +17,8 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 export default function Summary({
   summary,
   userName,
-  isCurrentMonth,
+  year,
+  month,
   onPressEditProfile,
   onPressProfile,
   profileImageUrl,
@@ -49,59 +50,22 @@ export default function Summary({
     monthText: colors.primary[500],
   };
 
-  const styleSet = isEmpty
-    ? pastMonthStyle
-    : isCurrentMonth
-      ? currentMonthStyle
-      : pastMonthStyle;
+  const styleSet = isEmpty ? pastMonthStyle : currentMonthStyle;
 
   return (
     <View style={styles.wrap}>
-      {/* 상단 프로필 / 편집 */}
-      <View style={styles.headerTop}>
-        <Pressable
-          onPress={onPressProfile}
-          disabled={!onPressProfile}
-          style={styles.profileCircle}
-          hitSlop={8}
-        >
-          {profileImageUrl ? (
-            <Image
-              source={{ uri: profileImageUrl }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={styles.basicAvatar}>
-              <BasicCharacter
-                width={49}
-                height={49}
-              />
-            </View>
-          )}
-        </Pressable>
-
-        <Button
-          label="프로필 편집"
-          onPress={onPressEditProfile}
-          variant="primary"
-          tone="outline"
-          size="small"
-          style={styles.editBtn}
-          textStyle={styles.editBtnText}
-        />
-      </View>
       <View style={styles.header}>
         <Text style={[styles.headerLine1, { color: styleSet.headerText }]}>
           {userName} 님의{" "}
           <Text style={[styles.headerMonth, { color: styleSet.monthText }]}>
-            {isCurrentMonth ? "이번 달" : "지난 달"}
+            지난 달{/* {year}년 {month}월 */}
           </Text>
         </Text>
         <Text style={[styles.headerLine2, { color: styleSet.headerText }]}>
           <Text style={[styles.headerMonth, { color: styleSet.headerText }]}>
-            독서 기록
-          </Text>{" "}
-          결과예요
+            독서 캐릭터
+          </Text>
+          예요
         </Text>
       </View>
 
@@ -151,38 +115,6 @@ const styles = StyleSheet.create({
   // 전체 섹션 래퍼
   wrap: {
     marginBottom: spacing.sectionGap,
-  },
-
-  /* ================================== */
-
-  // 프사랑 프로필 편집 버튼
-  headerTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.xs,
-  },
-
-  // 프사 동그라미
-  profileCircle: {
-    width: 49,
-    height: 49,
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-
-  // 프사 이미지
-  profileImage: {
-    width: "100%",
-    height: "100%",
-  },
-
-  // 기본 프사 캐릭터
-  basicAvatar: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   /* ================================== */
