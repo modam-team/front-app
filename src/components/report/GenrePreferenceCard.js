@@ -299,53 +299,75 @@ export default function GenrePreferenceCard({
           </Svg>
         </View>
 
-        {/* 도넛 하단에 보여줄 top3 장르 */}
+        {/* 도넛 하단에 보여줄 top6 장르 */}
         {segments.length > 0 && (
           <View style={styles.legendWrap}>
             <View style={styles.legendCol}>
-              {leftCol.map((seg, idx) => (
-                <View
-                  key={`legend-l-${seg.name}-${idx}`}
-                  style={styles.legendItem}
-                >
-                  <View
-                    style={[styles.colorDot, { backgroundColor: seg.color }]}
-                  />
-                  <Text
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    style={[
-                      styles.legendLabel,
-                      { color: styleSet.legendTextColor },
-                    ]}
+              {leftCol.map((seg, idx) => {
+                const isWinner = winner && seg.name === winner.name;
+
+                const dotScale = isWinner ? 1 + 0.25 * pop : 1; // dot도 같이 pop
+
+                return (
+                  <Animated.View
+                    key={`legend-l-${seg.name}-${idx}`}
+                    style={styles.legendItem}
                   >
-                    {seg.name}
-                  </Text>
-                </View>
-              ))}
+                    <Animated.View
+                      style={[
+                        styles.colorDot,
+                        { backgroundColor: seg.color },
+                        isWinner && { transform: [{ scale: dotScale }] },
+                      ]}
+                    />
+                    <Animated.Text
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      style={[
+                        styles.legendLabel,
+                        { color: styleSet.legendTextColor },
+                        isWinner && styles.legendWinnerLabel,
+                      ]}
+                    >
+                      {seg.name}
+                    </Animated.Text>
+                  </Animated.View>
+                );
+              })}
             </View>
 
             <View style={styles.legendCol}>
-              {rightCol.map((seg, idx) => (
-                <View
-                  key={`legend-r-${seg.name}-${idx}`}
-                  style={styles.legendItem}
-                >
-                  <View
-                    style={[styles.colorDot, { backgroundColor: seg.color }]}
-                  />
-                  <Text
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    style={[
-                      styles.legendLabel,
-                      { color: styleSet.legendTextColor },
-                    ]}
+              {rightCol.map((seg, idx) => {
+                const isWinner = winner && seg.name === winner.name;
+
+                const dotScale = isWinner ? 1 + 0.25 * pop : 1;
+
+                return (
+                  <Animated.View
+                    key={`legend-r-${seg.name}-${idx}`}
+                    style={styles.legendItem}
                   >
-                    {seg.name}
-                  </Text>
-                </View>
-              ))}
+                    <Animated.View
+                      style={[
+                        styles.colorDot,
+                        { backgroundColor: seg.color },
+                        isWinner && { transform: [{ scale: dotScale }] },
+                      ]}
+                    />
+                    <Animated.Text
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      style={[
+                        styles.legendLabel,
+                        { color: styleSet.legendTextColor },
+                        isWinner && styles.legendWinnerLabel,
+                      ]}
+                    >
+                      {seg.name}
+                    </Animated.Text>
+                  </Animated.View>
+                );
+              })}
             </View>
           </View>
         )}
@@ -414,5 +436,9 @@ const styles = StyleSheet.create({
     ...typography["detail-regular"],
     color: colors.mono[950],
     flexShrink: 1, // 긴 장르명 말줄임 되게
+  },
+
+  legendWinnerLabel: {
+    fontWeight: "700",
   },
 });
