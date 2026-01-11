@@ -352,7 +352,7 @@ export default function ReportScreen() {
               />
 
               {/* Summary는 이번 달을 조회할 때만 보여줌 */}
-              {isCurrentUI ? (
+              {isCurrentMonth ? (
                 <Summary
                   summary={data.summary}
                   userName={userName}
