@@ -491,7 +491,7 @@ export async function fetchMonthlyReport({ year, month }) {
     // 캐릭터는 안 나왔지만 이번달에 가입해서 독서한 기록은 있는 유저 테스트는 reportMonthlyApiMockThisMonthHasDataNoCharacter
     // 캐릭터도 나온 기존 유저면 reportMonthlyApiMock
     const body = USE_REPORT_MOCK
-      ? reportMonthlyApiMockThisMonthHasDataNoCharacter
+      ? reportMonthlyApiMock
       : (await client.get("/api/report/monthly")).data;
 
     // 404 & RR404일 땐 빈 리포트, 그 외 에러는 진짜 에러

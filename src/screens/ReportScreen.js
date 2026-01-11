@@ -17,6 +17,7 @@ import {
 } from "@constants/reportBackgroundMap";
 import useSectionVisibilityAnimation from "@hooks/useSectionVisibilityAnimation";
 import { useTabBarTheme } from "@navigation/TabBarThemeContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
@@ -26,6 +27,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ImageBackground,
+  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -80,6 +82,13 @@ export default function ReportScreen() {
   const isCurrentMonth =
     year === now.getFullYear() && month === now.getMonth() + 1;
 
+  const CURRENT_MONTH_KEY = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
+
+  const REPORT_VISIT_KEY = `report_tab_visited_${CURRENT_MONTH_KEY}`;
+
   // 리포트 데이터
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -92,11 +101,11 @@ export default function ReportScreen() {
     if (!isFocused) return;
 
     // 현재 달이면 초록, 아니면 기본(흰색) + 신규 유저면 past 테마로
-    setTheme(isCurrentMonth && !isEmpty ? "reportCurrent" : "default");
+    setTheme(shouldUseCurrentTheme ? "reportCurrent" : "default");
 
     // 화면 나가면 무조건 원복
     return () => setTheme("default");
-  }, [isFocused, isCurrentMonth, isEmpty, setTheme]);
+  }, [isFocused, shouldUseCurrentTheme, setTheme]);
 
   // 연도랑 월 선택 관리
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -161,6 +170,21 @@ export default function ReportScreen() {
 
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }, [isFocused, resetStatsAnim, resetPrefAnim, resetHabitAnim]);
+
+  const resetReportVisitDebug = async () => {
+    try {
+      await AsyncStorage.removeItem(REPORT_VISIT_KEY);
+
+      // 상태도 즉시 반영
+      setIsFirstVisitThisMonth(true);
+
+      // 확인 로그(선택)
+      const v = await AsyncStorage.getItem(REPORT_VISIT_KEY);
+      console.log("🧪 reset key:", REPORT_VISIT_KEY, "after:", v); // null이면 성공
+    } catch (e) {
+      console.error("리포트 방문 플래그 초기화 실패", e);
+    }
+  };
 
   const places = useMemo(() => {
     const list = data?.readingPlaces ?? [];
@@ -248,9 +272,41 @@ export default function ReportScreen() {
     habitAnim.checkAndAnimate(y, h);
   };
 
-  // 신규 유저면 current월이어도 past 스타일로
-  const styleVariant = isCurrentMonth && !isEmpty ? "current" : "past";
-  const headerVariant = isCurrentMonth && !isEmpty ? "light" : "green";
+  // 첫 방문인지 (진한 초록색 배경으로 보여줄라고)
+  const [isFirstVisitThisMonth, setIsFirstVisitThisMonth] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const checkFirstVisit = async () => {
+      try {
+        const visited = await AsyncStorage.getItem(REPORT_VISIT_KEY);
+
+        // 달 바뀐 후 이번 달 첫 방문이면 true
+        const first = !visited;
+        setIsFirstVisitThisMonth(first);
+
+        // 들어온 순간 방문 처리 (이번 달에 1번만)
+        if (!visited) {
+          await AsyncStorage.setItem(REPORT_VISIT_KEY, "1");
+        }
+      } catch (e) {
+        console.error("리포트 탭 방문 플래그 체크 실패", e);
+        setIsFirstVisitThisMonth(false);
+      }
+    };
+
+    checkFirstVisit();
+  }, [isFocused, REPORT_VISIT_KEY]);
+
+  // 진한 초록 배경은은 첫 방문 + 이번달 + 데이터 있음 일 때만
+  const shouldUseCurrentTheme =
+    isFirstVisitThisMonth && isCurrentMonth && !isEmpty;
+
+  const isCurrentUI = shouldUseCurrentTheme; // current 스타일을 써야 하는가?
+
+  const styleVariant = shouldUseCurrentTheme ? "current" : "past";
+  const headerVariant = shouldUseCurrentTheme ? "light" : "green";
 
   const personaKey = data?.summary?.title?.trim().split(/\s+/).pop();
   const map =
@@ -275,6 +331,7 @@ export default function ReportScreen() {
       >
         <ReportTopHeader
           variant={headerVariant}
+          onLongPressLogo={__DEV__ ? resetReportVisitDebug : undefined}
           onPressSettings={() => navigation.navigate("SettingsScreen")}
         />
         <View style={styles.content}>
@@ -295,7 +352,7 @@ export default function ReportScreen() {
               />
 
               {/* Summary는 이번 달을 조회할 때만 보여줌 */}
-              {isCurrentMonth ? (
+              {isCurrentUI ? (
                 <Summary
                   summary={data.summary}
                   userName={userName}
@@ -320,7 +377,7 @@ export default function ReportScreen() {
                   animateKey={statsAnim.animateKey}
                   resetKey={statsResetKey}
                   onOpenPicker={openPicker}
-                  isCurrentMonth={isCurrentMonth && !isEmpty}
+                  isCurrentMonth={isCurrentUI}
                   isEmpty={!hasAnyRecordInYear}
                 />
               </View>
@@ -345,7 +402,7 @@ export default function ReportScreen() {
                   year={year}
                   month={month}
                   variant={styleVariant}
-                  isCurrentMonth={isCurrentMonth && !isEmpty}
+                  isCurrentMonth={isCurrentUI}
                   genreDistribution={data.genreDistribution}
                   reviewKeywords={data.reviewKeywords}
                   resetKey={preferenceResetKey}
