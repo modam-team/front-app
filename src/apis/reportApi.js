@@ -24,134 +24,233 @@ export const reportMonthlyApiMock = {
     manyPlace: "MOVING", // 가장 많이 읽은 장소
     readingTendency: "성취·발전형", // 독서 성향(캐릭터 성향)
     userTotalNum: 100, // 전체 유저 수
-    characterNum: 15, // 해당 캐릭터 유저 수
+    characterNum: 15, // 해당 캐릭터 유저 수3
 
-    // 연도 > 월 > 독서 배열 순서
     data: {
-      2024: {
-        11: [
-          {
-            readAt: "2024-11-03T09:20:00",
-            readingPlace: "HOME",
-            category: "소설/문학",
-            hashtags: ["잔잔함", "여운"],
-          },
-          {
-            readAt: "2024-11-18T22:10:00",
-            readingPlace: "CAFE",
-            category: "에세이",
-            hashtags: ["공감", "힐링"],
-          },
-        ],
-        12: [
-          {
-            readAt: "2024-12-01T14:30:00",
-            readingPlace: "LIBRARY",
-            category: "인문/사회/정치/법",
-            hashtags: ["집중", "사색"],
-          },
-        ],
+      code: "OK",
+      // 연도 > 월 > 독서 배열 순서
+      data: {
+        2024: {
+          11: [
+            {
+              finishAt: "2024-11-03T09:20:00",
+              category: "소설/문학",
+              hashtags: ["잔잔함", "여운"],
+            },
+            {
+              finishAt: "2024-11-18T22:10:00",
+              category: "에세이",
+              hashtags: ["공감", "힐링"],
+            },
+          ],
+          12: [
+            {
+              finishAt: "2024-12-01T14:30:00",
+              category: "인문/사회/정치/법",
+              hashtags: ["집중", "사색"],
+            },
+          ],
+        },
+
+        2025: {
+          1: [
+            {
+              finishAt: "2025-01-05T08:40:00",
+              category: "자기계발",
+              hashtags: ["동기부여", "정리"],
+            },
+            {
+              finishAt: "2025-01-21T19:10:00",
+              category: "소설/문학",
+              hashtags: ["몰입", "재미"],
+            },
+          ],
+
+          6: [
+            {
+              finishAt: "2025-06-02T07:55:00",
+              category: "소설/문학",
+              hashtags: ["속도감"],
+            },
+            {
+              finishAt: "2025-06-15T18:30:00",
+              category: "인문/사회/정치/법",
+              hashtags: ["사고확장"],
+            },
+            {
+              finishAt: "2025-06-15T20:30:00",
+              category: "인문/사회/정치/법",
+              hashtags: ["사고확장"],
+            },
+            {
+              finishAt: "2025-06-28T23:10:00",
+              category: "에세이",
+              hashtags: ["위로"],
+            },
+          ],
+
+          12: [
+            {
+              finishAt: "2025-12-11T19:14:20",
+              category: "소설/문학",
+              hashtags: ["재밌음", "흥미진진", "빠른전개"],
+            },
+            {
+              finishAt: "2025-12-10T21:40:00",
+              category: "인문/사회/정치/법",
+              hashtags: ["여운", "몰입"],
+            },
+            {
+              finishAt: "2025-12-22T10:05:00",
+              category: "자기계발",
+              hashtags: ["정리", "성장"],
+            },
+            {
+              finishAt: "2025-12-03T08:10:00",
+              category: "경제/경영",
+              hashtags: ["투자", "인사이트"],
+            },
+            {
+              finishAt: "2025-12-05T23:20:00",
+              category: "과학/기술",
+              hashtags: ["신기함", "호기심", "설렘"],
+            },
+            {
+              finishAt: "2025-12-07T12:40:00",
+              category: "예술/대중문화",
+              hashtags: ["감성", "영감"],
+            },
+            {
+              finishAt: "2025-12-15T17:35:00",
+              category: "건강/취미",
+              hashtags: ["루틴", "힐링"],
+            },
+            {
+              finishAt: "2025-12-15T18:35:00",
+              category: "건강/취미",
+              hashtags: ["루틴", "힐링"],
+            },
+            {
+              finishAt: "2025-12-18T09:50:00",
+              category: "여행",
+              hashtags: ["설렘", "계획"],
+            },
+          ],
+        },
       },
+    },
 
-      2025: {
-        1: [
-          {
-            readAt: "2025-01-05T08:40:00",
-            readingPlace: "HOME",
-            category: "자기계발",
-            hashtags: ["동기부여", "정리"],
-          },
-          {
-            readAt: "2025-01-21T19:10:00",
-            readingPlace: "CAFE",
-            category: "소설/문학",
-            hashtags: ["몰입", "재미"],
-          },
-        ],
+    // 로그 데이터 (readAt / category / place)
+    logData: {
+      code: "OK",
+      data: {
+        2024: {
+          11: [
+            {
+              readAt: "2024-11-03T09:20:00",
+              category: "소설/문학",
+              place: "HOME",
+            },
+            {
+              readAt: "2024-11-18T22:10:00",
+              category: "에세이",
+              place: "CAFE",
+            },
+          ],
+          12: [
+            {
+              readAt: "2024-12-01T14:30:00",
+              category: "인문/사회/정치/법",
+              place: "LIBRARY",
+            },
+          ],
+        },
 
-        6: [
-          {
-            readAt: "2025-06-02T07:55:00",
-            readingPlace: "MOVING",
-            category: "소설/문학",
-            hashtags: ["속도감"],
-          },
-          {
-            readAt: "2025-06-15T18:30:00",
-            readingPlace: "MOVING",
-            category: "인문/사회/정치/법",
-            hashtags: ["사고확장"],
-          },
-          {
-            readAt: "2025-06-15T20:30:00",
-            readingPlace: "MOVING",
-            category: "인문/사회/정치/법",
-            hashtags: ["사고확장"],
-          },
-          {
-            readAt: "2025-06-28T23:10:00",
-            readingPlace: "HOME",
-            category: "에세이",
-            hashtags: ["위로"],
-          },
-        ],
+        2025: {
+          1: [
+            {
+              readAt: "2025-01-05T08:40:00",
+              category: "자기계발",
+              place: "HOME",
+            },
+            {
+              readAt: "2025-01-21T19:10:00",
+              category: "소설/문학",
+              place: "CAFE",
+            },
+          ],
 
-        12: [
-          {
-            readAt: "2025-12-11T19:14:20",
-            readingPlace: "MOVING",
-            category: "소설/문학",
-            hashtags: ["재밌음", "흥미진진", "빠른전개"],
-          },
-          {
-            readAt: "2025-12-10T21:40:00",
-            readingPlace: "MOVING",
-            category: "인문/사회/정치/법",
-            hashtags: ["여운", "몰입"],
-          },
-          {
-            readAt: "2025-12-22T10:05:00",
-            readingPlace: "CAFE",
-            category: "자기계발",
-            hashtags: ["정리", "성장"],
-          },
-          {
-            readAt: "2025-12-03T08:10:00",
-            readingPlace: "HOME",
-            category: "경제/경영",
-            hashtags: ["투자", "인사이트"],
-          },
-          {
-            readAt: "2025-12-05T23:20:00",
-            readingPlace: "CAFE",
-            category: "과학/기술",
-            hashtags: ["신기함", "호기심", "설렘"],
-          },
-          {
-            readAt: "2025-12-07T12:40:00",
-            readingPlace: "LIBRARY",
-            category: "예술/대중문화",
-            hashtags: ["감성", "영감"],
-          },
-          {
-            readAt: "2025-12-15T17:35:00",
-            readingPlace: "MOVING",
-            category: "건강/취미",
-            hashtags: ["루틴", "힐링"],
-          },
-          {
-            readAt: "2025-12-15T18:35:00",
-            readingPlace: "MOVING",
-            category: "건강/취미",
-            hashtags: ["루틴", "힐링"],
-          },
-          {
-            readAt: "2025-12-18T09:50:00",
-            readingPlace: "HOME",
-            category: "여행",
-            hashtags: ["설렘", "계획"],
-          },
-        ],
+          6: [
+            {
+              readAt: "2025-06-02T07:55:00",
+              category: "소설/문학",
+              place: "MOVING",
+            },
+            {
+              readAt: "2025-06-15T18:30:00",
+              category: "인문/사회/정치/법",
+              place: "MOVING",
+            },
+            {
+              readAt: "2025-06-15T20:30:00",
+              category: "인문/사회/정치/법",
+              place: "MOVING",
+            },
+            {
+              readAt: "2025-06-28T23:10:00",
+              category: "에세이",
+              place: "HOME",
+            },
+          ],
+
+          12: [
+            {
+              readAt: "2025-12-11T19:14:20",
+              category: "소설/문학",
+              place: "MOVING",
+            },
+            {
+              readAt: "2025-12-10T21:40:00",
+              category: "인문/사회/정치/법",
+              place: "MOVING",
+            },
+            {
+              readAt: "2025-12-22T10:05:00",
+              category: "자기계발",
+              place: "CAFE",
+            },
+            {
+              readAt: "2025-12-03T08:10:00",
+              category: "경제/경영",
+              place: "HOME",
+            },
+            {
+              readAt: "2025-12-05T23:20:00",
+              category: "과학/기술",
+              place: "CAFE",
+            },
+            {
+              readAt: "2025-12-07T12:40:00",
+              category: "예술/대중문화",
+              place: "LIBRARY",
+            },
+            {
+              readAt: "2025-12-15T17:35:00",
+              category: "건강/취미",
+              place: "MOVING",
+            },
+            {
+              readAt: "2025-12-15T18:35:00",
+              category: "건강/취미",
+              place: "MOVING",
+            },
+            {
+              readAt: "2025-12-18T09:50:00",
+              category: "여행",
+              place: "HOME",
+            },
+          ],
+        },
       },
     },
   },
@@ -195,6 +294,24 @@ function locParticle(placeLabel = "") {
   return "에서";
 }
 
+// 안전하게 yearMap/monthList 꺼내기
+function getMonthList(map, year, month) {
+  const y = map?.[String(year)] ?? map?.[year] ?? {};
+  return y?.[String(month)] ?? y?.[month] ?? [];
+}
+
+// (완독) responseDto.data.data 평탄화
+function normalizeFinishMap(finishDataRoot) {
+  // finishDataRoot = body.responseDto.data?.data
+  return finishDataRoot ?? {};
+}
+
+// (로그) responseDto.logData.data 평탄화
+function normalizeLogMap(logDataRoot) {
+  // logDataRoot = body.responseDto.logData?.data
+  return logDataRoot ?? {};
+}
+
 // RR404면 빈 리포트 보여주기
 function makeEmptyReport({ year, month }) {
   return {
@@ -227,7 +344,7 @@ function makeEmptyReport({ year, month }) {
 }
 
 // 가장 최신 월의 기록 찾기
-function findLatestRecords(data) {
+function findLatestRecords(data, { excludeYear, excludeMonth } = {}) {
   if (!data) return null;
 
   // 연도 내림차순
@@ -247,6 +364,9 @@ function findLatestRecords(data) {
 
     // 기록이 하나라도 있는 가장 최신 월 반환
     for (const m of months) {
+      // 진행중인 월 제외 (지금이 26년 1월이면 최신 월은 25년 12월이어야 함)
+      if (excludeYear === y && excludeMonth === m) continue;
+
       const list = yearMap[String(m)];
       if (Array.isArray(list) && list.length > 0) {
         return { year: y, month: m, records: list };
@@ -291,8 +411,14 @@ export async function fetchMonthlyReport({ year, month }) {
     }
 
     // 서버 응답 구조 분해
-    const { manyPlace, readingTendency, data, userTotalNum, characterNum } =
-      body.responseDto;
+    const {
+      manyPlace,
+      readingTendency,
+      data,
+      logData,
+      userTotalNum,
+      characterNum,
+    } = body.responseDto;
 
     // 캐릭터 비율 계산
     const percent =
@@ -307,12 +433,24 @@ export async function fetchMonthlyReport({ year, month }) {
     const yearKey = String(year);
     const monthKey = String(month);
 
+    const finishMap = normalizeFinishMap(data?.data); // 완독 map
+    const logMap = normalizeLogMap(logData?.data); // 로그 map
+
+    const finishRecords = getMonthList(finishMap, year, month); // 완독 월 리스트
+    const logRecords = getMonthList(logMap, year, month); // 로그 월 리스트
+
     // 전체 기록이 하나라도 있는지 확인
-    const hasAnyRecord = Object.values(data ?? {}).some((yearMap) =>
-      Object.values(yearMap ?? {}).some(
-        (monthList) => Array.isArray(monthList) && monthList.length > 0,
-      ),
-    );
+    const hasAnyRecord =
+      Object.values(finishMap ?? {}).some((yearMap) =>
+        Object.values(yearMap ?? {}).some(
+          (monthList) => Array.isArray(monthList) && monthList.length > 0,
+        ),
+      ) ||
+      Object.values(logMap ?? {}).some((yearMap) =>
+        Object.values(yearMap ?? {}).some(
+          (monthList) => Array.isArray(monthList) && monthList.length > 0,
+        ),
+      );
 
     // 기록 하나도 없으면 신규 유저 (empty 처리)
     if (!hasAnyRecord) {
@@ -320,12 +458,21 @@ export async function fetchMonthlyReport({ year, month }) {
     }
 
     // 해당 월 기록
-    const yearMap = data?.[yearKey] ?? {};
-    const records = yearMap?.[monthKey] ?? [];
-    const total = Array.isArray(records) ? records.length : 0;
+    const finishYearMap = finishMap?.[yearKey] ?? {};
+    const finishTotal = Array.isArray(finishRecords) ? finishRecords.length : 0;
+
+    const logYearMap = logMap?.[yearKey] ?? {};
+    const logTotal = Array.isArray(logRecords) ? logRecords.length : 0;
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
 
     // 최신 기록 월 찾기
-    const latest = findLatestRecords(data);
+    const latest = findLatestRecords(finishMap, {
+      excludeYear: currentYear,
+      excludeMonth: currentMonth,
+    });
     if (!latest) return makeEmptyReport({ year, month });
 
     const latestYear = latest.year;
@@ -335,13 +482,13 @@ export async function fetchMonthlyReport({ year, month }) {
     // 1) 연간 월별 카운트 (해당 연도에 있는 달만 length로)
     const monthlyStatus = Array.from({ length: 12 }, (_, i) => {
       const mKey = String(i + 1);
-      const list = yearMap?.[mKey] ?? [];
+      const list = finishYearMap?.[mKey] ?? [];
       return { month: i + 1, count: Array.isArray(list) ? list.length : 0 };
     });
 
     // 2) 해시태그 Top 8
     const hashtagCount = new Map();
-    for (const r of records) {
+    for (const r of finishRecords ?? []) {
       const tags = r?.hashtags;
       if (!Array.isArray(tags)) continue;
       for (const t of tags) {
@@ -355,7 +502,7 @@ export async function fetchMonthlyReport({ year, month }) {
       .slice(0, 8);
 
     // 3) 카테고리(장르) 분포
-    const genreDistribution = buildGenreDistribution(records);
+    const genreDistribution = buildGenreDistribution(finishRecords);
 
     // 4) 요일 + 시간대
     const readingCountsByWeekday = Array.from({ length: 7 }, (_, w) => ({
@@ -364,7 +511,7 @@ export async function fetchMonthlyReport({ year, month }) {
       slots: { morning: 0, afternoon: 0, evening: 0 },
     }));
 
-    for (const r of records) {
+    for (const r of logRecords ?? []) {
       const dt = r?.readAt ? new Date(r.readAt) : null;
       if (!dt || isNaN(dt.getTime())) continue;
 
@@ -375,15 +522,15 @@ export async function fetchMonthlyReport({ year, month }) {
 
     // 5) 장소 비율
     const placeCount = new Map();
-    for (const r of records) {
-      const p = r?.readingPlace ?? "UNKNOWN";
+    for (const r of logRecords ?? []) {
+      const p = r?.place ?? "UNKNOWN";
       placeCount.set(p, (placeCount.get(p) ?? 0) + 1);
     }
 
     const readingPlaces = Array.from(placeCount.entries())
       .map(([place, count]) => ({
         label: PLACE_LABEL[place] ?? place,
-        ratio: total ? count / total : 0,
+        ratio: logTotal ? count / logTotal : 0,
       }))
       .sort((a, b) => b.ratio - a.ratio);
 
@@ -514,7 +661,8 @@ export async function fetchReadingLogs({
       params: { year, month, ...(target ? { userId: target } : {}) },
     });
     const list = res?.data?.responseDto ?? res?.data ?? [];
-    if (!Array.isArray(list)) return includeTheme ? { list: [], theme: null } : [];
+    if (!Array.isArray(list))
+      return includeTheme ? { list: [], theme: null } : [];
     return includeTheme ? { list, theme: null } : list;
   }
 

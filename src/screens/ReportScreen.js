@@ -5,6 +5,7 @@ import MonthlyStats from "@components/report/MonthlyStats";
 import PlaceHabits from "@components/report/PlaceHabits";
 import PreferencePagerSection from "@components/report/PreferencePagerSection";
 import ReportEmptyCard from "@components/report/ReportEmptyCard";
+import ReportProfileHeader from "@components/report/ReportProfileHeader";
 import ReportSectionHeader from "@components/report/ReportSectionHeader";
 import ReportToggle from "@components/report/ReportToggle";
 import ReportTopHeader from "@components/report/ReportTopHeader";
@@ -282,15 +283,27 @@ export default function ReportScreen() {
             </View>
           ) : (
             <>
-              {/* Summary는 신규 유저여도 항상 */}
-              <Summary
-                summary={data.summary}
-                userName={userName}
-                isCurrentMonth={isCurrentMonth}
+              {/* 항상 보이는 프로필 영역 */}
+              <ReportProfileHeader
+                profileImageUrl={profileImageUrl}
                 onPressProfile={() => navigation.navigate("ProfileScreen")}
                 onPressEditProfile={() => navigation.navigate("ProfileScreen")}
-                profileImageUrl={profileImageUrl}
               />
+
+              {/* Summary는 신규 유저여도 항상 */}
+              {isCurrentMonth ? (
+                <Summary
+                  summary={data.summary}
+                  userName={userName}
+                  year={year}
+                  month={month}
+                  onPressProfile={() => navigation.navigate("ProfileScreen")}
+                  onPressEditProfile={() =>
+                    navigation.navigate("ProfileScreen")
+                  }
+                  profileImageUrl={profileImageUrl}
+                />
+              ) : null}
 
               {/* 신규 유저면 나머지 섹션만 숨김 */}
               {isEmpty ? null : (
