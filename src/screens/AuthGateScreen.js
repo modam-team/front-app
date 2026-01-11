@@ -1,8 +1,8 @@
-import {
+/*import {
   listenForegroundMessages,
   listenPushTokenRefresh,
   registerPushTokenToServer,
-} from "@apis/notificationApi";
+} from "@apis/notificationApi";*/
 import { fetchOnboardingStatus, fetchUserProfile } from "@apis/userApi";
 import { activateUser } from "@apis/userApi";
 import { colors } from "@theme/colors";
@@ -30,14 +30,17 @@ export default function AuthGateScreen({ navigation }) {
           return;
         }
 
+        /*
         // 포그라운드 메시지 리스너도 1번만 등록
         if (!foregroundUnsubRef.current) {
           foregroundUnsubRef.current = listenForegroundMessages();
         }
+       */
 
         // 유저 프로필 조회
         const profile = await fetchUserProfile();
 
+        /*
         // 로그인/세션 유효 확정 후 푸시 토큰 등록
         // 실패해도 로그인 흐름 막지 않게 best-effort로
         try {
@@ -50,6 +53,7 @@ export default function AuthGateScreen({ navigation }) {
         } catch (e) {
           console.warn("푸시 토큰 등록 실패(무시 가능):", e?.message || e);
         }
+          */
 
         // 탈퇴 유예 상태 체크
         if (profile.status === "WITHDRAWAL_PENDING") {

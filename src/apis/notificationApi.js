@@ -1,3 +1,4 @@
+/*
 import { client } from "@apis/clientApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import messaging from "@react-native-firebase/messaging";
@@ -140,3 +141,4 @@ export function listenForegroundMessages() {
     }
   });
 }
+*/
