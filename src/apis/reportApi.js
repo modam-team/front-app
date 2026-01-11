@@ -12,7 +12,90 @@ export const reportMonthlyApiMockRR404Error = {
   responseDto: null,
   error: {
     code: "RR404",
-    message: "리포트가 존재하지 않습니다.",
+    message: "Report: User has no report data",
+  },
+};
+
+// 리포트는 200으로 내려오지만 내용이 비어있는 신규 유저 케이스
+export const reportMonthlyApiMockEmptyData = {
+  success: true,
+  error: null,
+  responseDto: {
+    character: null, // 캐릭터 비었으면 empty_data
+    characterNum: 0,
+    userTotalNum: 0,
+
+    data: {
+      code: "EMPTY_FINISH", // 완독 비었음
+      data: {}, // 연도/월 맵 비어있음
+    },
+
+    logData: {
+      code: "EMPTY_LOG", // 기록 비었음
+      data: {}, // 연도/월 맵 비어있음
+    },
+  },
+};
+
+// 이번달 가입 유저라서 지난달 데이터 없어서 캐릭터 없음
+// 근데 이번달에 완독 및 독서기록 있음
+export const reportMonthlyApiMockThisMonthHasDataNoCharacter = {
+  success: true,
+  error: null,
+  responseDto: {
+    character: null, // 지난 달 캐릭터 없음
+    characterNum: 0,
+    userTotalNum: 0,
+
+    data: {
+      code: "OK",
+      data: {
+        2026: {
+          1: [
+            {
+              finishAt: "2026-01-06T21:10:00",
+              category: "소설/문학",
+              hashtags: ["몰입", "여운"],
+            },
+            {
+              finishAt: "2026-01-09T18:40:00",
+              category: "자기계발",
+              hashtags: ["루틴", "동기부여"],
+            },
+          ],
+        },
+      },
+    },
+
+    logData: {
+      code: "OK",
+      data: {
+        2026: {
+          1: [
+            {
+              readAt: "2026-01-03T09:30:00",
+              category: "소설/문학",
+              place: "HOME",
+            },
+            {
+              readAt: "2026-01-05T13:10:00",
+              category: "소설/문학",
+              place: "CAFE",
+            },
+            {
+              readAt: "2026-01-07T20:20:00",
+              category: "자기계발",
+              place: "HOME",
+            },
+            {
+              readAt: "2026-01-10T08:15:00",
+              category: "자기계발",
+              place: "MOVING",
+            },
+          ],
+        },
+      },
+    },
   },
 };
 
@@ -21,8 +104,10 @@ export const reportMonthlyApiMock = {
   success: true,
   error: null,
   responseDto: {
-    manyPlace: "MOVING", // 가장 많이 읽은 장소
-    readingTendency: "성취·발전형", // 독서 성향(캐릭터 성향)
+    character: {
+      manyPlace: "MOVING", // 가장 많이 읽은 장소
+      readingTendency: "성취·발전형", // 독서 성향(캐릭터 성향)
+    },
     userTotalNum: 100, // 전체 유저 수
     characterNum: 15, // 해당 캐릭터 유저 수3
 
@@ -401,8 +486,12 @@ function buildGenreDistribution(records) {
 export async function fetchMonthlyReport({ year, month }) {
   try {
     // mock 또는 실제 API 선택
+    // 아무것도 없는 신규 유저 테스트 할거면 'reportMonthlyApiMockRR404Error'로 바꿔서 ㄱㄱ
+    // 아무런 독서 데이터도 없는 신규 유저 테스트는 reportMonthlyApiMockEmptyData
+    // 캐릭터는 안 나왔지만 이번달에 가입해서 독서한 기록은 있는 유저 테스트는 reportMonthlyApiMockThisMonthHasDataNoCharacter
+    // 캐릭터도 나온 기존 유저면 reportMonthlyApiMock
     const body = USE_REPORT_MOCK
-      ? reportMonthlyApiMock // 신규 유저 테스트 할거면 'reportMonthlyApiMockRR404Error'로 바꿔서 ㄱㄱ
+      ? reportMonthlyApiMockThisMonthHasDataNoCharacter
       : (await client.get("/api/report/monthly")).data;
 
     // 404 & RR404일 땐 빈 리포트, 그 외 에러는 진짜 에러
@@ -411,14 +500,11 @@ export async function fetchMonthlyReport({ year, month }) {
     }
 
     // 서버 응답 구조 분해
-    const {
-      manyPlace,
-      readingTendency,
-      data,
-      logData,
-      userTotalNum,
-      characterNum,
-    } = body.responseDto;
+    const { character, data, logData, userTotalNum, characterNum } =
+      body.responseDto;
+
+    const manyPlace = character?.manyPlace ?? null;
+    const readingTendency = character?.readingTendency ?? null;
 
     // 캐릭터 비율 계산
     const percent =
@@ -439,7 +525,20 @@ export async function fetchMonthlyReport({ year, month }) {
     const finishRecords = getMonthList(finishMap, year, month); // 완독 월 리스트
     const logRecords = getMonthList(logMap, year, month); // 로그 월 리스트
 
+    console.log(
+      "selected",
+      year,
+      month,
+      "finishRecords",
+      finishRecords.length,
+      "logRecords",
+      logRecords.length,
+    );
+
     // 전체 기록이 하나라도 있는지 확인
+    const emptyByCode =
+      data?.code === "EMPTY_FINISH" || logData?.code === "EMPTY_LOG";
+
     const hasAnyRecord =
       Object.values(finishMap ?? {}).some((yearMap) =>
         Object.values(yearMap ?? {}).some(
@@ -452,8 +551,7 @@ export async function fetchMonthlyReport({ year, month }) {
         ),
       );
 
-    // 기록 하나도 없으면 신규 유저 (empty 처리)
-    if (!hasAnyRecord) {
+    if (emptyByCode || !hasAnyRecord) {
       return makeEmptyReport({ year, month });
     }
 
@@ -468,16 +566,28 @@ export async function fetchMonthlyReport({ year, month }) {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    // 최신 기록 월 찾기
-    const latest = findLatestRecords(finishMap, {
-      excludeYear: currentYear,
-      excludeMonth: currentMonth,
-    });
-    if (!latest) return makeEmptyReport({ year, month });
+    // 이번달(현재 달) 완독 기록만 제거한 복사본
+    const finishMapForSummary = { ...(finishMap ?? {}) };
+    if (finishMapForSummary?.[currentYear]) {
+      const yearCopy = { ...(finishMapForSummary[currentYear] ?? {}) };
+      delete yearCopy[currentMonth]; // 이번달 제거
+      // 해당 연도에 남는 달이 없으면 연도도 제거
+      if (Object.keys(yearCopy).length === 0) {
+        delete finishMapForSummary[currentYear];
+      } else {
+        finishMapForSummary[currentYear] = yearCopy;
+      }
+    }
 
-    const latestYear = latest.year;
-    const latestMonth = latest.month;
-    const latestRecords = latest.records;
+    // summary용 최신 달 찾기
+    const latest = findLatestRecords(finishMapForSummary);
+
+    const hasSummarySource = !!latest; // 지난달까지 완독 데이터가 있는지 여부
+
+    // ✅ null-safe fallback
+    const latestYear = latest?.year ?? year;
+    const latestMonth = latest?.month ?? month;
+    const latestRecords = latest?.records ?? [];
 
     // 1) 연간 월별 카운트 (해당 연도에 있는 달만 length로)
     const monthlyStatus = Array.from({ length: 12 }, (_, i) => {
@@ -535,6 +645,63 @@ export async function fetchMonthlyReport({ year, month }) {
       .sort((a, b) => b.ratio - a.ratio);
 
     // 6) Summary 구성
+    // 캐릭터가 없으면(이번달 가입 등) Summary는 빈 캐릭터 문구로 고정
+    const hasCharacter =
+      hasSummarySource && !!character && !!manyPlace && !!readingTendency;
+
+    console.log("[hasCharacter check]", {
+      character,
+      manyPlace,
+      readingTendency,
+      hasCharacter: !!character && !!manyPlace && !!readingTendency,
+    });
+
+    if (!hasCharacter) {
+      console.log(
+        "[report payload check]",
+        "keywords",
+        reviewKeywords?.length,
+        "genres",
+        genreDistribution?.length,
+        "places",
+        readingPlaces?.length,
+        "weekdayTotal",
+        readingCountsByWeekday.reduce(
+          (s, d) => s + (d.slots.morning + d.slots.afternoon + d.slots.evening),
+          0,
+        ),
+        "placeTotal",
+        readingPlaces.reduce((s, p) => s + (p.ratio || 0), 0),
+        "genreTotal",
+        genreDistribution.reduce((s, g) => s + (g.ratio || 0), 0),
+        "keywordTotal",
+        reviewKeywords.reduce((s, k) => s + (k.weight || 0), 0),
+      );
+      return {
+        summary: {
+          year,
+          month,
+          title: "아직 측정되지 않았어요",
+          description: "어떤 캐릭터가 나오실 지 궁금해요!",
+          percent: null,
+          isEmpty: true,
+          characterKey: "empty",
+          placeKey: null,
+        },
+        monthlyStatus: Array.from({ length: 12 }, (_, i) => {
+          const mKey = String(i + 1);
+          const list = finishYearMap?.[mKey] ?? [];
+          return { month: i + 1, count: Array.isArray(list) ? list.length : 0 };
+        }),
+        reviewKeywords,
+        genreDistribution,
+        readingCountsByWeekday,
+        readingPlaces,
+        readingTendency: null,
+        persona: null,
+      };
+    }
+
     const placeLabel = PLACE_LABEL[manyPlace] ?? manyPlace;
 
     // 캐릭터 이름
