@@ -3,7 +3,14 @@ import { radius } from "@theme/radius";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Svg, { Circle, G, Path } from "react-native-svg";
 
 const SIZE = 193;
@@ -114,6 +121,9 @@ export default function GenrePreferenceCard({
   const popAnimRef = useRef(new Animated.Value(0));
   const [pop, setPop] = useState(0);
 
+  const [selectedName, setSelectedName] = useState(null);
+  const [isReady, setIsReady] = useState(false); // 초기 애니메이션 끝나면 true
+
   // 상위 5개 + 기타로 만들기
   const normalizedGenres = useMemo(
     () => buildTopNWithEtc(genres, TOP_N),
@@ -185,6 +195,8 @@ export default function GenrePreferenceCard({
     popAnim.setValue(0);
     setProgress(0);
     setPop(0);
+    setIsReady(false);
+    setSelectedName(null);
 
     const id = progressAnim.addListener(({ value }) => setProgress(value));
     const id2 = popAnim.addListener(({ value }) => setPop(value));
@@ -198,6 +210,15 @@ export default function GenrePreferenceCard({
       progressAnim.removeListener(id);
 
       if (!finished) return;
+
+      // 채우기 끝나면 기본 선택을 1등으로 잡고, 이제부터 도넛 조각을 선택 가능하게
+      const first = segments[0];
+      setSelectedName(first?.name ?? null);
+      setIsReady(true);
+
+      // 선택 팝 애니메이션(=초기엔 1등이 팝)
+      popAnim.setValue(0);
+      setPop(0);
 
       // 채우기 끝나면 1등만 팝업
       Animated.timing(popAnim, {
@@ -216,13 +237,41 @@ export default function GenrePreferenceCard({
     };
   }, [segments, animateKey]);
 
+  useEffect(() => {
+    if (!isReady) return;
+    if (!selectedName) return;
+    if (progress < 0.999) return; // 혹시 몰라서
+
+    const popAnim = popAnimRef.current;
+
+    popAnim.stopAnimation();
+    popAnim.setValue(0);
+    setPop(0);
+
+    const id = popAnim.addListener(({ value }) => setPop(value));
+
+    Animated.timing(popAnim, {
+      toValue: 1,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start(() => {
+      popAnim.removeListener(id);
+    });
+
+    return () => popAnim.removeListener(id);
+  }, [selectedName, isReady, progress]);
+
   const globalAngle = 360 * progress;
 
   const winner = segments[0];
+  const activeName = selectedName ?? winner?.name; // 초기엔 1등, 이후엔 선택
+  const activeSeg = segments.find((s) => s.name === activeName);
+
   const POP_DELTA = 5;
 
-  const winnerR = RADIUS + POP_DELTA * pop;
-  const winnerSW = STROKE_WIDTH + POP_DELTA * 2 * pop;
+  const activeR = RADIUS + POP_DELTA * pop;
+  const activeSW = STROKE_WIDTH + POP_DELTA * 2 * pop;
 
   const leftCol = segments.slice(0, 3);
   const rightCol = segments.slice(3, 6);
@@ -253,8 +302,8 @@ export default function GenrePreferenceCard({
 
               {/* 채워지는 막대 */}
               {segments.map((seg, index) => {
-                const isWinner = winner && seg.name === winner.name;
-                if (isWinner && isPopping) return null;
+                const isActive = activeName && seg.name === activeName;
+                if (isActive && isPopping) return null;
 
                 if (globalAngle <= seg.startAngle) return null;
                 const end = Math.min(globalAngle, seg.endAngle);
@@ -276,21 +325,25 @@ export default function GenrePreferenceCard({
                     strokeWidth={STROKE_WIDTH}
                     fill="none"
                     strokeLinecap="butt"
+                    onPress={() => {
+                      if (!isReady) return;
+                      setSelectedName(seg.name);
+                    }}
                   />
                 );
               })}
 
-              {winner && progress >= 0.999 && pop > 0 && (
+              {activeSeg && progress >= 0.999 && pop > 0 && (
                 <Path
                   d={describeArc(
                     CENTER,
                     CENTER,
-                    winnerR,
-                    winner.startAngle,
-                    winner.endAngle,
+                    activeR,
+                    activeSeg.startAngle,
+                    activeSeg.endAngle,
                   )}
-                  stroke={winner.color}
-                  strokeWidth={winnerSW}
+                  stroke={activeSeg.color}
+                  strokeWidth={activeSW}
                   fill="none"
                   strokeLinecap="butt"
                 />
@@ -299,53 +352,74 @@ export default function GenrePreferenceCard({
           </Svg>
         </View>
 
-        {/* 도넛 하단에 보여줄 top3 장르 */}
+        {/* 도넛 하단에 보여줄 top6 장르 */}
         {segments.length > 0 && (
           <View style={styles.legendWrap}>
             <View style={styles.legendCol}>
-              {leftCol.map((seg, idx) => (
-                <View
-                  key={`legend-l-${seg.name}-${idx}`}
-                  style={styles.legendItem}
-                >
-                  <View
-                    style={[styles.colorDot, { backgroundColor: seg.color }]}
-                  />
-                  <Text
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    style={[
-                      styles.legendLabel,
-                      { color: styleSet.legendTextColor },
-                    ]}
+              {leftCol.map((seg, idx) => {
+                const isActive = activeName && seg.name === activeName;
+                const dotScale = isActive ? 1 + 0.25 * pop : 1; // dot도 같이 pop
+
+                return (
+                  <Animated.View
+                    key={`legend-l-${seg.name}-${idx}`}
+                    style={styles.legendItem}
                   >
-                    {seg.name}
-                  </Text>
-                </View>
-              ))}
+                    <Animated.View
+                      style={[
+                        styles.colorDot,
+                        { backgroundColor: seg.color },
+                        isActive && { transform: [{ scale: dotScale }] },
+                      ]}
+                    />
+                    <Animated.Text
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      style={[
+                        styles.legendLabel,
+                        { color: styleSet.legendTextColor },
+                        isActive && styles.legendWinnerLabel,
+                      ]}
+                    >
+                      {seg.name}
+                    </Animated.Text>
+                  </Animated.View>
+                );
+              })}
             </View>
 
             <View style={styles.legendCol}>
-              {rightCol.map((seg, idx) => (
-                <View
-                  key={`legend-r-${seg.name}-${idx}`}
-                  style={styles.legendItem}
-                >
-                  <View
-                    style={[styles.colorDot, { backgroundColor: seg.color }]}
-                  />
-                  <Text
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    style={[
-                      styles.legendLabel,
-                      { color: styleSet.legendTextColor },
-                    ]}
+              {rightCol.map((seg, idx) => {
+                const isActive = activeName && seg.name === activeName;
+
+                const dotScale = isActive ? 1 + 0.25 * pop : 1;
+
+                return (
+                  <Animated.View
+                    key={`legend-r-${seg.name}-${idx}`}
+                    style={styles.legendItem}
                   >
-                    {seg.name}
-                  </Text>
-                </View>
-              ))}
+                    <Animated.View
+                      style={[
+                        styles.colorDot,
+                        { backgroundColor: seg.color },
+                        isActive && { transform: [{ scale: dotScale }] },
+                      ]}
+                    />
+                    <Animated.Text
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      style={[
+                        styles.legendLabel,
+                        { color: styleSet.legendTextColor },
+                        isActive && styles.legendWinnerLabel,
+                      ]}
+                    >
+                      {seg.name}
+                    </Animated.Text>
+                  </Animated.View>
+                );
+              })}
             </View>
           </View>
         )}
@@ -414,5 +488,9 @@ const styles = StyleSheet.create({
     ...typography["detail-regular"],
     color: colors.mono[950],
     flexShrink: 1, // 긴 장르명 말줄임 되게
+  },
+
+  legendWinnerLabel: {
+    fontWeight: "700",
   },
 });
