@@ -354,6 +354,7 @@ export default function HomeScreen({ navigation }) {
   const [recs, setRecs] = useState([]);
   const [nickname, setNickname] = useState("");
   const isFocused = useIsFocused();
+  const [friendRefreshKey, setFriendRefreshKey] = useState(0);
   const [recoLoading, setRecoLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const [heartBusyIds, setHeartBusyIds] = useState(new Set());
@@ -615,7 +616,7 @@ export default function HomeScreen({ navigation }) {
       const list = Array.isArray(res)
         ? res.filter((f) => f.relationStatus === "FRIENDS")
         : [];
-      setFriendList(list.slice(0, 6));
+      setFriendList(list);
     } catch (e) {
       console.warn("친구 목록 불러오기 실패:", e.response?.data || e.message);
       setFriendList([]);
@@ -626,6 +627,13 @@ export default function HomeScreen({ navigation }) {
     if (!isFocused) return;
     loadFriends();
   }, [isFocused, loadFriends]);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    if (viewingFriend) {
+      setFriendRefreshKey((k) => k + 1);
+    }
+  }, [isFocused, viewingFriend]);
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener("friendAccepted", () => {
@@ -812,18 +820,6 @@ export default function HomeScreen({ navigation }) {
   // 목표 권수 설정
   const [isEditingGoal, setIsEditingGoal] = useState(false);
 
-  if (viewingFriend) {
-    return (
-      <FriendCalendarScreen
-        navigation={{
-          goBack: () => setViewingFriend(null),
-        }}
-        route={{ params: { friend: viewingFriend } }}
-        friendsStrip={friendsStrip}
-      />
-    );
-  }
-
   return (
     <SafeAreaView
       style={styles.container}
@@ -851,8 +847,11 @@ export default function HomeScreen({ navigation }) {
                 style={styles.friendItem}
                 hitSlop={6}
                 onPress={() => {
-                  // 첫 번째(내 프로필)는 홈 유지
-                  if (idx === 0 || f.isSelf) return;
+                  // 첫 번째(내 프로필)는 홈 상태로 복귀
+                  if (idx === 0 || f.isSelf) {
+                    setViewingFriend(null);
+                    return;
+                  }
                   setViewingFriend({
                     userId: f.id || f.userId,
                     nickname: f.name || f.nickname,
@@ -895,203 +894,224 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* 진행바 렌더링 */}
-        {isEditingGoal ? (
-          // 목표 편집 모드면 슬라이더 보여준 후, 저장하면 goalCount 업데이트
-          <GoalCountSlider
-            value={goalCandidate}
-            onChange={setGoalCandidate}
-            onSave={async () => {
-              await saveGoal();
-              setIsEditingGoal(false); // 완료하면 다시 진행바로
-            }}
-            max={maxGoal}
+        {viewingFriend ? (
+          <FriendCalendarScreen
+            embedded
+            hideHeader
+            hideFriendsStrip
+            navigation={navigation}
+            route={{ params: { friend: viewingFriend } }}
+            friendsStrip={friendsStrip}
+            refreshKey={friendRefreshKey}
           />
         ) : (
-          // 일반 모드면 진행바 보여줌
-          <ReadingProgressBar
-            goalCount={goalCount}
-            readCount={readCount}
-            CharacterComponent={ProgressCharacter}
-            characterPersona={progressPersona}
-            animateKey={progressAnimateKey}
-            animate={true}
-            duration={700}
-          />
-        )}
+          <>
+            {/* 진행바 렌더링 */}
+            {isEditingGoal ? (
+              // 목표 편집 모드면 슬라이더 보여준 후, 저장하면 goalCount 업데이트
+              <GoalCountSlider
+                value={goalCandidate}
+                onChange={setGoalCandidate}
+                onSave={async () => {
+                  await saveGoal();
+                  setIsEditingGoal(false); // 완료하면 다시 진행바로
+                }}
+                max={maxGoal}
+              />
+            ) : (
+              // 일반 모드면 진행바 보여줌
+              <ReadingProgressBar
+                goalCount={goalCount}
+                readCount={readCount}
+                CharacterComponent={ProgressCharacter}
+                characterPersona={progressPersona}
+                animateKey={progressAnimateKey}
+                animate={true}
+                duration={700}
+              />
+            )}
 
-        <MonthlyCalendar
-          year={year}
-          month={month}
-          onPrev={prev}
-          onNext={next}
-          markedDates={markedDates} // 여기에 포함된 날짜만 꽃이 렌더링 됨
-          dateCounts={dateCounts} // 해당 날짜의 count로 꽃 레벨 결정
-          themeColor={themeColor}
-          selectedDayKey={dayModalKey}
-          onDayPress={handleDayPress}
-          onYearChange={handleYearChange}
-        />
-
-        <View style={styles.section}>
-          <Animated.View style={[styles.recList, { opacity: recoOpacity }]}>
-            <RecommendationSectionCard
-              nickname={nickname || ""}
-              recs={recs}
-              // 새로고침
-              onRefresh={loadRecommendations}
-              // 아이템 클릭 -> 상세 모달 열기
-              onPressItem={async (book) => {
-                const bookId = book?.bookId; // 이제 응답 스키마 기준 bookId가 메인
-                if (!bookId) return;
-
-                try {
-                  const reviewList = await fetchReviewListByBookId(bookId);
-
-                  const normalizedReviews = (
-                    Array.isArray(reviewList) ? reviewList : []
-                  )
-                    .map((r, idx) => ({
-                      id: `${bookId}-${idx}`,
-                      nickname: r.userName || r.nickname || "닉네임",
-                      content: r.comment || r.content || "",
-                      avatar: r.image || r.avatar || null,
-                      rating: typeof r.rating === "number" ? r.rating : 0,
-                    }))
-                    .filter((r) => r.content.trim().length > 0)
-                    .slice(0, 3);
-
-                  // 추천 API가 주는 필드 그대로 사용하게 수정
-                  setRecoDetail({
-                    ...book,
-                    reviews: normalizedReviews,
-                    hashtags: Array.isArray(book?.hashtags)
-                      ? book.hashtags
-                      : [],
-                    rate: typeof book?.rate === "number" ? book.rate : 0,
-                    totalReview:
-                      typeof book?.totalReview === "number"
-                        ? book.totalReview
-                        : 0,
-                  });
-                } catch (e) {
-                  console.warn(
-                    "리뷰 조회 실패:",
-                    e.response?.data || e.message,
-                  );
-
-                  // 실패해도 모달은 열리게
-                  setRecoDetail({
-                    ...book,
-                    reviews: [],
-                    hashtags: Array.isArray(book?.hashtags)
-                      ? book.hashtags
-                      : [],
-                    rate: typeof book?.rate === "number" ? book.rate : 0,
-                    totalReview:
-                      typeof book?.totalReview === "number"
-                        ? book.totalReview
-                        : 0,
-                  });
-                }
-              }}
-              //하트 토글
-              onToggleHeart={(book) => handleToggleHeart(book)}
-              // liked 여부 판단 함수
-              isLiked={(book) => favoriteIds.has(book?.bookId)}
-              // 하트 disabled 처리용 Set
-              heartDisabledIds={heartBusyIds}
+            <MonthlyCalendar
+              year={year}
+              month={month}
+              onPrev={prev}
+              onNext={next}
+              markedDates={markedDates} // 여기에 포함된 날짜만 꽃이 렌더링 됨
+              dateCounts={dateCounts} // 해당 날짜의 count로 꽃 레벨 결정
+              themeColor={themeColor}
+              selectedDayKey={dayModalKey}
+              onDayPress={handleDayPress}
+              onYearChange={handleYearChange}
             />
-          </Animated.View>
-        </View>
+
+            <View style={styles.section}>
+              <Animated.View style={[styles.recList, { opacity: recoOpacity }]}>
+                <RecommendationSectionCard
+                  nickname={nickname || ""}
+                  recs={recs}
+                  // 새로고침
+                  onRefresh={loadRecommendations}
+                  // 아이템 클릭 -> 상세 모달 열기
+                  onPressItem={async (book) => {
+                    const bookId = book?.bookId; // 이제 응답 스키마 기준 bookId가 메인
+                    if (!bookId) return;
+
+                    try {
+                      const reviewList = await fetchReviewListByBookId(bookId);
+
+                      const normalizedReviews = (
+                        Array.isArray(reviewList) ? reviewList : []
+                      )
+                        .map((r, idx) => ({
+                          id: `${bookId}-${idx}`,
+                          nickname: r.userName || r.nickname || "닉네임",
+                          content: r.comment || r.content || "",
+                          avatar: r.image || r.avatar || null,
+                          rating: typeof r.rating === "number" ? r.rating : 0,
+                        }))
+                        .filter((r) => r.content.trim().length > 0)
+                        .slice(0, 3);
+
+                      // 추천 API가 주는 필드 그대로 사용하게 수정
+                      setRecoDetail({
+                        ...book,
+                        reviews: normalizedReviews,
+                        hashtags: Array.isArray(book?.hashtags)
+                          ? book.hashtags
+                          : [],
+                        rate: typeof book?.rate === "number" ? book.rate : 0,
+                        totalReview:
+                          typeof book?.totalReview === "number"
+                            ? book.totalReview
+                            : 0,
+                      });
+                    } catch (e) {
+                      console.warn(
+                        "리뷰 조회 실패:",
+                        e.response?.data || e.message,
+                      );
+
+                      // 실패해도 모달은 열리게
+                      setRecoDetail({
+                        ...book,
+                        reviews: [],
+                        hashtags: Array.isArray(book?.hashtags)
+                          ? book.hashtags
+                          : [],
+                        rate: typeof book?.rate === "number" ? book.rate : 0,
+                        totalReview:
+                          typeof book?.totalReview === "number"
+                            ? book.totalReview
+                            : 0,
+                      });
+                    }
+                  }}
+                  //하트 토글
+                  onToggleHeart={(book) => handleToggleHeart(book)}
+                  // liked 여부 판단 함수
+                  isLiked={(book) => favoriteIds.has(book?.bookId)}
+                  // 하트 disabled 처리용 Set
+                  heartDisabledIds={heartBusyIds}
+                />
+              </Animated.View>
+            </View>
+          </>
+        )}
       </ScrollView>
 
-      <YearMonthPicker
-        visible={yearPickerOpen}
-        onClose={() => setYearPickerOpen(false)}
-        mode="year-month" // 연도와 월 모두 선택 가능하게
-        theme="mono" // 테마는 모노
-        selectedYear={year}
-        selectedMonth={month} // props 맞춰야 해서 전달
-        onSelectYear={(y) => {
-          setYear(y);
-        }}
-        onSelectMonth={(m) => {
-          setMonth(m);
-        }}
-      />
+      {!viewingFriend && (
+        <>
+          <YearMonthPicker
+            visible={yearPickerOpen}
+            onClose={() => setYearPickerOpen(false)}
+            mode="year-month" // 연도와 월 모두 선택 가능하게
+            theme="mono" // 테마는 모노
+            selectedYear={year}
+            selectedMonth={month} // props 맞춰야 해서 전달
+            onSelectYear={(y) => {
+              setYear(y);
+            }}
+            onSelectMonth={(m) => {
+              setMonth(m);
+            }}
+          />
 
-      <Pressable
-        style={[styles.fab, { bottom: spacing.m }]}
-        onPress={() => setReadingStartOpen(true)}
-        hitSlop={6}
-      >
-        <Ionicons
-          name="add"
-          size={24}
-          color="#fff"
-        />
-      </Pressable>
+          <Pressable
+            style={[styles.fab, { bottom: spacing.m }]}
+            onPress={() => setReadingStartOpen(true)}
+            hitSlop={6}
+          >
+            <Ionicons
+              name="add"
+              size={24}
+              color="#fff"
+            />
+          </Pressable>
 
-      <ReadingStartModal
-        visible={readingStartOpen}
-        onClose={() => setReadingStartOpen(false)}
-        fetchBookcase={fetchBookcase}
-        placeKeyMap={placeKeyMap}
-        // 독서 기록 저장 후에도 서버 기준으로 다시 fetch해서 readingLogs를 재세팅
-        onSubmit={async ({ placeLabel, placeCode, selectedBookId, book }) => {
-          try {
-            // (1) 상태 READING 맞추기
-            const stateRaw = book?.state || book?.status || book?.bookStatus;
-            const isReadingState =
-              stateRaw === "READING" ||
-              stateRaw === "읽는중" ||
-              stateRaw === "읽는 중";
-            if (!isReadingState) {
-              await updateBookcaseState(Number(selectedBookId), "READING");
-            }
+          <ReadingStartModal
+            visible={readingStartOpen}
+            onClose={() => setReadingStartOpen(false)}
+            fetchBookcase={fetchBookcase}
+            placeKeyMap={placeKeyMap}
+            // 독서 기록 저장 후에도 서버 기준으로 다시 fetch해서 readingLogs를 재세팅
+            onSubmit={async ({ placeLabel, placeCode, selectedBookId, book }) => {
+              try {
+                // (1) 상태 READING 맞추기
+                const stateRaw = book?.state || book?.status || book?.bookStatus;
+                const isReadingState =
+                  stateRaw === "READING" ||
+                  stateRaw === "읽는중" ||
+                  stateRaw === "읽는 중";
+                if (!isReadingState) {
+                  await updateBookcaseState(Number(selectedBookId), "READING");
+                }
 
-            // (2) 로그 저장
-            await saveReadingLog({
-              bookId: Number(selectedBookId),
-              readingPlace: placeCode,
-            });
+                // (2) 로그 저장
+                await saveReadingLog({
+                  bookId: Number(selectedBookId),
+                  readingPlace: placeCode,
+                });
 
-            // (3) 서버 기준으로 리프레시해서 readingLogs 재세팅
-            const refreshed = await fetchReadingLogs({ year, month });
-            const grouped = {};
-            for (const item of refreshed) {
-              const dt = parseReadAt(item?.readAt);
-              if (!dt || Number.isNaN(dt.getTime())) continue;
-              const k = formatDateKey(dt);
-              const e = {
-                id: `${item.readAt}-${item.title || "book"}`,
-                title: item.title || "제목 없음",
-                cover: item.cover || null,
-                place:
-                  placeLabelMap[item.readingPlace] ||
-                  item.readingPlace ||
-                  "이동중",
-                time: formatTime(dt),
-              };
-              grouped[k] = grouped[k] ? [...grouped[k], e] : [e];
-            }
-            setReadingLogs(grouped);
+                // (3) 서버 기준으로 리프레시해서 readingLogs 재세팅
+                const refreshed = await fetchReadingLogs({ year, month });
+                const grouped = {};
+                for (const item of refreshed) {
+                  const dt = parseReadAt(item?.readAt);
+                  if (!dt || Number.isNaN(dt.getTime())) continue;
+                  const k = formatDateKey(dt);
+                  const e = {
+                    id: `${item.readAt}-${item.title || "book"}`,
+                    title: item.title || "제목 없음",
+                    cover: item.cover || null,
+                    place:
+                      placeLabelMap[item.readingPlace] ||
+                      item.readingPlace ||
+                      "이동중",
+                    time: formatTime(dt),
+                  };
+                  grouped[k] = grouped[k] ? [...grouped[k], e] : [e];
+                }
+                setReadingLogs(grouped);
 
-            showBanner("독서 기록을 저장했어요");
-            setReadingStartOpen(false); // 성공하면 닫기
-          } catch (e) {
-            const code = e.response?.data?.error?.code;
-            console.warn("독서 기록 저장 실패:", e.response?.data || e.message);
-            showBanner(
-              code === "4091"
-                ? "책장에 담긴 책만 기록할 수 있어요"
-                : "독서 기록 저장에 실패했어요",
-            );
-            // 실패 시 닫을지 말지는 취향 (보통은 안 닫고 유지)
-          }
-        }}
-      />
+                showBanner("독서 기록을 저장했어요");
+                setReadingStartOpen(false); // 성공하면 닫기
+              } catch (e) {
+                const code = e.response?.data?.error?.code;
+                console.warn(
+                  "독서 기록 저장 실패:",
+                  e.response?.data || e.message,
+                );
+                showBanner(
+                  code === "4091"
+                    ? "책장에 담긴 책만 기록할 수 있어요"
+                    : "독서 기록 저장에 실패했어요",
+                );
+                // 실패 시 닫을지 말지는 취향 (보통은 안 닫고 유지)
+              }
+            }}
+          />
+        </>
+      )}
 
       <DayLogsBottomSheet
         visible={!!dayModalKey}

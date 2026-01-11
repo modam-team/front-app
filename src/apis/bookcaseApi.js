@@ -103,6 +103,19 @@ export async function fetchReviewsList(bookId) {
   return [];
 }
 
+// 다른 유저 리뷰 조회 (해시태그 등)
+export async function fetchOtherReview({ bookId, otherId }) {
+  if (!bookId || otherId == null) return null;
+  try {
+    const res = await client.get("/api/review/other", {
+      params: { bookId, otherId },
+    });
+    return res.data?.responseDto ?? null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // 리뷰 생성
 export async function createReview({
   bookId,

@@ -943,7 +943,21 @@ export default function BookDetailScreen({ navigation, route }) {
               </View>
 
               <View style={styles.reviewModalTags}>
-                <Text style={styles.reviewModalTagTitle}>태그 선택</Text>
+                <View style={styles.reviewModalTagHeader}>
+                  <Text style={styles.reviewModalTagTitle}>태그 선택</Text>
+                  {selectedTags.length > 0 && (
+                    <View style={styles.reviewModalSelectedTags}>
+                      {selectedTags.map((tag) => (
+                        <Text
+                          key={tag}
+                          style={styles.reviewModalSelectedTagText}
+                        >
+                          #{tag}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
                 <TouchableOpacity
                   style={styles.reviewModalDropdown}
                   activeOpacity={0.9}
@@ -1400,6 +1414,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#000",
   },
+  reviewModalTagHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  reviewModalSelectedTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  reviewModalSelectedTagText: { fontSize: 12, color: "#426B1F" },
   reviewModalDropdown: {
     flexDirection: "row",
     alignItems: "center",

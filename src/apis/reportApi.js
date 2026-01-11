@@ -461,17 +461,30 @@ export async function saveReadingLog({ bookId, readingPlace }) {
   return res?.data?.responseDto ?? null;
 }
 
-export async function fetchReadingLogs({ year, month, userId, targetUserId }) {
+export async function fetchReadingLogs({
+  year,
+  month,
+  userId,
+  targetUserId,
+  allowSelfFallback = true,
+  includeTheme = false,
+}) {
   const target = userId || targetUserId;
 
   // 1) 다른 유저 기록 조회 (/api/report/others)
   if (target) {
     try {
       const res = await client.get("/api/report/others", {
-        params: { userId: target },
+        params: { otherId: target, year, month },
       });
-      const list = res?.data?.responseDto ?? res?.data ?? [];
-      if (Array.isArray(list)) return list;
+      const dto = res?.data?.responseDto ?? null;
+      const list = dto?.readingLogResponse ?? dto ?? res?.data ?? [];
+      if (Array.isArray(list)) {
+        if (includeTheme) {
+          return { list, theme: dto?.theme ?? null };
+        }
+        return list;
+      }
     } catch (e) {
       // fallback
     }
@@ -484,7 +497,9 @@ export async function fetchReadingLogs({ year, month, userId, targetUserId }) {
         params: { targetUserId: target, year, month },
       });
       const list = res?.data?.responseDto ?? [];
-      if (Array.isArray(list)) return list;
+      if (Array.isArray(list)) {
+        return includeTheme ? { list, theme: null } : list;
+      }
     } catch (e) {
       console.warn(
         "친구 독서 기록 전용 경로 실패, 기본 경로로 폴백",
@@ -494,9 +509,14 @@ export async function fetchReadingLogs({ year, month, userId, targetUserId }) {
   }
 
   // 3) 기본 경로 (userId가 있으면 함께 전달 시도)
-  const res = await client.get("/api/report", {
-    params: { year, month, ...(target ? { userId: target } : {}) },
-  });
-  const list = res?.data?.responseDto ?? res?.data ?? [];
-  return Array.isArray(list) ? list : [];
+  if (!target || allowSelfFallback) {
+    const res = await client.get("/api/report", {
+      params: { year, month, ...(target ? { userId: target } : {}) },
+    });
+    const list = res?.data?.responseDto ?? res?.data ?? [];
+    if (!Array.isArray(list)) return includeTheme ? { list: [], theme: null } : [];
+    return includeTheme ? { list, theme: null } : list;
+  }
+
+  return includeTheme ? { list: [], theme: null } : [];
 }

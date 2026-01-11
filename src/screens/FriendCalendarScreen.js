@@ -8,7 +8,7 @@ import StarIcon from "@components/StarIcon";
 import Avatar from "@components/common/Avatar";
 import YearMonthPicker from "@components/common/YearMonthPicker";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
@@ -76,17 +76,30 @@ export default function FriendCalendarScreen({
   navigation,
   route,
   friendsStrip = [],
+  embedded = false,
+  hideHeader = false,
+  hideFriendsStrip = false,
+  refreshKey = 0,
 }) {
   const navHook = useNavigation();
   const nav = navigation?.navigate ? navigation : navHook;
-  const goBackNav = navigation?.goBack || navHook?.goBack;
-  const friend = route.params?.friend || {};
-  const friendIdRaw = friend.userId || friend.id;
-  const friendId = Number(friendIdRaw);
-  const isViewingFriend = !!friendId && !Number.isNaN(friendId);
+  const isFocused = useIsFocused();
+  const [selectedFriend, setSelectedFriend] = useState(
+    route.params?.friend || {},
+  );
+  const friend = selectedFriend;
+  const friendId = friend?.userId ?? friend?.id ?? null;
+  const friendIdKey = friendId != null ? String(friendId) : "";
+  const isViewingFriend = friendIdKey.length > 0;
   const [fallbackStrip, setFallbackStrip] = useState([]);
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+
+  useEffect(() => {
+    if (route.params?.friend) {
+      setSelectedFriend(route.params.friend);
+    }
+  }, [route.params?.friend]);
 
   useEffect(() => {
     if (friendsStrip && friendsStrip.length > 0) {
@@ -164,19 +177,26 @@ export default function FriendCalendarScreen({
   const [noteVisible, setNoteVisible] = useState(false);
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteData, setNoteData] = useState(null);
+  const [friendTheme, setFriendTheme] = useState(null);
+
+  useEffect(() => {
+    setFriendTheme(friend?.themeColor || friend?.theme || null);
+  }, [friendIdKey, friend?.themeColor, friend?.theme]);
   const stripThemeColor = useMemo(() => {
     const source =
       (friendsStrip && friendsStrip.length > 0
         ? friendsStrip
         : fallbackStrip) || [];
     const match = source.find((s) => {
-      const sid = s?.id || s?.userId;
-      return sid != null && Number(sid) === friendId;
+      const sid = s?.id ?? s?.userId;
+      return sid != null && friendIdKey && String(sid) === friendIdKey;
     });
     return match?.themeColor || match?.theme || null;
-  }, [friendsStrip, fallbackStrip, friendId]);
+  }, [friendsStrip, fallbackStrip, friendIdKey]);
   const themeColor =
-    normalizeHexColor(friend?.themeColor || friend?.theme || stripThemeColor) ||
+    normalizeHexColor(
+      friend?.themeColor || friend?.theme || friendTheme || stripThemeColor,
+    ) ||
     DEFAULT_THEME_COLOR;
   const themeColorDark = darkenHex(themeColor, 0.25) || "#3f5d2c";
 
@@ -241,18 +261,27 @@ export default function FriendCalendarScreen({
   }, [readingLogs]);
 
   useEffect(() => {
+    if (!isFocused) return () => {};
     let cancelled = false;
     setReadingLogs({});
     setHistory([]);
-    if (!friendId || Number.isNaN(friendId)) return () => {};
+    if (!friendIdKey) return () => {};
     setLogsLoading(true);
     const load = async () => {
       try {
-        const list = await fetchReadingLogs({
+        const result = await fetchReadingLogs({
           year,
           month,
           userId: friendId,
+          allowSelfFallback: false,
+          includeTheme: true,
         });
+        const list = Array.isArray(result)
+          ? result
+          : result?.list || [];
+        if (!Array.isArray(result) && result?.theme) {
+          setFriendTheme(result.theme);
+        }
         if (cancelled) return;
         const hasCompletionHint = (list || []).some((item) => {
           return (
@@ -334,7 +363,7 @@ export default function FriendCalendarScreen({
     return () => {
       cancelled = true;
     };
-  }, [year, month, friendId]);
+  }, [year, month, friendIdKey, isFocused, refreshKey]);
 
   const openFriendNote = async (log) => {
     const bookIdRaw = log?.bookId;
@@ -349,7 +378,7 @@ export default function FriendCalendarScreen({
       const reviews = await fetchReviewListByBookId(bookId);
       const match = (reviews || []).find((r) => {
         const uid = r.userId || r.user?.userId || r.user?.id;
-        return Number(uid) === friendId;
+        return uid != null && friendIdKey && String(uid) === friendIdKey;
       });
       if (!match) {
         setNoteData({
@@ -405,20 +434,18 @@ export default function FriendCalendarScreen({
     }
   };
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 160 }}
-        showsVerticalScrollIndicator={false}
-      >
+  const content = (
+    <>
+      {!hideHeader && (
         <View style={styles.hero}>
           <View style={styles.headerRow}>
             <Text style={[styles.logo, { color: themeColor }]}>modam</Text>
           </View>
         </View>
+      )}
 
-        {/* 상단 친구 프로필 스트립 (홈과 동일 배치) */}
+      {/* 상단 친구 프로필 스트립 (홈과 동일 배치) */}
+      {!hideFriendsStrip && (
         <View style={styles.friendsStripWrap}>
           <ScrollView
             horizontal
@@ -473,7 +500,9 @@ export default function FriendCalendarScreen({
               const id = f.id || f.userId;
               const isSelf = idx === 0 || f.isSelf;
               const active =
-                friendId && !Number.isNaN(friendId) ? id === friendId : isSelf;
+                friendIdKey && id != null
+                  ? String(id) === friendIdKey
+                  : isSelf;
               const name = f.name || f.nickname || "친구";
               const avatar =
                 f.avatar ||
@@ -487,14 +516,11 @@ export default function FriendCalendarScreen({
                   style={styles.friendItem}
                   hitSlop={6}
                   onPress={() => {
-                    if (isSelf) {
-                      // 내 버블 → 홈으로만 이동
-                      if (goBackNav) goBackNav();
-                      else nav?.navigate?.("Root", { screen: "홈" });
+                    if (isSelf) return;
+                    if (id != null && friendIdKey && String(id) === friendIdKey) {
                       return;
                     }
-                    if (id === friendId) return;
-                    nav?.navigate?.("FriendCalendar", { friend: f });
+                    setSelectedFriend(f);
                   }}
                 >
                   <Avatar
@@ -531,8 +557,9 @@ export default function FriendCalendarScreen({
             </Pressable>
           </View>
         </View>
+      )}
 
-        <View style={styles.body}>
+      <View style={styles.body}>
           {!isViewingFriend && (
             <View style={styles.progressCard}>
               <View style={styles.progressTop}>
@@ -730,6 +757,93 @@ export default function FriendCalendarScreen({
             )}
           </ScrollView>
         </View>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background.DEFAULT }}>
+        {content}
+
+        <YearMonthPicker
+          visible={yearPickerOpen}
+          onClose={() => setYearPickerOpen(false)}
+          mode="year"
+          theme="mono"
+          selectedYear={year}
+          selectedMonth={month}
+          onSelectYear={(y) => setYear(y)}
+          onSelectMonth={(m) => setMonth(m)}
+        />
+
+        <Modal
+          visible={noteVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setNoteVisible(false)}
+        >
+          <Pressable
+            style={styles.noteOverlay}
+            onPress={() => setNoteVisible(false)}
+          >
+            <Pressable
+              style={styles.noteCard}
+              onPress={() => {}}
+            >
+              <Text style={styles.noteTitle}>독서록</Text>
+              {noteLoading && (
+                <Text style={styles.noteMeta}>불러오는 중...</Text>
+              )}
+              {!noteLoading && noteData && (
+                <>
+                  <Text style={styles.noteBookTitle}>{noteData.title}</Text>
+                  {noteData.comment ? (
+                    <Text style={styles.noteComment}>{noteData.comment}</Text>
+                  ) : (
+                    <Text style={styles.noteMeta}>
+                      아직 공개된 독서록이 없어요.
+                    </Text>
+                  )}
+                  {Array.isArray(noteData.hashtag) &&
+                    noteData.hashtag.length > 0 && (
+                      <View style={styles.noteTagRow}>
+                        {noteData.hashtag.slice(0, 3).map((tag) => (
+                          <View
+                            key={tag}
+                            style={styles.noteTagChip}
+                          >
+                            <Text style={styles.noteTagText}>#{tag}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                </>
+              )}
+              {!noteLoading && !noteData && (
+                <Text style={styles.noteMeta}>독서록을 불러오지 못했어요.</Text>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <DayLogsBottomSheet
+          visible={!!dayModalKey}
+          dayKey={dayModalKey}
+          logs={activeDayLogs}
+          onClose={() => setDayModalKey(null)}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {content}
       </ScrollView>
 
       <YearMonthPicker

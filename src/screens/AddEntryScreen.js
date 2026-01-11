@@ -4,6 +4,7 @@ import { requestBookRegistration, searchBooks } from "@apis/bookApi";
 import {
   addBookToBookcase,
   createReview,
+  fetchOtherReview,
   fetchReview,
   fetchReviewsList,
 } from "@apis/bookcaseApi";
@@ -372,6 +373,17 @@ export default function AddEntryScreen({ navigation }) {
     return [];
   };
 
+  const getOtherId = (item) =>
+    item?.userId ??
+    item?.user?.userId ??
+    item?.user?.id ??
+    item?.otherId ??
+    item?.reviewerId ??
+    item?.writerId ??
+    item?.memberId ??
+    item?.user?.memberId ??
+    null;
+
   useEffect(() => {
     const bookId = selectedBook?.bookId || selectedBook?.id;
     if (!bookId) {
@@ -390,6 +402,7 @@ export default function AddEntryScreen({ navigation }) {
         const normalizedList = Array.isArray(list)
           ? list.map((item) => ({
               ...item,
+              userId: getOtherId(item),
               nickname: item.nickname || item.userName || item.userId,
               comment: item.comment ?? item.review ?? "",
               rating: item.rating ?? item.rate ?? 0,
@@ -413,6 +426,7 @@ export default function AddEntryScreen({ navigation }) {
             ? [
                 {
                   ...data,
+                  userId: getOtherId(data),
                   nickname: data.nickname || data.userName || data.userId,
                   comment: data.comment ?? data.review ?? "",
                   rating: data.rating ?? data.rate ?? 0,
@@ -434,7 +448,30 @@ export default function AddEntryScreen({ navigation }) {
                 },
               ]
             : [];
-        setReviewList(normalizedList);
+        const enrichedList = await Promise.all(
+          normalizedList.map(async (item) => {
+            if (item.hashtag && item.hashtag.length > 0) return item;
+            const otherId = getOtherId(item);
+            if (!otherId) return item;
+            const otherIdNum = Number(otherId);
+            if (Number.isNaN(otherIdNum)) return item;
+            const otherReview = await fetchOtherReview({
+              bookId,
+              otherId: otherIdNum,
+            });
+            const tags = normalizeHashtags(
+              otherReview?.hashtag ||
+                otherReview?.hashTag ||
+                otherReview?.tags ||
+                otherReview?.reviewTags ||
+                otherReview?.reviewHashTag ||
+                otherReview?.hashtags,
+            );
+            if (!tags.length) return item;
+            return { ...item, hashtag: tags };
+          }),
+        );
+        if (!cancelled) setReviewList(enrichedList);
       } catch (e) {
         if (cancelled) return;
         console.error(

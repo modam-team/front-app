@@ -522,18 +522,6 @@ export default function FriendListScreen({ navigation }) {
               {sheetTarget.relationStatus === "REQUEST_RECEIVED" && (
                 <>
                   <Pressable
-                    style={[styles.actionBtn, styles.actionBtnGhost]}
-                    disabled={actionLoading}
-                    onPress={() => handleReject(sheetTarget.userId)}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={18}
-                      color="#fff"
-                    />
-                    <Text style={styles.actionBtnGhostText}>요청 거절</Text>
-                  </Pressable>
-                  <Pressable
                     style={[styles.actionBtn, styles.actionBtnPrimary]}
                     disabled={actionLoading}
                     onPress={() => handleAccept(sheetTarget.userId)}
@@ -544,6 +532,18 @@ export default function FriendListScreen({ navigation }) {
                       color="#fff"
                     />
                     <Text style={styles.actionBtnText}>요청 수락</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionBtn, styles.actionBtnGhost]}
+                    disabled={actionLoading}
+                    onPress={() => handleReject(sheetTarget.userId)}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={18}
+                      color="#fff"
+                    />
+                    <Text style={styles.actionBtnGhostText}>요청 거절</Text>
                   </Pressable>
                 </>
               )}
