@@ -23,9 +23,16 @@ import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
+  Animated,
   ImageBackground,
   Pressable,
   ScrollView,
@@ -58,6 +65,8 @@ export default function ReportScreen() {
   const [userName, setUserName] = useState("");
   // 프로필 이미지 가져오기
   const [profileImageUrl, setProfileImageUrl] = useState(null);
+  // 가입일 가져오기
+  const [userCreatedAt, setUserCreatedAt] = useState(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -65,6 +74,9 @@ export default function ReportScreen() {
         const profile = await fetchUserProfile();
         setUserName(profile.nickname);
         setProfileImageUrl(profile.profileImageUrl ?? null);
+        setUserCreatedAt(
+          profile.createdAt ? new Date(profile.createdAt) : null,
+        );
       } catch (e) {
         console.error("유저 프로필 조회 실패", e);
       }
@@ -467,6 +479,7 @@ export default function ReportScreen() {
             selectedMonth={month}
             onSelectYear={setYear}
             onSelectMonth={setMonth}
+            minDate={userCreatedAt ?? undefined}
           />
         </View>
       </ScrollView>

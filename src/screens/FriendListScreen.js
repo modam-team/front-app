@@ -26,8 +26,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import DraggableFlatList from "react-native-draggable-flatlist";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const LOCAL_SENT_KEY = "LOCAL_SENT_REQUESTS";
 const FRIEND_ORDER_KEY = "friendOrder";
@@ -249,9 +249,7 @@ export default function FriendListScreen({ navigation }) {
 
   const saveFriendOrder = useCallback(async (list) => {
     const order = Array.isArray(list)
-      ? list
-          .map((f) => f?.userId ?? f?.id ?? null)
-          .filter((id) => id != null)
+      ? list.map((f) => f?.userId ?? f?.id ?? null).filter((id) => id != null)
       : [];
     setFriendOrder(order);
     setFriends(list);

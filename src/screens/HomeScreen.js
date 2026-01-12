@@ -931,14 +931,21 @@ export default function HomeScreen({ navigation }) {
                 {(() => {
                   const fid = f.id ?? f.userId ?? null;
                   const idKey = fid != null ? String(fid) : null;
-                  const vid = viewingFriend?.userId ?? viewingFriend?.id ?? null;
+                  const vid =
+                    viewingFriend?.userId ?? viewingFriend?.id ?? null;
                   const activeKey =
-                    vid != null ? String(vid) : bubbleActive === "self" ? "self" : null;
+                    vid != null
+                      ? String(vid)
+                      : bubbleActive === "self"
+                        ? "self"
+                        : null;
                   const isSelf = idx === 0 || f.isSelf;
                   const isActive =
                     isSelf && bubbleActive === "self"
                       ? true
-                      : idKey != null && activeKey != null && idKey === activeKey;
+                      : idKey != null &&
+                        activeKey != null &&
+                        idKey === activeKey;
                   const scale = getBubbleScale(isSelf ? "self" : fid);
                   const gap = getBubbleGap(isSelf ? "self" : fid);
                   const transform = scale ? [{ scale }] : [];
@@ -974,8 +981,8 @@ export default function HomeScreen({ navigation }) {
                       (bubbleActive === "self"
                         ? idx === 0 || f.isSelf
                         : (f.id ?? f.userId) != null &&
-                          String(f.id ?? f.userId) === String(bubbleActive)) &&
-                      { marginTop: 10 },
+                          String(f.id ?? f.userId) ===
+                            String(bubbleActive)) && { marginTop: 10 },
                   ]}
                 >
                   {f.name || f.nickname}
