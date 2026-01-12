@@ -1,6 +1,6 @@
 <img width="1190" height="1684" alt="image" src="https://github.com/user-attachments/assets/2c7677b7-40bb-4cc7-b90d-18d6b25afd54" />
 
-<br><br>
+<br/><br/>
 
 ## 📖 프로젝트 소개 - 기록을 통해 나를 발견하는 공간, Modam
 - Modam은 **기록이 쌓일수록 나를 더 잘 알게 되는 독서 기록 서비스**입니다.<br/>
@@ -23,7 +23,30 @@
 | 홈<br>설정<br>리포트<br>온보딩<br>회원가입/로그인 | 홈<br>책장<br>리뷰<br>친구 추가<br> |
 
 
-<br><br>
+<br/><br/>
+
+## 🛠 Tech Stack
+### Frontend
+![Expo](https://img.shields.io/badge/expo-1C1E24?style=for-the-badge&logo=expo&logoColor=#D04A37)
+![React Native](https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
+<br/>
+![Zustand](https://img.shields.io/badge/zustand-FFB703?style=for-the-badge&logo=react&logoColor=000000)
+![Axios](https://img.shields.io/badge/axios-5A29E4?style=for-the-badge&logo=axios&logoColor=white)
+![AsyncStorage](https://img.shields.io/badge/AsyncStorage-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![Expo SecureStore](https://img.shields.io/badge/Expo%20SecureStore-000000?style=for-the-badge&logo=expo&logoColor=white)
+![React Navigation](https://img.shields.io/badge/react%20navigation-6B4EFF?style=for-the-badge&logo=react&logoColor=white)
+
+### etc
+![ESLint](https://img.shields.io/badge/eslint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white)
+![Prettier](https://img.shields.io/badge/prettier-F7B93E?style=for-the-badge&logo=prettier&logoColor=black)
+![Git](https://img.shields.io/badge/git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white)
+![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
+![Notion](https://img.shields.io/badge/Notion-%23000000.svg?style=for-the-badge&logo=notion&logoColor=white)
+![Figma](https://img.shields.io/badge/figma-%23F24E1E.svg?style=for-the-badge&logo=figma&logoColor=white)
+
+<br/><br/>
 
 ## 🚀 실행 방법
 
@@ -35,7 +58,7 @@ git clone https://github.com/modam-team/front-app.git
 cd front-app
 npm install
 ```
-<br>
+<br/>
 
 2️⃣ 실행 (개발 모드)
 ```
@@ -51,7 +74,7 @@ Android 에뮬레이터 → a
 ⚙️ 네트워크 이슈 있을 땐
 npx expo start --tunnel 명령으로 실행하면 외부에서도 접속 가능합니다.
 ```
-<br>
+<br/>
 
 🧩 폴더 구조
 ```
