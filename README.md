@@ -2,7 +2,7 @@
 
 <br/><br/>
 
-### [👉 MODAM 프론트 Wiki 바로 가기]([https://github.com/prgrms-web-devcourse-final-project/WEB2_3_CUBE_BE/wiki](https://github.com/modam-team/front-app/wiki))
+### [👉 MODAM 프론트 Wiki 바로 가기](https://github.com/modam-team/front-app/wiki)
 
 <br/><br/>
 
