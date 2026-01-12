@@ -2,6 +2,10 @@
 
 <br/><br/>
 
+### [👉 MODAM 프론트 Wiki 바로 가기]([https://github.com/prgrms-web-devcourse-final-project/WEB2_3_CUBE_BE/wiki](https://github.com/modam-team/front-app/wiki))
+
+<br/><br/>
+
 ## 📖 프로젝트 소개 - 기록을 통해 나를 발견하는 공간, Modam
 - Modam은 **기록이 쌓일수록 나를 더 잘 알게 되는 독서 기록 서비스**입니다.<br/>
 사용자는 읽은 책과 감상을 자유롭게 기록하며,<br/>
