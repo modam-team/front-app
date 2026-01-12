@@ -22,8 +22,8 @@ import { colors } from "@theme/colors";
 import { Asset } from "expo-asset";
 import React, { useEffect } from "react";
 import "react-native-gesture-handler";
-import "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import "react-native-reanimated";
 
 const Stack = createNativeStackNavigator();
 

@@ -647,9 +647,10 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                                   <View style={styles.bookWrap}>
                                     <TouchableOpacity
                                       activeOpacity={0.9}
-                                      onLongPress={() =>
-                                        (Vibration.vibrate(5), setDeleteTargetId(book.id))
-                                      }
+                                      onLongPress={() => (
+                                        Vibration.vibrate(5),
+                                        setDeleteTargetId(book.id)
+                                      )}
                                       onPress={() => {
                                         if (deleteTargetId) {
                                           if (deleteTargetId === book.id) {

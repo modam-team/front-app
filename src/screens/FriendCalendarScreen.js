@@ -85,7 +85,8 @@ export default function FriendCalendarScreen({
   const navHook = useNavigation();
   const singleOnlyParam =
     route?.params?.singleFriendOnly ?? route?.params?.singleOnly ?? null;
-  const singleOnly = singleOnlyParam != null ? singleOnlyParam : singleFriendOnly;
+  const singleOnly =
+    singleOnlyParam != null ? singleOnlyParam : singleFriendOnly;
   const nav = navigation?.navigate ? navigation : navHook;
   const goBackNav = navigation?.goBack || navHook?.goBack;
   const isFocused = useIsFocused();
@@ -445,8 +446,7 @@ export default function FriendCalendarScreen({
           >
             {(() => {
               if (singleOnly) {
-                const selfEntry =
-                  friendsStrip?.[0] ||
+                const selfEntry = friendsStrip?.[0] ||
                   fallbackStrip?.[0] ||
                   route.params?.self || {
                     isSelf: true,
