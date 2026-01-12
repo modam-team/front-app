@@ -1152,10 +1152,16 @@ export default function HomeScreen({ navigation }) {
             fetchBookcase={fetchBookcase}
             placeKeyMap={placeKeyMap}
             // 독서 기록 저장 후에도 서버 기준으로 다시 fetch해서 readingLogs를 재세팅
-            onSubmit={async ({ placeLabel, placeCode, selectedBookId, book }) => {
+            onSubmit={async ({
+              placeLabel,
+              placeCode,
+              selectedBookId,
+              book,
+            }) => {
               try {
                 // (1) 상태 READING 맞추기
-                const stateRaw = book?.state || book?.status || book?.bookStatus;
+                const stateRaw =
+                  book?.state || book?.status || book?.bookStatus;
                 const isReadingState =
                   stateRaw === "READING" ||
                   stateRaw === "읽는중" ||

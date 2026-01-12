@@ -201,8 +201,7 @@ export default function FriendCalendarScreen({
   const themeColor =
     normalizeHexColor(
       friend?.themeColor || friend?.theme || friendTheme || stripThemeColor,
-    ) ||
-    DEFAULT_THEME_COLOR;
+    ) || DEFAULT_THEME_COLOR;
   const themeColorDark = darkenHex(themeColor, 0.25) || "#3f5d2c";
 
   const prev = () =>
@@ -281,9 +280,7 @@ export default function FriendCalendarScreen({
           allowSelfFallback: false,
           includeTheme: true,
         });
-        const list = Array.isArray(result)
-          ? result
-          : result?.list || [];
+        const list = Array.isArray(result) ? result : result?.list || [];
         if (!Array.isArray(result) && result?.theme) {
           setFriendTheme(result.theme);
         }
@@ -515,9 +512,7 @@ export default function FriendCalendarScreen({
               const id = f.id || f.userId;
               const isSelf = idx === 0 || f.isSelf;
               const active =
-                friendIdKey && id != null
-                  ? String(id) === friendIdKey
-                  : isSelf;
+                friendIdKey && id != null ? String(id) === friendIdKey : isSelf;
               const name = f.name || f.nickname || "친구";
               const avatar =
                 f.avatar ||
@@ -538,7 +533,11 @@ export default function FriendCalendarScreen({
                       }
                       return;
                     }
-                    if (id != null && friendIdKey && String(id) === friendIdKey) {
+                    if (
+                      id != null &&
+                      friendIdKey &&
+                      String(id) === friendIdKey
+                    ) {
                       return;
                     }
                     setSelectedFriend(f);
@@ -582,209 +581,208 @@ export default function FriendCalendarScreen({
         </View>
       )}
 
-        <View style={styles.body}>
-          <View style={styles.calendarTitleWrap}>
-            <Text style={styles.calendarTitleText}>
-              {friend?.nickname || "닉네임"}님의 독서 기록
-            </Text>
-          </View>
-          {!isViewingFriend && (
-            <View style={styles.progressCard}>
-              <View style={styles.progressTop}>
-                <Text style={styles.progressPercent}>
-                  {Math.round(
-                    Math.min(
+      <View style={styles.body}>
+        <View style={styles.calendarTitleWrap}>
+          <Text style={styles.calendarTitleText}>
+            {friend?.nickname || "닉네임"}님의 독서 기록
+          </Text>
+        </View>
+        {!isViewingFriend && (
+          <View style={styles.progressCard}>
+            <View style={styles.progressTop}>
+              <Text style={styles.progressPercent}>
+                {Math.round(
+                  Math.min(
+                    100,
+                    ((history.length || 0) /
+                      Math.max(1, friend.goalScore || history.length || 1)) *
                       100,
-                      ((history.length || 0) /
-                        Math.max(1, friend.goalScore || history.length || 1)) *
+                  ),
+                )}
+                %
+              </Text>
+              <View style={styles.progressBarBg}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { backgroundColor: themeColor },
+                    {
+                      width: `${Math.min(
                         100,
-                    ),
-                  )}
-                  %
-                </Text>
-                <View style={styles.progressBarBg}>
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      { backgroundColor: themeColor },
-                      {
-                        width: `${Math.min(
+                        ((history.length || 0) /
+                          Math.max(
+                            1,
+                            friend.goalScore || history.length || 1,
+                          )) *
                           100,
-                          ((history.length || 0) /
-                            Math.max(
-                              1,
-                              friend.goalScore || history.length || 1,
-                            )) *
-                            100,
-                        )}%`,
-                      },
-                    ]}
+                      )}%`,
+                    },
+                  ]}
+                />
+              </View>
+              <View style={styles.progressMeta}>
+                <View style={styles.progressMetaLeft}>
+                  <Ionicons
+                    name="book-outline"
+                    size={16}
+                    color="#000"
                   />
-                </View>
-                <View style={styles.progressMeta}>
-                  <View style={styles.progressMetaLeft}>
-                    <Ionicons
-                      name="book-outline"
-                      size={16}
-                      color="#000"
-                    />
-                    <Text style={styles.progressText}>
-                      {history.length}권을 읽었어요
-                    </Text>
-                  </View>
-                  <Text style={styles.progressGoal}>
-                    목표 {friend.goalScore || 1}권
+                  <Text style={styles.progressText}>
+                    {history.length}권을 읽었어요
                   </Text>
                 </View>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.calendarCard}>
-            <MonthlyCalendar
-              year={year}
-              month={month}
-              onPrev={prev}
-              onNext={next}
-              onYearChange={(val) => {
-                if (val === "open") {
-                  setYearPickerOpen(true);
-                  return;
-                }
-                setYear(val);
-              }}
-              markedDates={markedDates}
-              dateCounts={dateCounts}
-              onDayPress={(key) => {
-                if (!key) return;
-                const logs = readingLogs[key] || [];
-                if (logs.length === 0) return;
-                setDayModalKey(key);
-              }}
-              selectedDayKey={dayModalKey}
-              themeColor={themeColor}
-            />
-          </View>
-
-          <View style={styles.historyHeader}>
-            <Text style={styles.historyTitle}>
-              {friend?.nickname || "닉네임"}님의 독서 히스토리
-            </Text>
-            <Text style={styles.historySub}>친구가 읽는 도서</Text>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.historyRow}
-          >
-            {history.map((item) => {
-              const rating =
-                Number(
-                  item.avgRate ??
-                    item.avgRating ??
-                    item.totalRate ??
-                    item.bookRate ??
-                    item.rate ??
-                    0,
-                ) || 0;
-              const totalCount =
-                Number(item.totalReview ?? item.reviewCount ?? 0) || 0;
-              const author =
-                item.author ||
-                (Array.isArray(item.authors)
-                  ? item.authors.join(", ")
-                  : item.publisher) ||
-                "작가 미상";
-              return (
-                <Pressable
-                  key={`${item.id}-${item.dayKey}`}
-                  style={styles.bookCard}
-                  onPress={() => {
-                    if (!item.bookId) {
-                      nav?.navigate?.("AddEntry", {
-                        prefillQuery: item.title || "",
-                      });
-                      return;
-                    }
-                    nav?.navigate?.("AddEntry", {
-                      prefillBook: {
-                        bookId: item.bookId,
-                        id: item.bookId,
-                        title: item.title,
-                        author: author,
-                        cover: item.cover,
-                        coverImage: item.cover,
-                        thumbnail: item.cover,
-                        categoryName:
-                          item.categoryName || item.category || null,
-                      },
-                    });
-                  }}
-                >
-                  <View style={styles.bookCover}>
-                    {item.cover ? (
-                      <Image
-                        source={{ uri: item.cover }}
-                        style={{ width: "100%", height: "100%" }}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View
-                        style={{
-                          flex: 1,
-                          backgroundColor: "#eee",
-                          borderRadius: 12,
-                        }}
-                      />
-                    )}
-                  </View>
-                  <View style={styles.bookTextBlock}>
-                    <Text
-                      style={styles.bookTitle}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {item.title}
-                    </Text>
-                    <Text
-                      style={styles.bookMeta}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {author}
-                    </Text>
-                  </View>
-                  <View style={styles.starRow}>
-                    {[1, 2, 3, 4, 5].map((i) => {
-                      const full = i;
-                      const half = i - 0.5;
-                      const isFull = rating >= full;
-                      const isHalf = !isFull && rating >= half;
-                      return (
-                        <StarIcon
-                          key={i}
-                          size={16}
-                          variant={isFull ? "full" : isHalf ? "half" : "empty"}
-                          color="#C6C6C6"
-                          emptyColor="#C6C6C6"
-                        />
-                      );
-                    })}
-                    <Text style={styles.starCount}>({totalCount})</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-            {history.length === 0 && (
-              <View style={{ justifyContent: "center", paddingHorizontal: 12 }}>
-                <Text style={styles.emptyHistory}>
-                  {logsLoading ? "기록 불러오는 중..." : "아직 기록이 없습니다"}
+                <Text style={styles.progressGoal}>
+                  목표 {friend.goalScore || 1}권
                 </Text>
               </View>
-            )}
-          </ScrollView>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.calendarCard}>
+          <MonthlyCalendar
+            year={year}
+            month={month}
+            onPrev={prev}
+            onNext={next}
+            onYearChange={(val) => {
+              if (val === "open") {
+                setYearPickerOpen(true);
+                return;
+              }
+              setYear(val);
+            }}
+            markedDates={markedDates}
+            dateCounts={dateCounts}
+            onDayPress={(key) => {
+              if (!key) return;
+              const logs = readingLogs[key] || [];
+              if (logs.length === 0) return;
+              setDayModalKey(key);
+            }}
+            selectedDayKey={dayModalKey}
+            themeColor={themeColor}
+          />
         </View>
+
+        <View style={styles.historyHeader}>
+          <Text style={styles.historyTitle}>
+            {friend?.nickname || "닉네임"}님의 독서 히스토리
+          </Text>
+          <Text style={styles.historySub}>친구가 읽는 도서</Text>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.historyRow}
+        >
+          {history.map((item) => {
+            const rating =
+              Number(
+                item.avgRate ??
+                  item.avgRating ??
+                  item.totalRate ??
+                  item.bookRate ??
+                  item.rate ??
+                  0,
+              ) || 0;
+            const totalCount =
+              Number(item.totalReview ?? item.reviewCount ?? 0) || 0;
+            const author =
+              item.author ||
+              (Array.isArray(item.authors)
+                ? item.authors.join(", ")
+                : item.publisher) ||
+              "작가 미상";
+            return (
+              <Pressable
+                key={`${item.id}-${item.dayKey}`}
+                style={styles.bookCard}
+                onPress={() => {
+                  if (!item.bookId) {
+                    nav?.navigate?.("AddEntry", {
+                      prefillQuery: item.title || "",
+                    });
+                    return;
+                  }
+                  nav?.navigate?.("AddEntry", {
+                    prefillBook: {
+                      bookId: item.bookId,
+                      id: item.bookId,
+                      title: item.title,
+                      author: author,
+                      cover: item.cover,
+                      coverImage: item.cover,
+                      thumbnail: item.cover,
+                      categoryName: item.categoryName || item.category || null,
+                    },
+                  });
+                }}
+              >
+                <View style={styles.bookCover}>
+                  {item.cover ? (
+                    <Image
+                      source={{ uri: item.cover }}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: "#eee",
+                        borderRadius: 12,
+                      }}
+                    />
+                  )}
+                </View>
+                <View style={styles.bookTextBlock}>
+                  <Text
+                    style={styles.bookTitle}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {item.title}
+                  </Text>
+                  <Text
+                    style={styles.bookMeta}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {author}
+                  </Text>
+                </View>
+                <View style={styles.starRow}>
+                  {[1, 2, 3, 4, 5].map((i) => {
+                    const full = i;
+                    const half = i - 0.5;
+                    const isFull = rating >= full;
+                    const isHalf = !isFull && rating >= half;
+                    return (
+                      <StarIcon
+                        key={i}
+                        size={16}
+                        variant={isFull ? "full" : isHalf ? "half" : "empty"}
+                        color="#C6C6C6"
+                        emptyColor="#C6C6C6"
+                      />
+                    );
+                  })}
+                  <Text style={styles.starCount}>({totalCount})</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+          {history.length === 0 && (
+            <View style={{ justifyContent: "center", paddingHorizontal: 12 }}>
+              <Text style={styles.emptyHistory}>
+                {logsLoading ? "기록 불러오는 중..." : "아직 기록이 없습니다"}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </View>
     </>
   );
 

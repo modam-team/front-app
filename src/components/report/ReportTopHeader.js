@@ -8,6 +8,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ReportTopHeader({
   onPressSettings,
+  onLongPressLogo,
   variant = "light",
 }) {
   const isGreen = variant === "green";
@@ -17,6 +18,7 @@ export default function ReportTopHeader({
       <ModamLogoText
         to="홈"
         variant={isGreen ? "primary" : "white"}
+        onLongPress={onLongPressLogo}
       />
       <TouchableOpacity
         onPress={onPressSettings}
