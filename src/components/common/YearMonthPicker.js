@@ -33,6 +33,7 @@ export default function YearMonthPicker({
   selectedMonth,
   onSelectYear,
   onSelectMonth,
+  minDate,
 }) {
   // 모달을 애니메이션 끝날 때까지 유지하기 위한 내부 상태
   const [mounted, setMounted] = useState(visible);
@@ -40,11 +41,71 @@ export default function YearMonthPicker({
   // 시트 애니메이션 값 (아래에서 시작)
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
 
-  const years = useMemo(() => buildYearsFrom2010(), []);
-  const months = useMemo(
-    () => (mode === "year-month" ? buildMonthsByYear(selectedYear) : []),
-    [mode, selectedYear],
+  // 나중엔 다시 이거만 남길 예정 !! (아래 코드 지우고)
+  const baseDate = useMemo(() => new Date(), []);
+
+  // 규민오빠 요청대로 임시 사항 !!!!!!!!!!!! 가입일 - 1개월 (최소 선택 가능 월)
+  const minSelectableDate = useMemo(() => {
+    if (!minDate) return null;
+
+    // 연/월만 쓰기 위해 day=1로 고정
+    const y = minDate.getFullYear();
+    const m = minDate.getMonth(); // 0-based
+
+    // "가입월 - 1개월" 계산
+    // (new Date(y, m, 1)) 은 로컬 타임존 기준으로 안전
+    const d = new Date(y, m, 1);
+    d.setMonth(d.getMonth() - 1);
+
+    return d;
+  }, [minDate]);
+
+  const years = useMemo(
+    //() => buildYearsFrom2010(baseDate, minDate),
+    () => buildYearsFrom2010(baseDate, minSelectableDate), // 임시 사항 !!!!!
+    [baseDate, minSelectableDate], // 원랜 의존성 배열에 minSelectableDate 대신 minDate가 들어감
   );
+  const months = useMemo(
+    () =>
+      mode === "year-month"
+        ? buildMonthsByYear(selectedYear, baseDate, true, minDate)
+        : [],
+    [mode, selectedYear, baseDate, minDate],
+  );
+
+  const isBeforeMinSelectable = (y, m) => {
+    if (!minSelectableDate) return false;
+
+    const minY = minSelectableDate.getFullYear();
+    const minM = minSelectableDate.getMonth() + 1;
+
+    if (y < minY) return true;
+    if (y === minY && m < minM) return true;
+    return false;
+  };
+
+  const isMonthDisabled = (m) => isBeforeMinSelectable(selectedYear, m);
+
+  /* 원래 코드
+  // 가입일 이전인 월은 disabled로 정하는 함수
+  const isMonthDisabled = (m) => {
+    if (!minDate) return false;
+
+    const minY = minDate.getFullYear();
+    const minM = minDate.getMonth() + 1;
+
+    // selectedYear가 가입년도보다 과거면 전부 disable
+    if (selectedYear < minY) return true;
+
+    // 가입년도면 가입월 이전만 disable
+    if (selectedYear === minY && m < minM) return true;
+
+    return false;
+    
+
+    
+  };
+  */
 
   // 테마별 색상 세트
   const themeColors = useMemo(() => {
@@ -194,18 +255,36 @@ export default function YearMonthPicker({
     // 해당 연도에 월이 없을 수는 없겠지만 안전장치
     if (!months || months.length === 0) return;
 
-    const hasSelected = months.includes(selectedMonth);
+    const existsInList = months.includes(selectedMonth);
+    const isDisabled = existsInList
+      ? isBeforeMinSelectable(selectedYear, selectedMonth)
+      : true;
 
-    // 선택된 월이 현재 연도(months)에 없다면 -> 가장 최근 달로 보정
-    if (!hasSelected) {
-      const latestMonth = months[months.length - 1]; // ex) 1월까지만 있으면 1
-      onSelectMonth?.(latestMonth);
+    // 불가능하면: 가능한 월로 보정
+    if (!existsInList || isDisabled) {
+      // months는 desc=true라 최신이 앞에 있음.
+      // "가능한 최소 월"로 보내야 하니 뒤에서부터(오름차순으로 보면 첫 가능값) 찾기
+      const candidate = [...months]
+        .reverse() // 1 -> 최신 순 (오름차순)
+        .find((m) => !isBeforeMinSelectable(selectedYear, m));
 
-      // 스크롤도 최신 달로 맞춰줌
-      const idx = months.findIndex((m) => m === latestMonth);
+      // 그래도 없으면 fallback
+      const nextMonth = candidate ?? months[months.length - 1];
+
+      onSelectMonth?.(nextMonth);
+
+      const idx = months.findIndex((m) => m === nextMonth);
       scrollToCenter(monthScrollRef, Math.max(idx, 0), months.length);
     }
-  }, [visible, mode, months, selectedMonth, onSelectMonth]);
+  }, [
+    visible,
+    mode,
+    months,
+    selectedMonth,
+    selectedYear,
+    minSelectableDate,
+    onSelectMonth,
+  ]);
 
   // early return
   if (!mounted) return null;
@@ -361,12 +440,18 @@ export default function YearMonthPicker({
                       >
                         {months.map((month) => {
                           const isActive = month === selectedMonth;
+                          const disabled = isMonthDisabled(month);
                           return (
                             <TouchableOpacity
                               key={month}
                               style={styles.itemRowMonth}
+                              disabled={disabled}
+                              activeOpacity={disabled ? 1 : 0.85}
                               onPress={() => {
+                                if (disabled) return;
+
                                 onSelectMonth?.(month);
+
                                 // 월 선택하면 선택한 월을 가운데로 보여줌
                                 const idx = months.findIndex(
                                   (m) => m === month,
@@ -387,13 +472,14 @@ export default function YearMonthPicker({
                                     styles.itemTextActive,
                                     { color: themeColors.itemTextActive },
                                   ],
+                                  disabled && styles.itemTextDisabled,
                                 ]}
                               >
                                 {month}월
                               </Text>
 
                               <View style={styles.checkWrap}>
-                                {isActive ? (
+                                {!disabled && isActive ? (
                                   <ActiveCheck
                                     width={16}
                                     height={16}
@@ -511,6 +597,9 @@ const styles = StyleSheet.create({
   },
   itemTextActive: {
     ...typography["body-1-bold"],
+  },
+  itemTextDisabled: {
+    color: colors.mono[500],
   },
   verticalDivider: {
     width: 1,
