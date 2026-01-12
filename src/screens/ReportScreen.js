@@ -23,9 +23,16 @@ import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
+  Animated,
   ImageBackground,
   Pressable,
   ScrollView,

@@ -1,5 +1,6 @@
 import CheckGreenIcon from "@assets/icons/check-green.svg";
 import CheckIcon from "@assets/icons/check.svg";
+import Button from "@components/common/Button";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { colors } from "@theme/colors";
 import { radius } from "@theme/radius";
@@ -34,6 +35,7 @@ export default function YearMonthPicker({
   onSelectYear,
   onSelectMonth,
   minDate,
+  onToast,
 }) {
   // 모달을 애니메이션 끝날 때까지 유지하기 위한 내부 상태
   const [mounted, setMounted] = useState(visible);
@@ -101,8 +103,6 @@ export default function YearMonthPicker({
     if (selectedYear === minY && m < minM) return true;
 
     return false;
-    
-
     
   };
   */
@@ -286,6 +286,50 @@ export default function YearMonthPicker({
     onSelectMonth,
   ]);
 
+  // 토스트 관련한 것들
+  const [localToast, setLocalToast] = useState({
+    visible: false,
+    text: "",
+    tone: "primary",
+  });
+
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimer = useRef(null);
+
+  // 토스트 보여주기
+  const showLocalToast = (text, tone = "primary") => {
+    if (!text) return;
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+
+    setLocalToast({ visible: true, text, tone });
+
+    toastOpacity.stopAnimation();
+    toastOpacity.setValue(0);
+
+    Animated.timing(toastOpacity, {
+      toValue: 1,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+
+    toastTimer.current = setTimeout(() => {
+      Animated.timing(toastOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setLocalToast((prev) => ({ ...prev, visible: false }));
+      });
+    }, 1800);
+  };
+
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
+
   // early return
   if (!mounted) return null;
 
@@ -302,6 +346,36 @@ export default function YearMonthPicker({
           style={StyleSheet.absoluteFill}
           onPress={onClose}
         />
+
+        {/* ✅ 토스트: 시트 위(바깥)에 띄우기 */}
+        {localToast.visible && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.pickerToastWrap,
+              {
+                opacity: toastOpacity,
+                transform: [
+                  {
+                    translateY: toastOpacity.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [12, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Button
+              label={localToast.text}
+              size="large" // xlarge면 너무 커서 large 추천
+              variant={localToast.tone === "error" ? "error" : "primary"}
+              tone="fill"
+              fullWidth
+              style={{ borderRadius: 14 }}
+            />
+          </Animated.View>
+        )}
 
         <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
           <View
@@ -445,10 +519,15 @@ export default function YearMonthPicker({
                             <TouchableOpacity
                               key={month}
                               style={styles.itemRowMonth}
-                              disabled={disabled}
                               activeOpacity={disabled ? 1 : 0.85}
                               onPress={() => {
-                                if (disabled) return;
+                                if (disabled) {
+                                  showLocalToast(
+                                    "가입일 이전 날짜예요!",
+                                    "error",
+                                  );
+                                  return;
+                                }
 
                                 onSelectMonth?.(month);
 
@@ -524,6 +603,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
     alignItems: "stretch",
+  },
+
+  // 토스트 스타일
+  pickerToastWrap: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+
+    // 픽커 시트 위 바깥에 뜨게
+    bottom: SHEET_HEIGHT + 16,
   },
 
   // 연도만 선택 모드 딤
