@@ -172,11 +172,18 @@ export default function YearMonthPicker({
 
   // 연도만 고르는 picker 모드일 때
   const handlePressYear = (year) => {
+    hideLocalToast();
     onSelectYear?.(year);
 
     // 연도 선택하면 선택된 연도를 가운데로 보여줌
     const idx = years.findIndex((y) => y === year);
     scrollToCenter(yearScrollRef, idx, years.length);
+  };
+
+  // 픽커 닫을 때
+  const handleClose = () => {
+    hideLocalToast(); // 토스트 띄운거 지우기
+    onClose?.();
   };
 
   // 연도 스크롤 제어
@@ -323,6 +330,29 @@ export default function YearMonthPicker({
     }, 1800);
   };
 
+  // 정상 월 클릭하면 토스트 바로 지워주기
+  const hideLocalToast = () => {
+    if (toastTimer.current) {
+      clearTimeout(toastTimer.current);
+      toastTimer.current = null;
+    }
+
+    // 이미 안 보이면 스킵
+    if (!localToast.visible) return;
+
+    toastOpacity.stopAnimation();
+
+    Animated.timing(toastOpacity, {
+      toValue: 0,
+      duration: 120,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        setLocalToast((prev) => ({ ...prev, visible: false }));
+      }
+    });
+  };
+
   useEffect(
     () => () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -344,10 +374,10 @@ export default function YearMonthPicker({
         {/* 모달 바깥 영역 누르면 닫히도록 */}
         <Pressable
           style={StyleSheet.absoluteFill}
-          onPress={onClose}
+          onPress={handleClose}
         />
 
-        {/* ✅ 토스트: 시트 위(바깥)에 띄우기 */}
+        {/* 토스트: 시트 위(바깥)에 띄우기 */}
         {localToast.visible && (
           <Animated.View
             pointerEvents="none"
@@ -529,6 +559,8 @@ export default function YearMonthPicker({
                                   return;
                                 }
 
+                                hideLocalToast();
+
                                 onSelectMonth?.(month);
 
                                 // 월 선택하면 선택한 월을 가운데로 보여줌
@@ -583,7 +615,7 @@ export default function YearMonthPicker({
             {/* 닫기 버튼 */}
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={onClose}
+              onPress={handleClose}
             >
               <Text
                 style={[styles.closeText, { color: themeColors.headerText }]}
@@ -608,8 +640,8 @@ const styles = StyleSheet.create({
   // 토스트 스타일
   pickerToastWrap: {
     position: "absolute",
-    left: 16,
-    right: 16,
+    left: spacing.s,
+    right: spacing.s,
 
     // 픽커 시트 위 바깥에 뜨게
     bottom: SHEET_HEIGHT + 16,
