@@ -1,12 +1,31 @@
-# 👥 Member
-| [김소연](https://github.com/soyeon1806) | [손상준](https://github.com/sangjoonson) |
-| --- | --- |
-| <a href="https://github.com/soyeon1806"><img src="https://avatars.githubusercontent.com/u/102381857?v=4" width="100px;" alt=""/></a> | <a href="https://github.com/sangjoonson"><img src="https://avatars.githubusercontent.com/sangjoonson" width="100px;" alt=""/></a> |
-| 회원가입/로그인<br>온보딩<br>리포트<br>설정<br>홈 | 책장<br>리뷰<br>홈<br>친구 추가<br> |
+<img width="1190" height="1684" alt="image" src="https://github.com/user-attachments/assets/2c7677b7-40bb-4cc7-b90d-18d6b25afd54" />
 
 <br><br>
 
-# 🚀 실행 방법
+## 📖 프로젝트 소개 - 기록을 통해 나를 발견하는 공간, Modam
+- Modam은 **기록이 쌓일수록 나를 더 잘 알게 되는 독서 기록 서비스**입니다.<br/>
+사용자는 읽은 책과 감상을 자유롭게 기록하며,<br/>
+그 과정에서 자연스럽게 자신의 독서 취향과 패턴을 마주하게 됩니다.<br/><br/>
+- Modam은 사용자의 독서 데이터를 기반으로<br/>
+**월별 리포트**와 다양한 시각적 요소를 제공하여,<br/>
+스스로의 독서 흐름을 한눈에 돌아볼 수 있도록 돕습니다.<br/><br/>
+- 단순히 읽은 책의 수를 기록하는 것을 넘어,<br/>
+**독서가 언제, 어떤 방식으로 나에게 의미 있었는지**를 되짚게 하며,<br/>
+지속적인 기록을 이어갈 수 있는 동기를 제공합니다.<br/><br/>
+- 일상의 독서가 부담이 아닌,<br/>
+**나를 이해하는 하나의 과정**이 되도록 설계된 서비스입니다.
+<br><br>
+
+## 👥 Members
+| [김소연](https://github.com/soyeon1806) | [손상준](https://github.com/sangjoonson) |
+| --- | --- |
+| <a href="https://github.com/soyeon1806"><img src="https://avatars.githubusercontent.com/u/102381857?v=4" width="100px;" alt=""/></a> | <a href="https://github.com/sangjoonson"><img src="https://avatars.githubusercontent.com/sangjoonson" width="100px;" alt=""/></a> |
+| 홈<br>설정<br>리포트<br>온보딩<br>회원가입/로그인 | 홈<br>책장<br>리뷰<br>친구 추가<br> |
+
+
+<br><br>
+
+## 🚀 실행 방법
 
 1️⃣ 설치
 프로젝트 클론 후 필요한 패키지를 설치합니다.
