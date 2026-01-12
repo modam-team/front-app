@@ -59,6 +59,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 const PENDING_GOAL_EDIT_KEY = "pendingGoalEdit"; // 이번 달 목표 설정 했는지 체크하는 용
+const FRIEND_ORDER_KEY = "friendOrder";
 
 const green = "#608540";
 const lightGreen = "#fafaf5";
@@ -102,6 +103,8 @@ export default function HomeScreen({ navigation }) {
   const [friendList, setFriendList] = useState([]);
   const [viewingFriend, setViewingFriend] = useState(null);
   const [selfProfile, setSelfProfile] = useState(null);
+  const [bubbleActive, setBubbleActive] = useState(null);
+  const bubbleScaleMapRef = useRef(new Map());
 
   const [readingStartOpen, setReadingStartOpen] = useState(false);
 
@@ -616,7 +619,23 @@ export default function HomeScreen({ navigation }) {
       const list = Array.isArray(res)
         ? res.filter((f) => f.relationStatus === "FRIENDS")
         : [];
-      setFriendList(list);
+      const storedOrder = await AsyncStorage.getItem(FRIEND_ORDER_KEY);
+      const order = storedOrder ? JSON.parse(storedOrder) : [];
+      const orderMap = new Map(
+        Array.isArray(order) ? order.map((id, idx) => [String(id), idx]) : [],
+      );
+      const ordered = [...list].sort((a, b) => {
+        const aKey = a?.userId ?? a?.id ?? a?.nickname ?? "";
+        const bKey = b?.userId ?? b?.id ?? b?.nickname ?? "";
+        const aIdx = orderMap.has(String(aKey))
+          ? orderMap.get(String(aKey))
+          : 1e9;
+        const bIdx = orderMap.has(String(bKey))
+          ? orderMap.get(String(bKey))
+          : 1e9;
+        return aIdx - bIdx;
+      });
+      setFriendList(ordered);
     } catch (e) {
       console.warn("친구 목록 불러오기 실패:", e.response?.data || e.message);
       setFriendList([]);
@@ -636,11 +655,56 @@ export default function HomeScreen({ navigation }) {
   }, [isFocused, viewingFriend]);
 
   useEffect(() => {
-    const sub = DeviceEventEmitter.addListener("friendAccepted", () => {
+    const subAccepted = DeviceEventEmitter.addListener("friendAccepted", () => {
       loadFriends();
     });
-    return () => sub.remove();
+    const subOrder = DeviceEventEmitter.addListener(
+      "friendOrderChanged",
+      () => {
+        loadFriends();
+      },
+    );
+    return () => {
+      subAccepted.remove();
+      subOrder.remove();
+    };
   }, [loadFriends]);
+
+  const getBubbleScale = useCallback((id) => {
+    if (id == null) return null;
+    const key = String(id);
+    const map = bubbleScaleMapRef.current;
+    if (!map.has(key)) map.set(key, new Animated.Value(1));
+    return map.get(key);
+  }, []);
+
+  const getBubbleGap = useCallback((id) => {
+    if (id == null) return null;
+    const key = String(id);
+    const map = bubbleScaleMapRef.current;
+    const gapKey = `${key}-gap`;
+    if (!map.has(gapKey)) map.set(gapKey, new Animated.Value(0));
+    return map.get(gapKey);
+  }, []);
+
+  useEffect(() => {
+    const map = bubbleScaleMapRef.current;
+    const activeId = viewingFriend?.userId ?? viewingFriend?.id ?? null;
+    const activeKey = activeId != null ? String(activeId) : null;
+    const resolvedActive = activeKey ?? (bubbleActive ? "self" : null);
+    map.forEach((value, key) => {
+      const isGap = key.endsWith("-gap");
+      const baseKey = isGap ? key.slice(0, -4) : key;
+      const isActive = resolvedActive && baseKey === resolvedActive;
+      const toValue = isGap ? (isActive ? 10 : 0) : isActive ? 1.3 : 1;
+      Animated.timing(value, {
+        toValue,
+        duration: 160,
+        useNativeDriver: false,
+      }).start();
+    });
+    if (activeKey !== null) setBubbleActive(activeKey);
+  }, [viewingFriend, bubbleActive]);
 
   // 이번 달 첫 방문 체크 및 지난 달 결과 모달
   useEffect(() => {
@@ -839,6 +903,7 @@ export default function HomeScreen({ navigation }) {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={{ overflow: "visible" }}
             contentContainerStyle={styles.friendsStripRow}
           >
             {friendsStrip.map((f, idx) => (
@@ -850,8 +915,10 @@ export default function HomeScreen({ navigation }) {
                   // 첫 번째(내 프로필)는 홈 상태로 복귀
                   if (idx === 0 || f.isSelf) {
                     setViewingFriend(null);
+                    setBubbleActive("self");
                     return;
                   }
+                  setBubbleActive(null);
                   setViewingFriend({
                     userId: f.id || f.userId,
                     nickname: f.name || f.nickname,
@@ -861,29 +928,60 @@ export default function HomeScreen({ navigation }) {
                   });
                 }}
               >
-                <Avatar
-                  uri={
-                    f.avatar ||
-                    f.profileImageUrl ||
-                    f.profileUrl ||
-                    f.image ||
-                    null
-                  }
-                  size={49}
-                  style={styles.avatarImage}
-                />
+                {(() => {
+                  const fid = f.id ?? f.userId ?? null;
+                  const idKey = fid != null ? String(fid) : null;
+                  const vid = viewingFriend?.userId ?? viewingFriend?.id ?? null;
+                  const activeKey =
+                    vid != null ? String(vid) : bubbleActive === "self" ? "self" : null;
+                  const isSelf = idx === 0 || f.isSelf;
+                  const isActive =
+                    isSelf && bubbleActive === "self"
+                      ? true
+                      : idKey != null && activeKey != null && idKey === activeKey;
+                  const scale = getBubbleScale(isSelf ? "self" : fid);
+                  const gap = getBubbleGap(isSelf ? "self" : fid);
+                  const transform = scale ? [{ scale }] : [];
+                  return (
+                    <Animated.View
+                      style={[
+                        transform.length > 0 ? { transform } : null,
+                        gap ? { marginHorizontal: gap } : null,
+                      ]}
+                    >
+                      <Avatar
+                        uri={
+                          f.avatar ||
+                          f.profileImageUrl ||
+                          f.profileUrl ||
+                          f.image ||
+                          null
+                        }
+                        size={49}
+                        style={[
+                          styles.avatarImage,
+                          isActive && styles.avatarActive,
+                        ]}
+                      />
+                    </Animated.View>
+                  );
+                })()}
                 <Text
                   style={[
                     styles.avatarName,
                     idx === 0 && styles.avatarNameBold,
+                    bubbleActive &&
+                      (bubbleActive === "self"
+                        ? idx === 0 || f.isSelf
+                        : (f.id ?? f.userId) != null &&
+                          String(f.id ?? f.userId) === String(bubbleActive)) &&
+                      { marginTop: 10 },
                   ]}
                 >
                   {f.name || f.nickname}
                 </Text>
               </Pressable>
             ))}
-          </ScrollView>
-          <View style={styles.addWrapper}>
             <Pressable
               style={styles.addCircle}
               hitSlop={6}
@@ -891,7 +989,7 @@ export default function HomeScreen({ navigation }) {
             >
               <Text style={styles.addPlus}>＋</Text>
             </Pressable>
-          </View>
+          </ScrollView>
         </View>
 
         {viewingFriend ? (
@@ -1175,14 +1273,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 10,
     paddingTop: 2,
+    overflow: "visible",
   },
   friendsStripRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
     paddingRight: 12,
+    overflow: "visible",
   },
-  friendItem: { alignItems: "center", width: 49 },
+  friendItem: { alignItems: "center", width: 49, overflow: "visible" },
   avatar: {
     width: 49,
     height: 49,
@@ -1191,6 +1291,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarImage: { width: 49, height: 49, borderRadius: 24.5 },
+  avatarActive: { borderWidth: 2, borderColor: green },
   avatarInitial: { fontSize: 16, fontWeight: "700", color: colors.mono[950] },
   avatarName: {
     marginTop: 5,
@@ -1208,11 +1309,8 @@ const styles = StyleSheet.create({
     backgroundColor: green,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#3f5d2c",
   },
-  addWrapper: { marginLeft: "auto" },
-  addPlus: { color: "#fff", fontSize: 24, fontWeight: "700" },
+  addPlus: { color: "#fff", fontSize: 36, fontWeight: "700" },
 
   section: { marginTop: 14, paddingHorizontal: 16 },
 

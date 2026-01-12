@@ -79,10 +79,15 @@ export default function FriendCalendarScreen({
   embedded = false,
   hideHeader = false,
   hideFriendsStrip = false,
+  singleFriendOnly = false,
   refreshKey = 0,
 }) {
   const navHook = useNavigation();
+  const singleOnlyParam =
+    route?.params?.singleFriendOnly ?? route?.params?.singleOnly ?? null;
+  const singleOnly = singleOnlyParam != null ? singleOnlyParam : singleFriendOnly;
   const nav = navigation?.navigate ? navigation : navHook;
+  const goBackNav = navigation?.goBack || navHook?.goBack;
   const isFocused = useIsFocused();
   const [selectedFriend, setSelectedFriend] = useState(
     route.params?.friend || {},
@@ -283,18 +288,7 @@ export default function FriendCalendarScreen({
           setFriendTheme(result.theme);
         }
         if (cancelled) return;
-        const hasCompletionHint = (list || []).some((item) => {
-          return (
-            completionValue(item) ||
-            item?.endDate ||
-            item?.finishedAt ||
-            item?.finishedAtTime ||
-            item?.readEndAt
-          );
-        });
-        const filteredList = hasCompletionHint
-          ? (list || []).filter(isCompletedItem)
-          : list;
+        const filteredList = list || [];
         const grouped = {};
         const uniqMap = new Map();
         (filteredList || []).forEach((item) => {
@@ -439,7 +433,7 @@ export default function FriendCalendarScreen({
       {!hideHeader && (
         <View style={styles.hero}>
           <View style={styles.headerRow}>
-            <Text style={[styles.logo, { color: themeColor }]}>modam</Text>
+            <Text style={styles.logo}>modam</Text>
           </View>
         </View>
       )}
@@ -453,6 +447,27 @@ export default function FriendCalendarScreen({
             contentContainerStyle={styles.friendsStripRow}
           >
             {(() => {
+              if (singleOnly) {
+                const selfEntry =
+                  friendsStrip?.[0] ||
+                  fallbackStrip?.[0] ||
+                  route.params?.self || {
+                    isSelf: true,
+                    name: "나",
+                    nickname: "나",
+                  };
+                if (!friend) return [selfEntry];
+                const selfId = selfEntry.id || selfEntry.userId;
+                const friendIdLocal = friend.id || friend.userId;
+                if (
+                  selfId != null &&
+                  friendIdLocal != null &&
+                  String(selfId) === String(friendIdLocal)
+                ) {
+                  return [selfEntry];
+                }
+                return [selfEntry, friend];
+              }
               // strip을 한 번에 구성: 첫 번째는 내 프로필 고정, 나머지는 유니크하게
               const sourceBase =
                 friendsStrip && friendsStrip.length > 0
@@ -516,7 +531,13 @@ export default function FriendCalendarScreen({
                   style={styles.friendItem}
                   hitSlop={6}
                   onPress={() => {
-                    if (isSelf) return;
+                    if (isSelf) {
+                      if (singleOnly) {
+                        if (goBackNav) goBackNav();
+                        else nav?.navigate?.("Root", { screen: "홈" });
+                      }
+                      return;
+                    }
                     if (id != null && friendIdKey && String(id) === friendIdKey) {
                       return;
                     }
@@ -544,22 +565,29 @@ export default function FriendCalendarScreen({
               );
             })}
           </ScrollView>
-          <View style={styles.addWrapper}>
-            <Pressable
-              style={[
-                styles.addCircle,
-                { backgroundColor: themeColor, borderColor: themeColorDark },
-              ]}
-              hitSlop={6}
-              onPress={() => nav?.navigate?.("FriendList")}
-            >
-              <Text style={styles.addPlus}>＋</Text>
-            </Pressable>
-          </View>
+          {!singleOnly && (
+            <View style={styles.addWrapper}>
+              <Pressable
+                style={[
+                  styles.addCircle,
+                  { backgroundColor: themeColor, borderColor: themeColorDark },
+                ]}
+                hitSlop={6}
+                onPress={() => nav?.navigate?.("FriendList")}
+              >
+                <Text style={styles.addPlus}>＋</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
       )}
 
-      <View style={styles.body}>
+        <View style={styles.body}>
+          <View style={styles.calendarTitleWrap}>
+            <Text style={styles.calendarTitleText}>
+              {friend?.nickname || "닉네임"}님의 독서 기록
+            </Text>
+          </View>
           {!isViewingFriend && (
             <View style={styles.progressCard}>
               <View style={styles.progressTop}>
@@ -1045,6 +1073,14 @@ const styles = StyleSheet.create({
   historyHeader: {
     gap: 3,
     marginBottom: 12,
+  },
+  calendarTitleWrap: {
+    marginBottom: 14,
+  },
+  calendarTitleText: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#608540",
   },
   historyTitle: {
     fontSize: 22,
