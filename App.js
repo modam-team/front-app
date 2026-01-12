@@ -23,6 +23,7 @@ import { Asset } from "expo-asset";
 import React, { useEffect } from "react";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const Stack = createNativeStackNavigator();
 
@@ -41,75 +42,77 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer theme={navTheme}>
-      <Stack.Navigator initialRouteName="OnboardingIntro">
-        <Stack.Screen
-          name="OnboardingIntro"
-          component={OnboardingIntroScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="OnboardingLogin"
-          component={OnboardingLoginScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="OnboardingFlow"
-          component={OnboardingFlowScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Root"
-          component={BottomTabs}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="AddEntry"
-          component={AddEntryScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="BookDetail"
-          component={BookDetailScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="FriendList"
-          component={FriendListScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="FriendCalendar"
-          component={FriendCalendarScreen}
-          options={{ headerShown: false }}
-        />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer theme={navTheme}>
+        <Stack.Navigator initialRouteName="OnboardingIntro">
+          <Stack.Screen
+            name="OnboardingIntro"
+            component={OnboardingIntroScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingLogin"
+            component={OnboardingLoginScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingFlow"
+            component={OnboardingFlowScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Root"
+            component={BottomTabs}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AddEntry"
+            component={AddEntryScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="BookDetail"
+            component={BookDetailScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="FriendList"
+            component={FriendListScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="FriendCalendar"
+            component={FriendCalendarScreen}
+            options={{ headerShown: false }}
+          />
 
-        <Stack.Screen
-          name="SettingsScreen"
-          component={SettingsScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ProfileScreen"
-          component={ProfileScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="EditNameScreen"
-          component={EditNameScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="AuthGate"
-          component={AuthGateScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="GoalResult"
-          component={GoalResultScreen}
-          options={{ headerShown: false, gestureEnabled: false }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+          <Stack.Screen
+            name="SettingsScreen"
+            component={SettingsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ProfileScreen"
+            component={ProfileScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="EditNameScreen"
+            component={EditNameScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AuthGate"
+            component={AuthGateScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="GoalResult"
+            component={GoalResultScreen}
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }

@@ -31,6 +31,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Vibration,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -647,7 +648,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                                     <TouchableOpacity
                                       activeOpacity={0.9}
                                       onLongPress={() =>
-                                        setDeleteTargetId(book.id)
+                                        (Vibration.vibrate(5), setDeleteTargetId(book.id))
                                       }
                                       onPress={() => {
                                         if (deleteTargetId) {

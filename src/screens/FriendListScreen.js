@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
 import { colors } from "@theme/colors";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   DeviceEventEmitter,
@@ -27,8 +27,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import DraggableFlatList from "react-native-draggable-flatlist";
 
 const LOCAL_SENT_KEY = "LOCAL_SENT_REQUESTS";
+const FRIEND_ORDER_KEY = "friendOrder";
 
 export default function FriendListScreen({ navigation }) {
   const isFocused = useIsFocused();
@@ -43,6 +45,7 @@ export default function FriendListScreen({ navigation }) {
   const [errorText, setErrorText] = useState("");
   const [sheetTarget, setSheetTarget] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [friendOrder, setFriendOrder] = useState([]);
   const panResponder = React.useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => {
@@ -108,6 +111,28 @@ export default function FriendListScreen({ navigation }) {
     [],
   );
 
+  const applyFriendOrder = useCallback((list, order) => {
+    if (!Array.isArray(list) || list.length === 0) return [];
+    if (!Array.isArray(order) || order.length === 0) return list;
+    const orderMap = new Map(order.map((id, idx) => [String(id), idx]));
+    const toKey = (item) => {
+      const raw = item?.userId ?? item?.id ?? item?.nickname ?? null;
+      return raw != null ? String(raw) : "";
+    };
+    return [...list].sort((a, b) => {
+      const aKey = toKey(a);
+      const bKey = toKey(b);
+      const aIdx = orderMap.has(aKey) ? orderMap.get(aKey) : 1e9;
+      const bIdx = orderMap.has(bKey) ? orderMap.get(bKey) : 1e9;
+      return aIdx - bIdx;
+    });
+  }, []);
+
+  const orderedFriends = useMemo(
+    () => applyFriendOrder(friends, friendOrder),
+    [friends, friendOrder, applyFriendOrder],
+  );
+
   const shownList =
     results.length > 0
       ? activeTab === "friend"
@@ -118,7 +143,7 @@ export default function FriendListScreen({ navigation }) {
             ),
           )
       : activeTab === "friend"
-        ? friends
+        ? orderedFriends
         : dedupByUser([...received, ...sent, ...localSent]);
 
   const updateStatus = (userId, relationStatus) => {
@@ -143,6 +168,8 @@ export default function FriendListScreen({ navigation }) {
     setLoading(true);
     setErrorText("");
     try {
+      const storedOrder = await AsyncStorage.getItem(FRIEND_ORDER_KEY);
+      const order = storedOrder ? JSON.parse(storedOrder) : [];
       const [friendsRes, receivedRes, sentRes, searchRes] = await Promise.all([
         fetchFriends(),
         fetchReceivedRequests(),
@@ -161,7 +188,8 @@ export default function FriendListScreen({ navigation }) {
             );
       // 로컬 보낸 목록과 병합 후 중복 제거
       const mergedSent = dedupByUser([...sentList, ...localSent]);
-      setFriends(fr);
+      setFriendOrder(Array.isArray(order) ? order : []);
+      setFriends(applyFriendOrder(fr, Array.isArray(order) ? order : []));
       setReceived(recv);
       setSent(mergedSent);
       saveLocalSent(mergedSent);
@@ -218,6 +246,18 @@ export default function FriendListScreen({ navigation }) {
       loadLocalSentFromStorage().finally(loadAllFriends);
     }
   }, [isFocused]);
+
+  const saveFriendOrder = useCallback(async (list) => {
+    const order = Array.isArray(list)
+      ? list
+          .map((f) => f?.userId ?? f?.id ?? null)
+          .filter((id) => id != null)
+      : [];
+    setFriendOrder(order);
+    setFriends(list);
+    await AsyncStorage.setItem(FRIEND_ORDER_KEY, JSON.stringify(order));
+    DeviceEventEmitter.emit("friendOrderChanged", order);
+  }, []);
 
   useEffect(() => {
     // 탭 전환 시에도 최신 목록을 갱신해 반영
@@ -455,7 +495,54 @@ export default function FriendListScreen({ navigation }) {
 
         <View style={styles.listArea}>
           {loading && <Text style={styles.emptyText}>불러오는 중...</Text>}
+          {!loading && activeTab === "friend" && (
+            <DraggableFlatList
+              data={orderedFriends}
+              keyExtractor={(item, index) =>
+                String(item?.userId ?? item?.id ?? item?.nickname ?? index)
+              }
+              onDragBegin={() => {}}
+              onDragEnd={({ data }) => saveFriendOrder(data)}
+              renderItem={({ item, drag, isActive }) => (
+                <Pressable
+                  style={[
+                    styles.friendRow,
+                    isActive && styles.friendRowActive,
+                    isActive && { opacity: 0.9 },
+                  ]}
+                  onPress={() => setSheetTarget(item)}
+                  onLongPress={drag}
+                >
+                  <View style={styles.friendMeta}>
+                    <Avatar
+                      uri={
+                        item.profileImageUrl ||
+                        item.profileUrl ||
+                        item.avatar ||
+                        item.image ||
+                        null
+                      }
+                      size={44}
+                      style={styles.avatar}
+                    />
+                    <Text style={styles.friendName}>{item.nickname}</Text>
+                  </View>
+                  {item.relationStatus && (
+                    <View style={styles.chip}>
+                      <Text style={styles.chipText}>
+                        {statusLabel[item.relationStatus] ||
+                          item.relationStatus}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              )}
+              scrollEnabled={false}
+              contentContainerStyle={{ gap: 10 }}
+            />
+          )}
           {!loading &&
+            activeTab !== "friend" &&
             shownList.map((friend, idx) => (
               <Pressable
                 key={`${friend.userId || friend.nickname || "friend"}-${idx}`}
@@ -579,6 +666,7 @@ export default function FriendListScreen({ navigation }) {
                     onPress={() => {
                       setSheetTarget(null);
                       navigation.navigate("FriendCalendar", {
+                        singleFriendOnly: true,
                         friend: {
                           userId: sheetTarget.userId,
                           nickname: sheetTarget.nickname,
@@ -731,6 +819,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 4,
+  },
+  friendRowActive: {
+    borderWidth: 2,
+    borderColor: "#608540",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#fff",
   },
   friendMeta: {
     flexDirection: "row",

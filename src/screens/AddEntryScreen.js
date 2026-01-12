@@ -14,7 +14,7 @@ import Avatar from "@components/common/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRoute } from "@react-navigation/native";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -22,6 +22,7 @@ import {
   Modal,
   PanResponder,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -383,6 +384,27 @@ export default function AddEntryScreen({ navigation }) {
     item?.memberId ??
     item?.user?.memberId ??
     null;
+
+  const openFriendCalendar = useCallback(
+    (rev) => {
+      const userId = getOtherId(rev);
+      if (!userId) return;
+      closeDetail();
+      navigation?.navigate?.("FriendCalendar", {
+        friend: {
+          userId,
+          nickname: rev?.nickname || rev?.userName || "닉네임",
+          avatar:
+            rev?.profileImageUrl ||
+            rev?.profileUrl ||
+            rev?.avatar ||
+            rev?.image ||
+            null,
+        },
+      });
+    },
+    [closeDetail, navigation],
+  );
 
   useEffect(() => {
     const bookId = selectedBook?.bookId || selectedBook?.id;
@@ -1167,11 +1189,15 @@ export default function AddEntryScreen({ navigation }) {
 
                       <View style={styles.detailStarsRow}>
                         {renderStars(
-                          (detailReview?.rating ||
-                            selectedBook.userRate ||
-                            selectedBook.rate ||
-                            0) ??
-                            0,
+                          Number(
+                            selectedBook.avgRate ??
+                              selectedBook.averageRating ??
+                              selectedBook.reviewAvg ??
+                              selectedBook.reviewAverage ??
+                              selectedBook.totalRate ??
+                              selectedBook.rate ??
+                              0,
+                          ) || 0,
                           20,
                         )}
                         <Text style={styles.voteCount}>
@@ -1323,17 +1349,23 @@ export default function AddEntryScreen({ navigation }) {
                           key={rev.id || rev.userId || `${rev.nickname}-${idx}`}
                           style={styles.reviewCard}
                         >
-                          <Avatar
-                            uri={
-                              rev?.profileImageUrl ||
-                              rev?.profileUrl ||
-                              rev?.avatar ||
-                              rev?.image ||
-                              null
-                            }
-                            size={46}
-                            style={styles.avatar}
-                          />
+                          <Pressable
+                            hitSlop={6}
+                            onPress={() => openFriendCalendar(rev)}
+                            disabled={!rev?.userId}
+                          >
+                            <Avatar
+                              uri={
+                                rev?.profileImageUrl ||
+                                rev?.profileUrl ||
+                                rev?.avatar ||
+                                rev?.image ||
+                                null
+                              }
+                              size={46}
+                              style={styles.avatar}
+                            />
+                          </Pressable>
                           <View style={styles.reviewBody}>
                             <View style={styles.reviewTop}>
                               <Text style={styles.reviewNickname}>
@@ -2012,7 +2044,7 @@ const styles = StyleSheet.create({
   },
   manualContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 74,
     paddingBottom: 120,
     gap: 14,
   },
