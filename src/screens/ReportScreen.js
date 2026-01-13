@@ -34,18 +34,6 @@ import {
 
 // 리포트 화면
 export default function ReportScreen() {
-  const { reset: resetStatsAnim, ...statsAnim } = useSectionVisibilityAnimation(
-    { ratio: 0.9 },
-  );
-  const { reset: resetPrefAnim, ...prefAnim } = useSectionVisibilityAnimation({
-    ratio: 0.9,
-  });
-  const { reset: resetHabitAnim, ...habitAnim } = useSectionVisibilityAnimation(
-    { ratio: 0.9 },
-  );
-
-  const [preferenceResetKey, setPreferenceResetKey] = useState(0);
-
   // 이 스크린이 현재 포커스(탭 선택) 상태인지
   const isFocused = useIsFocused();
 
@@ -53,6 +41,8 @@ export default function ReportScreen() {
 
   // 탭바 테마 제어
   const { setTheme } = useTabBarTheme();
+
+  /* ========= User Profile 관련 ========= */
 
   // 닉네임 가져오기
   const [userName, setUserName] = useState("");
@@ -78,6 +68,7 @@ export default function ReportScreen() {
     loadUser();
   }, [isFocused]);
 
+  /* ========= Date (year / month) & current month 판단 ========= */
   // 현재 날짜 기준 기본 연도랑 월 설정
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -87,6 +78,8 @@ export default function ReportScreen() {
   const isCurrentMonth =
     year === now.getFullYear() && month === now.getMonth() + 1;
 
+  /* ========= 이번 달 첫 방문 여부 체크 키 ========= */
+  // 이번 달 기준 key는 앱 실행 중에 바뀌면 안돼서 memo로 고정
   const CURRENT_MONTH_KEY = useMemo(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -94,39 +87,52 @@ export default function ReportScreen() {
 
   const REPORT_VISIT_KEY = `report_tab_visited_${CURRENT_MONTH_KEY}`;
 
-  // 리포트 데이터
+  /* ========= 리포트 데이터 ========= */
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const isEmpty = !!data?.summary?.isEmpty;
 
-  // 리포트 화면이 포커스일 때만 탭바 테마를 바꿈
-  useEffect(() => {
-    if (!isFocused) return;
+  /* ========= Section Animation 관련 ========= */
+  const { reset: resetStatsAnim, ...statsAnim } = useSectionVisibilityAnimation(
+    { ratio: 0.9 },
+  );
+  const { reset: resetPrefAnim, ...prefAnim } = useSectionVisibilityAnimation({
+    ratio: 0.9,
+  });
+  const { reset: resetHabitAnim, ...habitAnim } = useSectionVisibilityAnimation(
+    { ratio: 0.9 },
+  );
 
-    // 현재 달이면 초록, 아니면 기본(흰색) + 신규 유저면 past 테마로
-    setTheme(shouldUseCurrentTheme ? "reportCurrent" : "default");
-
-    // 화면 나가면 무조건 원복
-    return () => setTheme("default");
-  }, [isFocused, shouldUseCurrentTheme, setTheme]);
-
-  // 연도랑 월 선택 관리
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const openPicker = () => setPickerVisible(true);
-  const closePicker = () => setPickerVisible(false);
-
-  const scrollRef = useRef(null);
-
-  // 습관 분석 토글
-  const [habitTab, setHabitTab] = useState("time"); // 'time' | 'place'
-
+  // 애니메이션 상태 리셋 트리거
+  const [statsResetKey, setStatsResetKey] = useState(0);
+  const [preferenceResetKey, setPreferenceResetKey] = useState(0);
   const [habitResetKey, setHabitResetKey] = useState(0);
 
-  const [statsResetKey, setStatsResetKey] = useState(0);
+  // 습관 분석 토글
+  const [habitTab, setHabitTab] = useState("time"); // time | place
 
-  // 연도나 월을 변경하면 자동으로 리포트 재조회하도록
+  // 스크롤 제어
+  const scrollRef = useRef(null);
+
+  // 마지막 스크롤 정보 보관
+  const scrollInfoRef = useRef({ y: 0, h: 0 });
+
+  // 세로 스크롤할 때 섹션들이 화면에 보이는지 체크
+  const handleScroll = (e) => {
+    const { contentOffset, layoutMeasurement } = e.nativeEvent;
+    const y = contentOffset.y;
+    const h = layoutMeasurement.height;
+
+    scrollInfoRef.current = { y, h };
+
+    statsAnim.checkAndAnimate(y, h);
+    prefAnim.checkAndAnimate(y, h);
+    habitAnim.checkAndAnimate(y, h);
+  };
+
+  /* ========= year / month 변경 시 재조회 + 애니메이션 리셋 ========= */
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -161,7 +167,7 @@ export default function ReportScreen() {
     load();
   }, [year, month, resetStatsAnim, resetPrefAnim, resetHabitAnim]);
 
-  // 탭 전환으로 이 스크린이 다시 포커스될 때마다
+  /* ========= 탭 전환으로 이 스크린이 다시 포커스 되면 애니메이션 다시 허용 + 스크롤을 top 으로 ========= */
   useEffect(() => {
     if (!isFocused) return;
 
@@ -176,21 +182,7 @@ export default function ReportScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }, [isFocused, resetStatsAnim, resetPrefAnim, resetHabitAnim]);
 
-  const resetReportVisitDebug = async () => {
-    try {
-      await AsyncStorage.removeItem(REPORT_VISIT_KEY);
-
-      // 상태도 즉시 반영
-      setIsFirstVisitThisMonth(true);
-
-      // 확인 로그(선택)
-      const v = await AsyncStorage.getItem(REPORT_VISIT_KEY);
-      console.log("🧪 reset key:", REPORT_VISIT_KEY, "after:", v); // null이면 성공
-    } catch (e) {
-      console.error("리포트 방문 플래그 초기화 실패", e);
-    }
-  };
-
+  /* ========= 파생된 데이터들 ========= */
   const places = useMemo(() => {
     const list = data?.readingPlaces ?? [];
     const ratioByLabel = new Map(list.map((p) => [p.label, p.ratio]));
@@ -262,22 +254,7 @@ export default function ReportScreen() {
     return yearTotal > 0;
   }, [data]);
 
-  const scrollInfoRef = useRef({ y: 0, h: 0 });
-
-  // 세로 스크롤할 때 섹션들이 화면에 보이는지 체크
-  const handleScroll = (e) => {
-    const { contentOffset, layoutMeasurement } = e.nativeEvent;
-    const y = contentOffset.y;
-    const h = layoutMeasurement.height;
-
-    scrollInfoRef.current = { y, h };
-
-    statsAnim.checkAndAnimate(y, h);
-    prefAnim.checkAndAnimate(y, h);
-    habitAnim.checkAndAnimate(y, h);
-  };
-
-  // 첫 방문인지 (진한 초록색 배경으로 보여줄라고)
+  /* ========= 이번 달 첫 방문인지 체크 ========= */
   const [isFirstVisitThisMonth, setIsFirstVisitThisMonth] = useState(false);
 
   useEffect(() => {
@@ -308,8 +285,18 @@ export default function ReportScreen() {
   const shouldUseCurrentTheme =
     isFirstVisitThisMonth && isCurrentMonth && !isEmpty;
 
-  const isCurrentUI = shouldUseCurrentTheme; // current 스타일을 써야 하는가?
+  // 리포트 화면이 포커스일 때만 탭바 테마를 바꿈
+  useEffect(() => {
+    if (!isFocused) return;
 
+    // 현재 달이면 초록, 아니면 기본(흰색) + 신규 유저면 past 테마로
+    setTheme(shouldUseCurrentTheme ? "reportCurrent" : "default");
+
+    // 화면 나가면 무조건 원복
+    return () => setTheme("default");
+  }, [isFocused, shouldUseCurrentTheme, setTheme]);
+
+  const isCurrentUI = shouldUseCurrentTheme; // current 스타일을 써야 하는가?
   const styleVariant = shouldUseCurrentTheme ? "current" : "past";
   const headerVariant = shouldUseCurrentTheme ? "light" : "green";
 
@@ -318,8 +305,28 @@ export default function ReportScreen() {
     styleVariant === "current"
       ? REPORT_BACKGROUND_MAP
       : REPORT_BACKGROUND_MAP_PAST;
-
   const bgSource = !isEmpty && personaKey ? map[personaKey] : null;
+
+  /* ========= 연도랑 월 선택 관리 ========= */
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const openPicker = () => setPickerVisible(true);
+  const closePicker = () => setPickerVisible(false);
+
+  /* ========= 개발할 때 테스트 용으로 이번 달 방문 기록 초기화 ========= */
+  const resetReportVisitDebug = async () => {
+    try {
+      await AsyncStorage.removeItem(REPORT_VISIT_KEY);
+
+      // 상태도 즉시 반영
+      setIsFirstVisitThisMonth(true);
+
+      // 확인 로그
+      // const v = await AsyncStorage.getItem(REPORT_VISIT_KEY);
+      // console.log("[reset key]:", REPORT_VISIT_KEY, "after:", v); // null이면 성공
+    } catch (e) {
+      console.error("리포트 방문 플래그 초기화 실패", e);
+    }
+  };
 
   return (
     <ImageBackground
