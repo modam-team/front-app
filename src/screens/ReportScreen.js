@@ -15,7 +15,7 @@ import {
   REPORT_BACKGROUND_MAP,
   REPORT_BACKGROUND_MAP_PAST,
 } from "@constants/reportBackgroundMap";
-import useSectionVisibilityAnimation from "@hooks/useSectionVisibilityAnimation";
+import useReportSectionAnimations from "@hooks/useReportSectionAnimations";
 import { useTabBarTheme } from "@navigation/TabBarThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
@@ -43,13 +43,9 @@ export default function ReportScreen() {
   const { setTheme } = useTabBarTheme();
 
   /* ========= User Profile 관련 ========= */
-
-  // 닉네임 가져오기
-  const [userName, setUserName] = useState("");
-  // 프로필 이미지 가져오기
-  const [profileImageUrl, setProfileImageUrl] = useState(null);
-  // 가입일 가져오기
-  const [userCreatedAt, setUserCreatedAt] = useState(null);
+  const [userName, setUserName] = useState(""); // 닉네임 가져오기
+  const [profileImageUrl, setProfileImageUrl] = useState(null); // 프로필 이미지 가져오기
+  const [userCreatedAt, setUserCreatedAt] = useState(null); // 가입일 가져오기
 
   useEffect(() => {
     const loadUser = async () => {
@@ -95,20 +91,14 @@ export default function ReportScreen() {
   const isEmpty = !!data?.summary?.isEmpty;
 
   /* ========= Section Animation 관련 ========= */
-  const { reset: resetStatsAnim, ...statsAnim } = useSectionVisibilityAnimation(
-    { ratio: 0.9 },
-  );
-  const { reset: resetPrefAnim, ...prefAnim } = useSectionVisibilityAnimation({
-    ratio: 0.9,
-  });
-  const { reset: resetHabitAnim, ...habitAnim } = useSectionVisibilityAnimation(
-    { ratio: 0.9 },
-  );
-
-  // 애니메이션 상태 리셋 트리거
-  const [statsResetKey, setStatsResetKey] = useState(0);
-  const [preferenceResetKey, setPreferenceResetKey] = useState(0);
-  const [habitResetKey, setHabitResetKey] = useState(0);
+  const {
+    stats: statsAnim,
+    pref: prefAnim,
+    habit: habitAnim,
+    resetKeys,
+    resetAll,
+    handleScroll,
+  } = useReportSectionAnimations({ ratio: 0.9 });
 
   // 습관 분석 토글
   const [habitTab, setHabitTab] = useState("time"); // time | place
@@ -119,19 +109,6 @@ export default function ReportScreen() {
   // 마지막 스크롤 정보 보관
   const scrollInfoRef = useRef({ y: 0, h: 0 });
 
-  // 세로 스크롤할 때 섹션들이 화면에 보이는지 체크
-  const handleScroll = (e) => {
-    const { contentOffset, layoutMeasurement } = e.nativeEvent;
-    const y = contentOffset.y;
-    const h = layoutMeasurement.height;
-
-    scrollInfoRef.current = { y, h };
-
-    statsAnim.checkAndAnimate(y, h);
-    prefAnim.checkAndAnimate(y, h);
-    habitAnim.checkAndAnimate(y, h);
-  };
-
   /* ========= year / month 변경 시 재조회 + 애니메이션 리셋 ========= */
   useEffect(() => {
     const load = async () => {
@@ -140,17 +117,9 @@ export default function ReportScreen() {
         const res = await fetchMonthlyReport({ year, month });
         setData(res);
 
-        // 통계 리셋
-        setStatsResetKey((k) => k + 1);
-        resetStatsAnim();
+        // 월 변경 시 섹션 진입 애니메이션 상태를 모두 초기화
+        resetAll();
 
-        // 취향 리셋
-        setPreferenceResetKey((k) => k + 1);
-        resetPrefAnim();
-
-        // 습관 리셋
-        setHabitResetKey((k) => k + 1);
-        resetHabitAnim();
         setHabitTab("time");
       } catch (e) {
         console.error(
@@ -165,22 +134,16 @@ export default function ReportScreen() {
       }
     };
     load();
-  }, [year, month, resetStatsAnim, resetPrefAnim, resetHabitAnim]);
+  }, [year, month, resetAll]);
 
   /* ========= 탭 전환으로 이 스크린이 다시 포커스 되면 애니메이션 다시 허용 + 스크롤을 top 으로 ========= */
   useEffect(() => {
     if (!isFocused) return;
 
-    resetStatsAnim();
-    resetPrefAnim();
-    resetHabitAnim();
-
-    setStatsResetKey((k) => k + 1);
-    setPreferenceResetKey((k) => k + 1);
-    setHabitResetKey((k) => k + 1);
+    resetAll();
 
     scrollRef.current?.scrollTo({ y: 0, animated: true });
-  }, [isFocused, resetStatsAnim, resetPrefAnim, resetHabitAnim]);
+  }, [isFocused, resetAll]);
 
   /* ========= 파생된 데이터들 ========= */
   const places = useMemo(() => {
@@ -388,7 +351,7 @@ export default function ReportScreen() {
                   onChangeYear={setYear}
                   onChangeMonth={setMonth}
                   animateKey={statsAnim.animateKey}
-                  resetKey={statsResetKey}
+                  resetKey={resetKeys.stats}
                   onOpenPicker={openPicker}
                   isCurrentMonth={isCurrentUI}
                   isEmpty={!hasAnyRecordInYear}
@@ -418,7 +381,7 @@ export default function ReportScreen() {
                   isCurrentMonth={isCurrentUI}
                   genreDistribution={data.genreDistribution}
                   reviewKeywords={data.reviewKeywords}
-                  resetKey={preferenceResetKey}
+                  resetKey={resetKeys.pref}
                   onLayout={prefAnim.onLayout}
                   animateKey={prefAnim.animateKey}
                 />
@@ -456,13 +419,13 @@ export default function ReportScreen() {
                       <TimeHabits
                         readingCountsByWeekday={data.readingCountsByWeekday}
                         animateKey={habitAnim.animateKey}
-                        resetKey={habitResetKey}
+                        resetKey={resetKeys.habit}
                       />
                     ) : (
                       <PlaceHabits
                         places={places}
                         animateKey={habitAnim.animateKey}
-                        resetKey={habitResetKey}
+                        resetKey={resetKeys.habit}
                       />
                     )}
                   </>
@@ -514,26 +477,5 @@ const styles = StyleSheet.create({
   dropdownIcon: {
     fontSize: 12,
     color: colors.primary[500],
-  },
-
-  // 임시
-  placeHolderCard: {
-    height: 436,
-    marginTop: 12,
-    borderRadius: 28,
-    backgroundColor: colors.mono[100],
-    paddingVertical: 22,
-    paddingHorizontal: 29,
-    justifyContent: "center",
-  },
-  placeHolderTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.mono[950],
-    marginBottom: 8,
-  },
-  placeHolderCaption: {
-    ...typography["body-2-regular"],
-    color: colors.mono[500],
   },
 });
