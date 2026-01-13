@@ -23,23 +23,16 @@ import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   ImageBackground,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 
+// 리포트 화면
 export default function ReportScreen() {
   const { reset: resetStatsAnim, ...statsAnim } = useSectionVisibilityAnimation(
     { ratio: 0.9 },
