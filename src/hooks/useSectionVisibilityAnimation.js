@@ -45,30 +45,32 @@ export default function useSectionVisibilityAnimation({ ratio = 0.5 } = {}) {
       // 이미 실행했으면 무시
       if (hasAnimated) return false;
 
+      // 아직 화면에 보이지 않으면 무시
       if (!isVisible(scrollY, screenHeight)) return false;
 
-      // 애니메이션 재시작
+      // animateKey 변경으로 자식 애니메이션이 새로 시작되도록 함
       setAnimateKey((k) => k + 1);
 
       // 1번만 실행되도록 마킹
       setHasAnimated(true);
+
       return true;
     },
     [hasAnimated, isVisible],
   );
 
-  // 애니메이션 실행 여부 초기화
+  // 같은 화면에서 다시 애니메이션을 허용해야 할 때 사용 (장르 <-> 키워드 카드 변환 / 시간 <-> 장소 카드 변환)
   const reset = useCallback(() => {
     setHasAnimated(false);
   }, []);
 
-  // 외부에서 사용할 API
+  // 스크린에서 사용할 훅의 공개 인터페이스
   return useMemo(
     () => ({
-      onLayout: handleLayout, // 섹션 View에 연결
-      animateKey, // 자식 컴포넌트 애니메이션 트리거용
-      reset, // 다시 실행 가능하게 초기화
-      checkAndAnimate, // onScroll에서 호출
+      onLayout: handleLayout, // 섹션이 화면에 배치된 후 위치/크기를 한 번만 측정하기 위한 핸들러
+      animateKey, // 애니메이션을 다시 시작시키기 위한 트리거 값 (값이 변경되면 자식 컴포넌트에서 진입 애니메이션을 재생함)
+      reset, // 같은 화면 내에서 애니메이션을 다시 허용해야 할 때 상태를 초기화함
+      checkAndAnimate, // 스크롤 위치와 화면 높이를 기반으로 섹션 가시성을 판단하고 애니메이션 실행 여부를 결정함
     }),
     [handleLayout, animateKey, reset, checkAndAnimate],
   );
