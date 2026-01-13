@@ -13,7 +13,7 @@ export default function useSectionVisibilityAnimation({ ratio = 0.5 } = {}) {
   const [hasAnimated, setHasAnimated] = useState(false);
 
   // 섹션 레이아웃 측정
-  const onLayout = useCallback((e) => {
+  const handleLayout = useCallback((e) => {
     const { y, height } = e.nativeEvent.layout;
     setLayout({ y, height });
   }, []);
@@ -65,11 +65,11 @@ export default function useSectionVisibilityAnimation({ ratio = 0.5 } = {}) {
   // 외부에서 사용할 API
   return useMemo(
     () => ({
-      onLayout, // 섹션 View에 연결
+      onLayout: handleLayout, // 섹션 View에 연결
       animateKey, // 자식 컴포넌트 애니메이션 트리거용
       reset, // 다시 실행 가능하게 초기화
       checkAndAnimate, // onScroll에서 호출
     }),
-    [onLayout, animateKey, reset, checkAndAnimate],
+    [handleLayout, animateKey, reset, checkAndAnimate],
   );
 }
