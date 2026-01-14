@@ -30,9 +30,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   UIManager,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -47,7 +47,10 @@ export default function BookDetailScreen({ navigation, route }) {
   const book = route.params?.book || {};
   const coverUri = book.coverUri || book.cover || null;
   const { width: screenWidth } = useWindowDimensions();
-  const noteStarSize = Math.max(32, Math.min(60, Math.round(screenWidth * 0.12)));
+  const noteStarSize = Math.max(
+    32,
+    Math.min(60, Math.round(screenWidth * 0.12)),
+  );
   const initialStatus = (book.status || "").toLowerCase() || "before";
   const [status, setStatus] = useState(initialStatus); // 선택된 상태
   const [committedStatus, setCommittedStatus] = useState(initialStatus); // 서버에 반영된 상태
@@ -168,8 +171,7 @@ export default function BookDetailScreen({ navigation, route }) {
         .map((r) => Number(r.rating ?? r.rate ?? r.avgRating ?? r.avgRate ?? 0))
         .filter((n) => Number.isFinite(n) && n > 0);
       if (ratings.length > 0) {
-        const avg =
-          ratings.reduce((sum, n) => sum + n, 0) / ratings.length;
+        const avg = ratings.reduce((sum, n) => sum + n, 0) / ratings.length;
         setAvgRate(avg);
         setTotalReviews(ratings.length);
       } else if (safeList.length > 0) {
@@ -842,7 +844,10 @@ export default function BookDetailScreen({ navigation, route }) {
                         </View>
                       ) : (
                         <Text
-                          style={[styles.myInfoValue, styles.myInfoValueHashtag]}
+                          style={[
+                            styles.myInfoValue,
+                            styles.myInfoValueHashtag,
+                          ]}
                         >
                           -
                         </Text>
