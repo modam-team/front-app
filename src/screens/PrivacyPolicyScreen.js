@@ -26,8 +26,8 @@ export default function PrivacyPolicyScreen({ navigation }) {
             모담은 서비스 제공을 위해 다음 정보를 수집할 수 있습니다.
           </Paragraph>
           <Paragraph>
-            - 필수: 닉네임, 프로필 이미지, 로그인 식별자(카카오 등),
-            기기 정보(운영체제, 앱 버전)
+            - 필수: 닉네임, 프로필 이미지, 로그인 식별자(카카오 등), 기기
+            정보(운영체제, 앱 버전)
           </Paragraph>
           <Paragraph>
             - 선택: 독서 기록, 리뷰 내용, 해시태그, 선호 장르
@@ -35,18 +35,10 @@ export default function PrivacyPolicyScreen({ navigation }) {
         </Section>
 
         <Section title="2. 개인정보 수집 및 이용 목적">
-          <Paragraph>
-            수집한 개인정보는 다음 목적을 위해 이용됩니다.
-          </Paragraph>
-          <Paragraph>
-            - 회원 식별 및 서비스 제공
-          </Paragraph>
-          <Paragraph>
-            - 독서 기록/리뷰 기능 제공 및 통계 처리
-          </Paragraph>
-          <Paragraph>
-            - 공지, 문의 응대 등 고객 지원
-          </Paragraph>
+          <Paragraph>수집한 개인정보는 다음 목적을 위해 이용됩니다.</Paragraph>
+          <Paragraph>- 회원 식별 및 서비스 제공</Paragraph>
+          <Paragraph>- 독서 기록/리뷰 기능 제공 및 통계 처리</Paragraph>
+          <Paragraph>- 공지, 문의 응대 등 고객 지원</Paragraph>
         </Section>
 
         <Section title="3. 보유 및 이용 기간">
@@ -65,8 +57,8 @@ export default function PrivacyPolicyScreen({ navigation }) {
 
         <Section title="5. 개인정보 처리 위탁">
           <Paragraph>
-            서비스 운영을 위해 일부 업무를 외부에 위탁할 수 있으며, 이 경우
-            관련 법령을 준수하여 안전하게 관리합니다.
+            서비스 운영을 위해 일부 업무를 외부에 위탁할 수 있으며, 이 경우 관련
+            법령을 준수하여 안전하게 관리합니다.
           </Paragraph>
         </Section>
 
