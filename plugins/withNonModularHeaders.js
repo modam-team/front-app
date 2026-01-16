@@ -1,4 +1,3 @@
-/* global require, module */
 const { withPodfile } = require("@expo/config-plugins");
 
 const SETTING_KEY = "CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES";
