@@ -3,7 +3,6 @@ import {
   createReview,
   fetchBookcase,
   fetchReview,
-  fetchReviewsList,
   updateBookcaseState,
   updateReview,
 } from "@apis/bookcaseApi";
@@ -30,7 +29,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   UIManager,
   View,
 } from "react-native";
@@ -46,8 +44,6 @@ if (
 export default function BookDetailScreen({ navigation, route }) {
   const book = route.params?.book || {};
   const coverUri = book.coverUri || book.cover || null;
-  const { width: screenWidth } = useWindowDimensions();
-  const noteStarSize = Math.max(32, Math.min(60, Math.round(screenWidth * 0.12)));
   const initialStatus = (book.status || "").toLowerCase() || "before";
   const [status, setStatus] = useState(initialStatus); // 선택된 상태
   const [committedStatus, setCommittedStatus] = useState(initialStatus); // 서버에 반영된 상태
@@ -72,53 +68,6 @@ export default function BookDetailScreen({ navigation, route }) {
   const [fetchedReview, setFetchedReview] = useState(null);
   const [avgRate, setAvgRate] = useState(book.rate || 0);
   const [totalReviews, setTotalReviews] = useState(book.totalReview || 0);
-  const formatRating = useCallback((value) => {
-    const num = Number(value);
-    if (!Number.isFinite(num)) return "0";
-    return Number.isInteger(num) ? String(num) : num.toFixed(1);
-  }, []);
-  const formatDateShort = useCallback((raw) => {
-    if (!raw) return "";
-    const dt = raw instanceof Date ? raw : new Date(raw);
-    if (Number.isNaN(dt.getTime())) return "";
-    const y = dt.getFullYear();
-    const m = String(dt.getMonth() + 1).padStart(2, "0");
-    const d = String(dt.getDate()).padStart(2, "0");
-    return `${y}.${m}.${d}`;
-  }, []);
-
-  const formatDateSlash = useCallback((raw) => {
-    if (!raw) return "";
-    const dt = raw instanceof Date ? raw : new Date(raw);
-    if (Number.isNaN(dt.getTime())) return "";
-    const y = dt.getFullYear();
-    const m = String(dt.getMonth() + 1).padStart(2, "0");
-    const d = String(dt.getDate()).padStart(2, "0");
-    return `${y}/${m}/${d}`;
-  }, []);
-
-  const startDateText = useMemo(() => {
-    const raw =
-      book?.startDate ||
-      book?.startedAt ||
-      book?.readingStartAt ||
-      book?.readStartAt ||
-      book?.beginDate ||
-      book?.enrollAt ||
-      book?.createdAt ||
-      null;
-    return formatDateSlash(raw);
-  }, [book, formatDateSlash]);
-
-  const endDateText = useMemo(() => {
-    const raw =
-      book?.endDate ||
-      book?.finishedAt ||
-      book?.finishedAtTime ||
-      book?.readEndAt ||
-      null;
-    return formatDateSlash(raw);
-  }, [book, formatDateSlash]);
   const bookKey = book.id || book.bookId;
   const flipAnim = useRef(new Animated.Value(0)).current;
   const runFlip = useCallback(
@@ -144,10 +93,7 @@ export default function BookDetailScreen({ navigation, route }) {
     setReviewError(null);
     setReviewLoading(true);
     try {
-      const [data, list] = await Promise.all([
-        fetchReview(bookKey),
-        fetchReviewsList(bookKey).catch(() => []),
-      ]);
+      const data = await fetchReview(bookKey);
       if (!data) return;
       if (typeof data.rating === "number") {
         setRating(data.rating);
@@ -163,18 +109,6 @@ export default function BookDetailScreen({ navigation, route }) {
       setTotalReviews((prev) =>
         prev > 0 ? prev : data.totalReview || book.totalReview || 1,
       );
-      const safeList = Array.isArray(list) ? list : [];
-      const ratings = safeList
-        .map((r) => Number(r.rating ?? r.rate ?? r.avgRating ?? r.avgRate ?? 0))
-        .filter((n) => Number.isFinite(n) && n > 0);
-      if (ratings.length > 0) {
-        const avg =
-          ratings.reduce((sum, n) => sum + n, 0) / ratings.length;
-        setAvgRate(avg);
-        setTotalReviews(ratings.length);
-      } else if (safeList.length > 0) {
-        setTotalReviews(safeList.length);
-      }
       setFetchedReview(data);
       setReviewDone(true);
       setReviewPosted(true);
@@ -800,57 +734,6 @@ export default function BookDetailScreen({ navigation, route }) {
                 })}
                 <Text style={styles.voteText}>{displayTotalReview}명</Text>
               </View>
-              {status === "after" && startDateText && (
-                <View style={styles.readingDateRow}>
-                  <Text style={styles.readingDateText}>
-                    {startDateText}
-                    {status === "after" && endDateText
-                      ? ` ~ ${endDateText}`
-                      : " ~"}
-                  </Text>
-                </View>
-              )}
-              {status === "after" && (
-                <View style={styles.myInfoRow}>
-                  <View style={[styles.myInfoBlock, styles.myInfoBlockRating]}>
-                    <View style={styles.myInfoLabelRow}>
-                      <Text style={styles.myInfoLabel}>나의 별점</Text>
-                    </View>
-                    <View style={styles.myInfoValueRow}>
-                      <Text
-                        style={[styles.myInfoValue, styles.myInfoValueCenter]}
-                      >
-                        {formatRating(rating)} / 5
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={[styles.myInfoBlock, styles.myInfoBlockHashtag]}>
-                    <View style={styles.myInfoLabelRow}>
-                      <Text style={styles.myInfoLabel}>해시태그</Text>
-                    </View>
-                    <View style={styles.myInfoValueRow}>
-                      {selectedTags.length > 0 ? (
-                        <View style={styles.myInfoTagRow}>
-                          {selectedTags.map((t) => (
-                            <Text
-                              key={t}
-                              style={styles.myInfoTagText}
-                            >
-                              #{t}
-                            </Text>
-                          ))}
-                        </View>
-                      ) : (
-                        <Text
-                          style={[styles.myInfoValue, styles.myInfoValueHashtag]}
-                        >
-                          -
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                </View>
-              )}
               <View style={styles.starsRowSpacer} />
             </View>
           </Animated.View>
@@ -925,7 +808,7 @@ export default function BookDetailScreen({ navigation, route }) {
                     }}
                   >
                     <StarIcon
-                      size={noteStarSize}
+                      size={60}
                       variant={isFull ? "full" : isHalf ? "half" : "empty"}
                       color="#426B1F"
                     />
@@ -1327,61 +1210,6 @@ const styles = StyleSheet.create({
   starsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   starsRowSpacer: { height: 8 },
   voteText: { fontSize: 12, color: "#C6C6C6", marginLeft: 6 },
-  readingDateRow: {
-    width: "100%",
-    marginTop: 8,
-    paddingTop: 6,
-    paddingBottom: 6,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#DADADA",
-  },
-  readingDateText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#608540",
-  },
-  myInfoRow: {
-    width: "100%",
-    marginTop: 6,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 24,
-  },
-  myInfoBlock: { flexGrow: 0, flexShrink: 0 },
-  myInfoBlockRating: { alignItems: "center", width: 45 },
-  myInfoBlockHashtag: { alignItems: "flex-start", width: 199 },
-  myInfoLabelRow: {
-    minHeight: 16,
-    justifyContent: "center",
-    width: "100%",
-  },
-  myInfoValueRow: {
-    minHeight: 20,
-    justifyContent: "center",
-    width: "100%",
-  },
-  myInfoLabel: { fontSize: 12, fontWeight: "500", color: "#000" },
-  myInfoValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#000",
-    flexWrap: "wrap",
-  },
-  myInfoValueCenter: { textAlign: "center" },
-  myInfoValueHashtag: { textAlign: "left" },
-  myInfoTagRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    gap: 4,
-  },
-  myInfoTagText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#000",
-  },
   // spacing fix when title wraps
   titleSpacer: { height: 4 },
   cta: {
@@ -1630,7 +1458,6 @@ const styles = StyleSheet.create({
   reviewModalChipWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "center",
     gap: 8,
     marginTop: 12,
   },

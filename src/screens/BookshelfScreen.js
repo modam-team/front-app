@@ -60,22 +60,14 @@ const normalizeBooks = (sources = []) => {
   });
 
   const score = (b) => {
-    const completion =
-      b?.endDate || b?.finishedAt || b?.finishedAtTime || b?.readEndAt || null;
     const t =
-      b?.status === "after"
-        ? completion ||
-          b?.updatedAt ||
-          b?.createdAt ||
-          b?.enrollAt ||
-          b?.createdDate ||
-          null
-        : b?.enrollAt ||
-          b?.startedAt ||
-          b?.updatedAt ||
-          b?.createdAt ||
-          b?.createdDate ||
-          null;
+      b.enrollAt ||
+      b.startedAt ||
+      b.finishedAt ||
+      b.createdAt ||
+      b.updatedAt ||
+      b.createdDate ||
+      null;
     const ts = t ? new Date(t).getTime() : 0;
     return isNaN(ts) ? 0 : ts;
   };
@@ -105,22 +97,14 @@ const normalizeBooks = (sources = []) => {
 
 const sortByLatest = (list = []) => {
   const score = (b) => {
-    const completion =
-      b?.endDate || b?.finishedAt || b?.finishedAtTime || b?.readEndAt || null;
     const t =
-      b?.status === "after"
-        ? completion ||
-          b?.updatedAt ||
-          b?.createdAt ||
-          b?.enrollAt ||
-          b?.createdDate ||
-          null
-        : b?.enrollAt ||
-          b?.startedAt ||
-          b?.updatedAt ||
-          b?.createdAt ||
-          b?.createdDate ||
-          null;
+      b.enrollAt ||
+      b.startedAt ||
+      b.finishedAt ||
+      b.createdAt ||
+      b.updatedAt ||
+      b.createdDate ||
+      null;
     const ts = t ? new Date(t).getTime() : 0;
     return isNaN(ts) ? 0 : ts;
   };
