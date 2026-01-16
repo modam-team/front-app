@@ -4,9 +4,9 @@
     "slug": "modam",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icons.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sangjoonson.modam",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -41,6 +42,23 @@
     "updates": {
       "url": "https://u.expo.dev/91911265-500d-402d-a678-230d6a0b75c0"
     },
-    "plugins": ["expo-secure-store"]
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "useModularHeaders": true,
+            "buildSettings": {
+              "CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES": "YES"
+            }
+          }
+        }
+      ],
+      "./plugins/withNonModularHeaders",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      "expo-secure-store"
+    ]
   }
 }

@@ -3,6 +3,7 @@ import ChangeGenreScreen from "@screens/ChangeGenreScreen";
 import EditNameScreen from "@screens/EditNameScreen";
 import InquiryScreen from "@screens/InquiryScreen";
 import NoticeScreen from "@screens/NoticeScreen";
+import PrivacyPolicyScreen from "@screens/PrivacyPolicyScreen";
 import ProfileScreen from "@screens/ProfileScreen";
 import ReportScreen from "@screens/ReportScreen";
 import SettingsScreen from "@screens/SettingsScreen";
@@ -45,6 +46,10 @@ export default function ReportStack() {
       <Stack.Screen
         name="InquiryScreen"
         component={InquiryScreen}
+      />
+      <Stack.Screen
+        name="PrivacyPolicyScreen"
+        component={PrivacyPolicyScreen}
       />
     </Stack.Navigator>
   );

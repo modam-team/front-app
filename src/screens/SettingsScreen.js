@@ -24,6 +24,7 @@ export default function SettingsScreen() {
       { key: "genre", label: "선호 장르 변경" },
       { key: "notice", label: "공지사항" },
       { key: "inquiry", label: "1:1 문의" },
+      { key: "privacy", label: "개인정보처리방침" },
     ],
     [],
   );
@@ -45,6 +46,9 @@ export default function SettingsScreen() {
         break;
       case "inquiry":
         navigation.navigate("InquiryScreen");
+        break;
+      case "privacy":
+        navigation.navigate("PrivacyPolicyScreen");
         break;
       default:
         break;

@@ -31,6 +31,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const LOCAL_SENT_KEY = "LOCAL_SENT_REQUESTS";
 const FRIEND_ORDER_KEY = "friendOrder";
+const PENDING_STATUSES = new Set(["REQUEST_SENT", "REQUEST", "PENDING"]);
 
 export default function FriendListScreen({ navigation }) {
   const isFocused = useIsFocused();
@@ -76,6 +77,43 @@ export default function FriendListScreen({ navigation }) {
     });
     return Array.from(map.values());
   };
+
+  const getUserKey = (item) => {
+    const raw = item?.userId ?? item?.id ?? null;
+    return raw != null ? String(raw) : null;
+  };
+
+  const reconcileLocalSent = useCallback(
+    (localList, { friendsList, receivedList, sentList, searchList }) => {
+      const friendIds = new Set(
+        (friendsList || [])
+          .map((item) => getUserKey(item))
+          .filter((id) => id != null),
+      );
+      const statusMap = new Map();
+      const addStatus = (list, fallbackStatus) => {
+        (list || []).forEach((item) => {
+          const id = getUserKey(item);
+          if (!id) return;
+          const status = item?.relationStatus || fallbackStatus;
+          if (status) statusMap.set(id, status);
+        });
+      };
+      addStatus(receivedList, "REQUEST_RECEIVED");
+      addStatus(sentList);
+      addStatus(searchList);
+
+      return (localList || []).filter((item) => {
+        const id = getUserKey(item);
+        if (!id) return false;
+        if (friendIds.has(id)) return false;
+        const status = statusMap.get(id);
+        if (!status) return true;
+        return PENDING_STATUSES.has(status);
+      });
+    },
+    [],
+  );
 
   const loadLocalSentFromStorage = async () => {
     try {
@@ -138,9 +176,13 @@ export default function FriendListScreen({ navigation }) {
       ? activeTab === "friend"
         ? results // 검색 시에는 관계 상태와 무관하게 모두 노출
         : results.filter((r) =>
-            ["REQUEST_RECEIVED", "REQUEST_SENT", "REQUEST", "PENDING"].includes(
-              r.relationStatus,
-            ),
+            [
+              "REQUEST_RECEIVED",
+              "REQUEST_SENT",
+              "REQUEST",
+              "PENDING",
+              "NOT_FRIENDS",
+            ].includes(r.relationStatus),
           )
       : activeTab === "friend"
         ? orderedFriends
@@ -186,13 +228,20 @@ export default function FriendListScreen({ navigation }) {
           : searchList.filter((r) =>
               ["REQUEST_SENT", "REQUEST", "PENDING"].includes(r.relationStatus),
             );
+      const reconciledLocalSent = reconcileLocalSent(localSent, {
+        friendsList: fr,
+        receivedList: recv,
+        sentList,
+        searchList,
+      });
       // 로컬 보낸 목록과 병합 후 중복 제거
-      const mergedSent = dedupByUser([...sentList, ...localSent]);
+      const mergedSent = dedupByUser([...sentList, ...reconciledLocalSent]);
       setFriendOrder(Array.isArray(order) ? order : []);
       setFriends(applyFriendOrder(fr, Array.isArray(order) ? order : []));
       setReceived(recv);
       setSent(mergedSent);
-      saveLocalSent(mergedSent);
+      setLocalSent(reconciledLocalSent);
+      saveLocalSent(reconciledLocalSent);
 
       // 요청 탭에서 검색어가 비어 있으면 검색 결과를 그대로 결과 목록으로 사용해 표시
       if (activeTab === "request" && query.trim() === "") {
@@ -258,8 +307,10 @@ export default function FriendListScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
-    // 탭 전환 시에도 최신 목록을 갱신해 반영
-    loadAllFriends();
+    // 쿼리가 비어있을 때만 갱신하도록 막음
+    if (query.trim() === "") {
+      loadAllFriends();
+    }
   }, [activeTab]);
 
   const resolveUserId = (id) => {
@@ -619,7 +670,7 @@ export default function FriendListScreen({ navigation }) {
                     <Text style={styles.actionBtnText}>요청 수락</Text>
                   </Pressable>
                   <Pressable
-                    style={[styles.actionBtn, styles.actionBtnGhost]}
+                    style={[styles.actionBtn, styles.actionBtnDanger]}
                     disabled={actionLoading}
                     onPress={() => handleReject(sheetTarget.userId)}
                   >
@@ -925,6 +976,9 @@ const styles = StyleSheet.create({
   },
   actionBtnGhost: {
     backgroundColor: colors.primary[400],
+  },
+  actionBtnDanger: {
+    backgroundColor: colors.warning.medium,
   },
   actionBtnText: {
     color: "#fff",
