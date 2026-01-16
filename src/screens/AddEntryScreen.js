@@ -2293,7 +2293,6 @@ const styles = StyleSheet.create({
   reviewModalChipWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "center",
     gap: 8,
     marginTop: 12,
   },
