@@ -81,7 +81,7 @@ async function getFcmTokenByExpoFallback() {
 export async function registerPushTokenToServer() {
   await ensureAndroidChannel();
 
-  // 1) RNFirebase
+  // 1) RNFirebaseeas
   const fcm1 = await getFcmTokenByRnFirebase();
 
   // 2) fallback: 개발 중 Android Expo 환경 대비
