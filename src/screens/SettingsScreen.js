@@ -1,6 +1,5 @@
 import { withdrawUser } from "@apis/userApi";
 import AppHeader from "@components/common/AppHeader";
-import BottomTabs from "@navigation/BottomTabs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
