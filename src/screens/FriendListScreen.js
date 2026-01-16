@@ -138,9 +138,13 @@ export default function FriendListScreen({ navigation }) {
       ? activeTab === "friend"
         ? results // 검색 시에는 관계 상태와 무관하게 모두 노출
         : results.filter((r) =>
-            ["REQUEST_RECEIVED", "REQUEST_SENT", "REQUEST", "PENDING"].includes(
-              r.relationStatus,
-            ),
+            [
+              "REQUEST_RECEIVED",
+              "REQUEST_SENT",
+              "REQUEST",
+              "PENDING",
+              "NOT_FRIENDS",
+            ].includes(r.relationStatus),
           )
       : activeTab === "friend"
         ? orderedFriends
@@ -258,8 +262,10 @@ export default function FriendListScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
-    // 탭 전환 시에도 최신 목록을 갱신해 반영
-    loadAllFriends();
+    // 쿼리가 비어있을 때만 갱신하도록 막음
+    if (query.trim() === "") {
+      loadAllFriends();
+    }
   }, [activeTab]);
 
   const resolveUserId = (id) => {
