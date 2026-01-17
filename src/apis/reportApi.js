@@ -12,6 +12,32 @@ function personaFromGenre(genre) {
   return GENRE_TO_PERSONA[key] ?? null;
 }
 
+// 가장 이른 월의 기록 찾기 (연/월 오름차순)
+function findEarliestRecords(data) {
+  if (!data) return null;
+
+  const years = Object.keys(data)
+    .map(Number)
+    .filter((n) => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+
+  for (const y of years) {
+    const yearMap = data[String(y)] ?? {};
+    const months = Object.keys(yearMap)
+      .map(Number)
+      .filter((n) => !Number.isNaN(n))
+      .sort((a, b) => a - b);
+
+    for (const m of months) {
+      const list = yearMap[String(m)];
+      if (Array.isArray(list) && list.length > 0) {
+        return { year: y, month: m, records: list };
+      }
+    }
+  }
+  return null;
+}
+
 // mock 리포트 사용할지 여부 (env에서 바꾸면 돼요)
 const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
 
@@ -536,6 +562,23 @@ export async function fetchMonthlyReport({ year, month }) {
     const finishRecords = getMonthList(finishMap, year, month); // 완독 월 리스트
     const logRecords = getMonthList(logMap, year, month); // 로그 월 리스트
 
+    const earliestFinish = findEarliestRecords(finishMap);
+    const earliestLog = findEarliestRecords(logMap);
+
+    const earliest = !earliestFinish
+      ? earliestLog
+      : !earliestLog
+        ? earliestFinish
+        : earliestFinish.year < earliestLog.year ||
+            (earliestFinish.year === earliestLog.year &&
+              earliestFinish.month <= earliestLog.month)
+          ? earliestFinish
+          : earliestLog;
+
+    const earliestRecordYM = earliest
+      ? { year: earliest.year, month: earliest.month }
+      : null;
+
     // 전체 기록이 하나라도 있는지 확인
     const emptyByCode =
       data?.code === "EMPTY_FINISH" || logData?.code === "EMPTY_LOG";
@@ -708,6 +751,10 @@ export async function fetchMonthlyReport({ year, month }) {
       readingCountsByWeekday,
       readingPlaces,
       persona,
+
+      meta: {
+        earliestRecordYM,
+      },
     };
   } catch (e) {
     const status = e?.response?.status;
