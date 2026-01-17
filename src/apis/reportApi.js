@@ -1,7 +1,16 @@
 import { client } from "@apis/clientApi";
+import { GENRE_TO_PERSONA } from "@constants/genreToPersonaMap";
 import { PLACE_MOOD_MAP } from "@constants/placeMoodMap";
-import { READING_TENDENCY_MAP } from "@constants/readingTendencyMap";
 import { getToken } from "@utils/secureStore";
+
+function normalizeGenreKey(g) {
+  return (g ?? "").trim();
+}
+
+function personaFromGenre(genre) {
+  const key = normalizeGenreKey(genre);
+  return GENRE_TO_PERSONA[key] ?? null;
+}
 
 // mock 리포트 사용할지 여부 (env에서 바꾸면 돼요)
 const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
@@ -106,7 +115,7 @@ export const reportMonthlyApiMock = {
   responseDto: {
     character: {
       manyPlace: "MOVING", // 가장 많이 읽은 장소
-      readingTendency: "성취·발전형", // 독서 성향(캐릭터 성향)
+      readingTendency: "경제/경영", // 장르
     },
     userTotalNum: 100, // 전체 유저 수
     characterNum: 15, // 해당 캐릭터 유저 수3
@@ -124,7 +133,7 @@ export const reportMonthlyApiMock = {
             },
             {
               finishAt: "2024-11-18T22:10:00",
-              category: "에세이",
+              category: "에세이/전기",
               hashtags: ["공감", "힐링"],
             },
           ],
@@ -141,7 +150,7 @@ export const reportMonthlyApiMock = {
           1: [
             {
               finishAt: "2025-01-05T08:40:00",
-              category: "자기계발",
+              category: "심리/명상",
               hashtags: ["동기부여", "정리"],
             },
             {
@@ -169,7 +178,7 @@ export const reportMonthlyApiMock = {
             },
             {
               finishAt: "2025-06-28T23:10:00",
-              category: "에세이",
+              category: "에세이/전기",
               hashtags: ["위로"],
             },
           ],
@@ -187,7 +196,7 @@ export const reportMonthlyApiMock = {
             },
             {
               finishAt: "2025-12-22T10:05:00",
-              category: "자기계발",
+              category: "심리/명상",
               hashtags: ["정리", "성장"],
             },
             {
@@ -197,22 +206,22 @@ export const reportMonthlyApiMock = {
             },
             {
               finishAt: "2025-12-05T23:20:00",
-              category: "과학/기술",
+              category: "과학/기술/공학",
               hashtags: ["신기함", "호기심", "설렘"],
             },
             {
               finishAt: "2025-12-07T12:40:00",
-              category: "예술/대중문화",
+              category: "예술/디자인/건축",
               hashtags: ["감성", "영감"],
             },
             {
               finishAt: "2025-12-15T17:35:00",
-              category: "건강/취미",
+              category: "의학/건강",
               hashtags: ["루틴", "힐링"],
             },
             {
               finishAt: "2025-12-15T18:35:00",
-              category: "건강/취미",
+              category: "의학/건강",
               hashtags: ["루틴", "힐링"],
             },
             {
@@ -238,7 +247,7 @@ export const reportMonthlyApiMock = {
             },
             {
               readAt: "2024-11-18T22:10:00",
-              category: "에세이",
+              category: "에세이/전기",
               place: "CAFE",
             },
           ],
@@ -255,7 +264,7 @@ export const reportMonthlyApiMock = {
           1: [
             {
               readAt: "2025-01-05T08:40:00",
-              category: "자기계발",
+              category: "심리/명상",
               place: "HOME",
             },
             {
@@ -283,7 +292,7 @@ export const reportMonthlyApiMock = {
             },
             {
               readAt: "2025-06-28T23:10:00",
-              category: "에세이",
+              category: "에세이/전기",
               place: "HOME",
             },
           ],
@@ -301,7 +310,7 @@ export const reportMonthlyApiMock = {
             },
             {
               readAt: "2025-12-22T10:05:00",
-              category: "자기계발",
+              category: "심리/명상",
               place: "CAFE",
             },
             {
@@ -311,22 +320,22 @@ export const reportMonthlyApiMock = {
             },
             {
               readAt: "2025-12-05T23:20:00",
-              category: "과학/기술",
+              category: "과학/기술/공학",
               place: "CAFE",
             },
             {
               readAt: "2025-12-07T12:40:00",
-              category: "예술/대중문화",
+              category: "예술/디자인/건축",
               place: "LIBRARY",
             },
             {
               readAt: "2025-12-15T17:35:00",
-              category: "건강/취미",
+              category: "의학/건강",
               place: "MOVING",
             },
             {
               readAt: "2025-12-15T18:35:00",
-              category: "건강/취미",
+              category: "의학/건강",
               place: "MOVING",
             },
             {
@@ -504,7 +513,9 @@ export async function fetchMonthlyReport({ year, month }) {
       body.responseDto;
 
     const manyPlace = character?.manyPlace ?? null;
-    const readingTendency = character?.readingTendency ?? null;
+
+    const tendencyGenre = normalizeGenreKey(character?.readingTendency); // 서버가 준 장르
+    const persona = personaFromGenre(tendencyGenre); // 여기서 persona 확정
 
     // 캐릭터 비율 계산
     const percent =
@@ -637,7 +648,7 @@ export async function fetchMonthlyReport({ year, month }) {
     // 6) Summary 구성
     // 캐릭터가 없으면(이번달 가입 등) Summary는 빈 캐릭터 문구로 고정
     const hasCharacter =
-      hasSummarySource && !!character && !!manyPlace && !!readingTendency;
+      hasSummarySource && !!character && !!manyPlace && !!persona;
 
     if (!hasCharacter) {
       return {
@@ -667,35 +678,19 @@ export async function fetchMonthlyReport({ year, month }) {
 
     const placeLabel = PLACE_LABEL[manyPlace] ?? manyPlace;
 
-    // 캐릭터 이름
-    const rawTendency = readingTendency;
-    const characterName = READING_TENDENCY_MAP[rawTendency];
-
     // 장소 분위기
     const moods = PLACE_MOOD_MAP[manyPlace] ?? [];
     const mood = moods[0] ?? ""; // 일단은 첫 번째만 사용
 
-    const latestGenreDistribution = buildGenreDistribution(latestRecords);
-    const latestTopGenre = latestGenreDistribution[0]?.name;
+    const title = `${mood} ${persona}`;
 
-    // 최종 타이틀
-    const latestTotal = Array.isArray(latestRecords) ? latestRecords.length : 0;
+    const description = `${title}형은 주로 ${placeLabel}${locParticle(
+      placeLabel,
+    )} ${tendencyGenre}${objParticle(tendencyGenre)} 읽는 사람이에요.`;
 
-    const isEmpty = latestTotal === 0;
-
-    const title =
-      latestTotal === 0 ? "아직 측정되지 않았어요" : `${mood} ${characterName}`;
-
-    const description =
-      latestTotal === 0
-        ? "어떤 캐릭터가 나오실 지 궁금해요!"
-        : `${title}형은 주로 ${placeLabel}${locParticle(placeLabel)} ${latestTopGenre}${objParticle(
-            latestTopGenre,
-          )} 읽는 사람이에요.`;
-    const characterKey =
-      latestTotal === 0
-        ? "empty"
-        : (characterName || "default").replace(/\s+/g, "_").toLowerCase();
+    const characterKey = (persona || "default")
+      .replace(/\s+/g, "_")
+      .toLowerCase();
 
     return {
       summary: {
@@ -703,8 +698,7 @@ export async function fetchMonthlyReport({ year, month }) {
         month: latestMonth,
         title,
         description,
-        percent: isEmpty ? null : percent,
-        isEmpty,
+        percent: percent,
         characterKey,
         placeKey: manyPlace,
       },
@@ -713,8 +707,7 @@ export async function fetchMonthlyReport({ year, month }) {
       genreDistribution,
       readingCountsByWeekday,
       readingPlaces,
-      readingTendency: rawTendency,
-      persona: characterName,
+      persona,
     };
   } catch (e) {
     const status = e?.response?.status;
