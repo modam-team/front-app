@@ -1,7 +1,7 @@
+import { PLACE_LABEL, WEEKDAY_LABEL } from "./report.constants";
 import { client } from "@apis/clientApi";
 import { GENRE_TO_PERSONA } from "@constants/genreToPersonaMap";
 import { PLACE_MOOD_MAP } from "@constants/placeMoodMap";
-import { getToken } from "@utils/secureStore";
 
 function normalizeGenreKey(g) {
   return (g ?? "").trim();
@@ -515,17 +515,6 @@ export const reportMonthlyApiMock = {
       },
     },
   },
-};
-
-// 요일 라벨
-const WEEKDAY_LABEL = ["일", "월", "화", "수", "목", "금", "토"];
-
-// 장소를 한글로 라벨링
-const PLACE_LABEL = {
-  HOME: "집",
-  CAFE: "카페",
-  LIBRARY: "도서관",
-  MOVING: "이동중",
 };
 
 // 시간대 구분 (12시 전까진 아침, 18시 전까진 오후, 나머진 저녁)
