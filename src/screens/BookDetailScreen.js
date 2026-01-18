@@ -284,7 +284,8 @@ export default function BookDetailScreen({ navigation, route }) {
     [book.finishedAt, book.finishedAtTime, book.endDate, formatDate],
   );
   const dateRangeText = useMemo(() => {
-    if (startDateText && endDateText) return `${startDateText} ~ ${endDateText}`;
+    if (startDateText && endDateText)
+      return `${startDateText} ~ ${endDateText}`;
     if (startDateText) return `${startDateText} ~`;
     if (endDateText) return endDateText;
     return null;
