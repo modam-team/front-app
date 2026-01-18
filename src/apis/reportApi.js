@@ -33,8 +33,24 @@ export async function fetchMonthlyReport({ year, month }) {
       : (await client.get("/api/report/monthly")).data;
 
     // 404 & RR404일 땐 빈 리포트, 그 외 에러는 진짜 에러
-    if (!body?.success || !body?.responseDto) {
-      return makeEmptyReport({ year, month });
+    if (!body?.success) {
+      const code = body?.error?.code;
+
+      // 리포트 없음(RR404)만 empty
+      if (code === "RR404") {
+        return makeEmptyReport({ year, month });
+      }
+
+      // 그 외는 진짜 에러
+      const msg = body?.error?.message ?? "Report API failed";
+      const err = new Error(msg);
+      err.code = code;
+      throw err;
+    }
+
+    // success true인데 responseDto가 없으면 서버 응답 이상
+    if (!body?.responseDto) {
+      throw new Error("Report API responseDto is missing");
     }
 
     // 서버 응답 구조 분해
@@ -110,7 +126,7 @@ export async function fetchMonthlyReport({ year, month }) {
 
     // 진짜 에러만 로그
     console.error("리포트 조회 실패:", status, e?.response?.data, e);
-    return makeEmptyReport({ year, month });
+    throw e;
   }
 }
 
