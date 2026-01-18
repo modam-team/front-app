@@ -1,28 +1,20 @@
-import { PLACE_LABEL, WEEKDAY_LABEL } from "./report.constants";
 import {
-  reportMonthlyApiMock,
-  reportMonthlyApiMockEmptyData,
-  reportMonthlyApiMockParkHaru,
-  reportMonthlyApiMockRR404Error,
-  reportMonthlyApiMockThisMonthHasDataNoCharacter,
-} from "./report.mocks";
+  buildMonthlyStatus,
+  buildReadingCountsByWeekday,
+  buildReadingPlaces,
+  buildReviewKeywords,
+  buildSummary,
+  computeEarliestRecordYM,
+} from "./report.builders";
+import { reportMonthlyApiMockParkHaru } from "./report.mocks";
 import {
   buildGenreDistribution,
-  findEarliestRecords,
-  findLatestRecords,
   getMonthList,
-  locParticle,
   makeEmptyReport,
   normalizeFinishMap,
-  normalizeGenreKey,
   normalizeLogMap,
-  objParticle,
-  personaFromGenre,
-  slotFromHour,
 } from "./report.utils";
 import { client } from "@apis/clientApi";
-import { GENRE_TO_PERSONA } from "@constants/genreToPersonaMap";
-import { PLACE_MOOD_MAP } from "@constants/placeMoodMap";
 
 // mock 리포트 사용할지 여부 (env에서 바꾸면 돼요)
 const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
@@ -48,46 +40,11 @@ export async function fetchMonthlyReport({ year, month }) {
     const { character, data, logData, userTotalNum, characterNum } =
       body.responseDto;
 
-    const manyPlace = character?.manyPlace ?? null;
-
-    const tendencyGenre = normalizeGenreKey(character?.readingTendency); // 서버가 준 장르
-    const persona = personaFromGenre(tendencyGenre); // 여기서 persona 확정
-
-    // 캐릭터 비율 계산
-    const percent =
-      !userTotalNum || userTotalNum <= 0
-        ? null
-        : Math.max(
-            0,
-            Math.min(100, Math.round((characterNum / userTotalNum) * 100)),
-          );
-
-    // 연 / 월 키
-    const yearKey = String(year);
-    const monthKey = String(month);
-
     const finishMap = normalizeFinishMap(data?.data); // 완독 map
     const logMap = normalizeLogMap(logData?.data); // 로그 map
 
     const finishRecords = getMonthList(finishMap, year, month); // 완독 월 리스트
     const logRecords = getMonthList(logMap, year, month); // 로그 월 리스트
-
-    const earliestFinish = findEarliestRecords(finishMap);
-    const earliestLog = findEarliestRecords(logMap);
-
-    const earliest = !earliestFinish
-      ? earliestLog
-      : !earliestLog
-        ? earliestFinish
-        : earliestFinish.year < earliestLog.year ||
-            (earliestFinish.year === earliestLog.year &&
-              earliestFinish.month <= earliestLog.month)
-          ? earliestFinish
-          : earliestLog;
-
-    const earliestRecordYM = earliest
-      ? { year: earliest.year, month: earliest.month }
-      : null;
 
     // 전체 기록이 하나라도 있는지 확인
     const emptyByCode =
@@ -109,162 +66,45 @@ export async function fetchMonthlyReport({ year, month }) {
       return makeEmptyReport({ year, month });
     }
 
-    // 해당 월 기록
-    const finishYearMap = finishMap?.[yearKey] ?? {};
-    const finishTotal = Array.isArray(finishRecords) ? finishRecords.length : 0;
+    const finishYearMap = finishMap?.[String(year)] ?? {};
 
-    const logYearMap = logMap?.[yearKey] ?? {};
-    const logTotal = Array.isArray(logRecords) ? logRecords.length : 0;
-
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    // 이번달(현재 달) 완독 기록만 제거한 복사본
-    const finishMapForSummary = { ...(finishMap ?? {}) };
-    if (finishMapForSummary?.[currentYear]) {
-      const yearCopy = { ...(finishMapForSummary[currentYear] ?? {}) };
-      delete yearCopy[currentMonth]; // 이번달 제거
-      // 해당 연도에 남는 달이 없으면 연도도 제거
-      if (Object.keys(yearCopy).length === 0) {
-        delete finishMapForSummary[currentYear];
-      } else {
-        finishMapForSummary[currentYear] = yearCopy;
-      }
-    }
-
-    // summary용 최신 달 찾기
-    const latest = findLatestRecords(finishMapForSummary);
-
-    const hasSummarySource = !!latest; // 지난달까지 완독 데이터가 있는지 여부
-
-    // null-safe fallback
-    const latestYear = latest?.year ?? year;
-    const latestMonth = latest?.month ?? month;
-    const latestRecords = latest?.records ?? [];
-
-    // 1) 연간 월별 카운트 (해당 연도에 있는 달만 length로)
-    const monthlyStatus = Array.from({ length: 12 }, (_, i) => {
-      const mKey = String(i + 1);
-      const list = finishYearMap?.[mKey] ?? [];
-      return { month: i + 1, count: Array.isArray(list) ? list.length : 0 };
-    });
+    // 1) 월별 완독 수
+    const monthlyStatus = buildMonthlyStatus(finishYearMap);
 
     // 2) 해시태그 Top 8
-    const hashtagCount = new Map();
-    for (const r of finishRecords ?? []) {
-      const tags = r?.hashtags;
-      if (!Array.isArray(tags)) continue;
-      for (const t of tags) {
-        if (!t) continue;
-        hashtagCount.set(t, (hashtagCount.get(t) ?? 0) + 1);
-      }
-    }
-    const reviewKeywords = Array.from(hashtagCount.entries())
-      .map(([word, weight]) => ({ word, weight }))
-      .sort((a, b) => b.weight - a.weight)
-      .slice(0, 8);
+    const reviewKeywords = buildReviewKeywords(finishRecords);
 
-    // 3) 카테고리(장르) 분포
+    // 3) 장르 분포
     const genreDistribution = buildGenreDistribution(finishRecords);
 
-    // 4) 요일 + 시간대
-    const readingCountsByWeekday = Array.from({ length: 7 }, (_, w) => ({
-      weekday: w,
-      label: WEEKDAY_LABEL[w],
-      slots: { morning: 0, afternoon: 0, evening: 0 },
-    }));
-
-    for (const r of logRecords ?? []) {
-      const dt = r?.readAt ? new Date(r.readAt) : null;
-      if (!dt || isNaN(dt.getTime())) continue;
-
-      const w = dt.getDay();
-      const slot = slotFromHour(dt.getHours());
-      readingCountsByWeekday[w].slots[slot] += 1;
-    }
+    // 4) 요일 + 시간대 분포
+    const readingCountsByWeekday = buildReadingCountsByWeekday(logRecords);
 
     // 5) 장소 비율
-    const placeCount = new Map();
-    for (const r of logRecords ?? []) {
-      const p = r?.place ?? "UNKNOWN";
-      placeCount.set(p, (placeCount.get(p) ?? 0) + 1);
-    }
+    const readingPlaces = buildReadingPlaces(logRecords);
 
-    const readingPlaces = Array.from(placeCount.entries())
-      .map(([place, count]) => ({
-        label: PLACE_LABEL[place] ?? place,
-        ratio: logTotal ? count / logTotal : 0,
-      }))
-      .sort((a, b) => b.ratio - a.ratio);
+    // 6) 가장 이른 기록 연/월
+    const earliestRecordYM = computeEarliestRecordYM(finishMap, logMap);
 
-    // 6) Summary 구성
-    // 캐릭터가 없으면(이번달 가입 등) Summary는 빈 캐릭터 문구로 고정
-    const hasCharacter =
-      hasSummarySource && !!character && !!manyPlace && !!persona;
-
-    if (!hasCharacter) {
-      return {
-        summary: {
-          year,
-          month,
-          title: "아직 측정되지 않았어요",
-          description: "어떤 캐릭터가 나오실 지 궁금해요!",
-          percent: null,
-          isEmpty: true,
-          characterKey: "empty",
-          placeKey: null,
-        },
-        monthlyStatus: Array.from({ length: 12 }, (_, i) => {
-          const mKey = String(i + 1);
-          const list = finishYearMap?.[mKey] ?? [];
-          return { month: i + 1, count: Array.isArray(list) ? list.length : 0 };
-        }),
-        reviewKeywords,
-        genreDistribution,
-        readingCountsByWeekday,
-        readingPlaces,
-        readingTendency: null,
-        persona: null,
-      };
-    }
-
-    const placeLabel = PLACE_LABEL[manyPlace] ?? manyPlace;
-
-    // 장소 분위기
-    const moods = PLACE_MOOD_MAP[manyPlace] ?? [];
-    const mood = moods[0] ?? ""; // 일단은 첫 번째만 사용
-
-    const title = `${mood} ${persona}`;
-
-    const description = `${title}형은 주로 ${placeLabel}${locParticle(
-      placeLabel,
-    )} ${tendencyGenre}${objParticle(tendencyGenre)} 읽는 사람이에요.`;
-
-    const characterKey = (persona || "default")
-      .replace(/\s+/g, "_")
-      .toLowerCase();
+    // 7) Summary + persona
+    const { summary, persona } = buildSummary({
+      year,
+      month,
+      finishMap,
+      character,
+      userTotalNum,
+      characterNum,
+    });
 
     return {
-      summary: {
-        year: latestYear,
-        month: latestMonth,
-        title,
-        description,
-        percent: percent,
-        characterKey,
-        placeKey: manyPlace,
-      },
+      summary,
       monthlyStatus,
       reviewKeywords,
       genreDistribution,
       readingCountsByWeekday,
       readingPlaces,
       persona,
-
-      meta: {
-        earliestRecordYM,
-      },
+      meta: { earliestRecordYM },
     };
   } catch (e) {
     const status = e?.response?.status;
