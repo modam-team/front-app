@@ -190,7 +190,6 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
     setAfterMonthKey((prev) => {
       const exists = prev && afterMonthOptions.some((o) => o.key === prev);
       if (!exists) return latestKey;
-      if (latestKey && latestKey !== prev) return latestKey;
       return prev;
     });
   }, [afterMonthOptions]);

@@ -135,10 +135,7 @@ export default function BookDetailScreen({ navigation, route }) {
 
   const handleNoteSave = useCallback(async () => {
     try {
-      // note 카드 별점을 메인 rating에도 반영
-      setRating(noteRating);
       await submit({
-        ratingOverride: noteRating,
         commentOverride: noteText,
       });
       runFlip(0);
@@ -268,6 +265,41 @@ export default function BookDetailScreen({ navigation, route }) {
     const base = totalReviews || book.totalReview || (fetchedReview ? 1 : 0);
     return base;
   }, [totalReviews, book.totalReview, fetchedReview]);
+
+  const formatDate = useCallback((value) => {
+    if (!value) return null;
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return null;
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    const d = String(dt.getDate()).padStart(2, "0");
+    return `${y}/${m}/${d}`;
+  }, []);
+  const startDateText = useMemo(
+    () => formatDate(book.startedAt || book.startDate || book.enrollAt),
+    [book.startedAt, book.startDate, book.enrollAt, formatDate],
+  );
+  const endDateText = useMemo(
+    () => formatDate(book.finishedAt || book.finishedAtTime || book.endDate),
+    [book.finishedAt, book.finishedAtTime, book.endDate, formatDate],
+  );
+  const dateRangeText = useMemo(() => {
+    if (startDateText && endDateText) return `${startDateText} ~ ${endDateText}`;
+    if (startDateText) return `${startDateText} ~`;
+    if (endDateText) return endDateText;
+    return null;
+  }, [startDateText, endDateText]);
+  const userRating = useMemo(() => {
+    if (typeof fetchedReview?.rating === "number") return fetchedReview.rating;
+    if (typeof rating === "number") return rating;
+    return 0;
+  }, [fetchedReview?.rating, rating]);
+  const displayTags = useMemo(() => {
+    const tags = Array.isArray(fetchedReview?.hashtag)
+      ? fetchedReview.hashtag
+      : selectedTags || [];
+    return tags.filter((t) => typeof t === "string" && t.trim().length > 0);
+  }, [fetchedReview?.hashtag, selectedTags]);
 
   const toggleTag = (tag) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -735,6 +767,43 @@ export default function BookDetailScreen({ navigation, route }) {
                 <Text style={styles.voteText}>{displayTotalReview}명</Text>
               </View>
               <View style={styles.starsRowSpacer} />
+              {(dateRangeText || status === "after") && (
+                <View style={styles.reviewMetaCard}>
+                  {dateRangeText && (
+                    <View style={styles.dateRow}>
+                      <Text style={styles.dateText}>{dateRangeText}</Text>
+                      <View style={styles.dateDivider} />
+                    </View>
+                  )}
+                  {status === "after" && (
+                    <View style={styles.reviewMetaRow}>
+                      <View style={styles.reviewMetaBlock}>
+                        <Text style={styles.reviewMetaLabel}>나의 별점</Text>
+                        <Text style={styles.reviewMetaValue}>
+                          {userRating > 0 ? `${userRating} / 5` : "-"}
+                        </Text>
+                      </View>
+                      <View style={styles.reviewMetaBlock}>
+                        <Text style={styles.reviewMetaLabel}>해시태그</Text>
+                        {displayTags.length ? (
+                          <View style={styles.tagList}>
+                            {displayTags.map((t, idx) => (
+                              <Text
+                                key={`${t}-${idx}`}
+                                style={styles.tagItem}
+                              >
+                                #{t}
+                              </Text>
+                            ))}
+                          </View>
+                        ) : (
+                          <Text style={styles.reviewMetaValue}>-</Text>
+                        )}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
           </Animated.View>
 
@@ -764,7 +833,7 @@ export default function BookDetailScreen({ navigation, route }) {
               <Text style={styles.noteTitle}>나의 독서 노트</Text>
             </View>
             <Text style={styles.noteSubtitle}>
-              별점을 수정하고{"\n"}직접 독서 노트를 기록할 수 있어요!
+              별점은 변경할 수 없어요.{"\n"}직접 독서 노트를 기록해보세요!
             </Text>
             {selectedTags.length > 0 && (
               <View style={styles.noteTagRow}>
@@ -793,19 +862,8 @@ export default function BookDetailScreen({ navigation, route }) {
                 return (
                   <TouchableOpacity
                     key={i}
-                    activeOpacity={0.9}
-                    onPress={() => {
-                      if (noteRating === full) {
-                        setNoteRating(half);
-                        setRating(half);
-                      } else if (noteRating === half) {
-                        setNoteRating(full);
-                        setRating(full);
-                      } else {
-                        setNoteRating(full);
-                        setRating(full);
-                      }
-                    }}
+                    activeOpacity={1}
+                    disabled
                   >
                     <StarIcon
                       size={60}
@@ -819,7 +877,7 @@ export default function BookDetailScreen({ navigation, route }) {
 
             <View style={styles.noteTextareaWrap}>
               <View style={styles.noteHeaderRow}>
-                <Text style={styles.noteTextareaLabel}>독서록</Text>
+                <Text style={styles.noteTextareaLabel}>독서노트</Text>
                 <Text style={styles.noteCount}>{`${Math.min(
                   NOTE_MAX,
                   noteText.length,
@@ -1085,7 +1143,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 240,
+    paddingBottom: 24,
   },
   card: {
     backgroundColor: "#F6F6F6",
@@ -1212,6 +1270,57 @@ const styles = StyleSheet.create({
   voteText: { fontSize: 12, color: "#C6C6C6", marginLeft: 6 },
   // spacing fix when title wraps
   titleSpacer: { height: 4 },
+  reviewMetaCard: {
+    width: "100%",
+    marginTop: 6,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    gap: 12,
+  },
+  dateRow: {
+    width: "100%",
+  },
+  dateText: {
+    fontSize: 14,
+    color: "#426B1F",
+    fontWeight: "700",
+  },
+  reviewMetaRow: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  reviewMetaBlock: {
+    flex: 1,
+    gap: 4,
+  },
+  dateDivider: {
+    marginTop: 8,
+    height: 1,
+    backgroundColor: "#E0E0E0",
+    width: "100%",
+  },
+  reviewMetaLabel: {
+    fontSize: 12,
+    color: "#888",
+  },
+  reviewMetaValue: {
+    fontSize: 14,
+    color: "#191919",
+    fontWeight: "700",
+  },
+  tagList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  tagItem: {
+    fontSize: 14,
+    color: "#191919",
+    fontWeight: "700",
+  },
   cta: {
     marginTop: 0,
     height: 44,
@@ -1242,7 +1351,7 @@ const styles = StyleSheet.create({
   footerBtnWrap: {
     width: "100%",
     marginTop: 36,
-    marginBottom: 24,
+    marginBottom: 0,
   },
   reviewOverlay: {
     flex: 1,

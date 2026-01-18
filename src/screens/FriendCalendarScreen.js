@@ -290,7 +290,7 @@ export default function FriendCalendarScreen({
         const grouped = {};
         const uniqMap = new Map();
         (filteredList || []).forEach((item) => {
-          const dt = parseReadAt(item.readAt || item.createdAt || item.date);
+          const dt = parseReadAt(item.readAt);
           if (Number.isNaN(dt.getTime())) return;
           const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(
             2,
@@ -361,7 +361,7 @@ export default function FriendCalendarScreen({
     const bookIdRaw = log?.bookId;
     const bookId = Number(bookIdRaw);
     if (!bookId || Number.isNaN(bookId)) {
-      Alert.alert("독서록을 찾을 수 없어요", "책 정보를 확인할 수 없습니다.");
+      Alert.alert("독서노트를 찾을 수 없어요", "책 정보를 확인할 수 없습니다.");
       return;
     }
     setNoteLoading(true);
@@ -816,7 +816,7 @@ export default function FriendCalendarScreen({
               style={styles.noteCard}
               onPress={() => {}}
             >
-              <Text style={styles.noteTitle}>독서록</Text>
+              <Text style={styles.noteTitle}>독서노트</Text>
               {noteLoading && (
                 <Text style={styles.noteMeta}>불러오는 중...</Text>
               )}
@@ -827,7 +827,7 @@ export default function FriendCalendarScreen({
                     <Text style={styles.noteComment}>{noteData.comment}</Text>
                   ) : (
                     <Text style={styles.noteMeta}>
-                      아직 공개된 독서록이 없어요.
+                      아직 공개된 독서노트가 없어요.
                     </Text>
                   )}
                   {Array.isArray(noteData.hashtag) &&
@@ -846,7 +846,7 @@ export default function FriendCalendarScreen({
                 </>
               )}
               {!noteLoading && !noteData && (
-                <Text style={styles.noteMeta}>독서록을 불러오지 못했어요.</Text>
+                <Text style={styles.noteMeta}>독서노트를 불러오지 못했어요.</Text>
               )}
             </Pressable>
           </Pressable>
@@ -897,7 +897,7 @@ export default function FriendCalendarScreen({
             style={styles.noteCard}
             onPress={() => {}}
           >
-            <Text style={styles.noteTitle}>독서록</Text>
+            <Text style={styles.noteTitle}>독서노트</Text>
             {noteLoading && <Text style={styles.noteMeta}>불러오는 중...</Text>}
             {!noteLoading && noteData && (
               <>
@@ -906,7 +906,7 @@ export default function FriendCalendarScreen({
                   <Text style={styles.noteComment}>{noteData.comment}</Text>
                 ) : (
                   <Text style={styles.noteMeta}>
-                    아직 공개된 독서록이 없어요.
+                    아직 공개된 독서노트가 없어요.
                   </Text>
                 )}
                 {Array.isArray(noteData.hashtag) &&
@@ -925,7 +925,7 @@ export default function FriendCalendarScreen({
               </>
             )}
             {!noteLoading && !noteData && (
-              <Text style={styles.noteMeta}>독서록을 불러오지 못했어요.</Text>
+              <Text style={styles.noteMeta}>독서노트를 불러오지 못했어요.</Text>
             )}
           </Pressable>
         </Pressable>
