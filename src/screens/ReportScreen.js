@@ -1,4 +1,4 @@
-import { fetchMonthlyReport } from "@apis/reportApi";
+import { fetchMonthlyReport } from "@apis/report/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
 import YearMonthPicker from "@components/common/YearMonthPicker";
 import MonthlyStats from "@components/report/MonthlyStats";

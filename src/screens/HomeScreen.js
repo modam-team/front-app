@@ -11,7 +11,7 @@ import {
   fetchMonthlyReport,
   fetchReadingLogs,
   saveReadingLog,
-} from "@apis/reportApi";
+} from "@apis/report/reportApi";
 import { fetchUserProfile, updateProfile } from "@apis/userApi";
 import BasicProfile from "@assets/basic-profile.svg";
 import ProgressBarCharacter from "@assets/progress-bar-img.png";

@@ -1,6 +1,6 @@
 import { fetchReviewListByBookId } from "@apis/bookcaseApi";
 import { fetchFriends } from "@apis/friendApi";
-import { fetchReadingLogs } from "@apis/reportApi";
+import { fetchReadingLogs } from "@apis/report/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
 import DayLogsBottomSheet from "@components/DayLogsBottomSheet";
 import MonthlyCalendar from "@components/MonthlyCalendar";
