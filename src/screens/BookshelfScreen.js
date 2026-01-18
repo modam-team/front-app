@@ -4,6 +4,7 @@ import {
   deleteBookFromBookcase,
   fetchBookcase,
   searchBookcase,
+  updateBookcaseState,
 } from "@apis/bookcaseApi";
 import BookShelfTabs from "@components/BookshelfTabs";
 import StarIcon from "@components/StarIcon";
@@ -465,11 +466,41 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
         after: (prev.after || []).filter((b) => b.id !== book.id),
       }));
     } catch (e) {
-      console.error(
-        "책 삭제 실패:",
-        e.response?.status,
-        e.response?.data || e.message,
-      );
+      const code = e.response?.data?.error?.code || e.response?.data?.code;
+      if (code === "4091") {
+        try {
+          const status = (book.status || "").toLowerCase();
+          if (status === "after") {
+            try {
+              await updateBookcaseState(book.id, "READING");
+            } catch (err) {
+              // ignore intermediate failure
+            }
+          }
+          if (status !== "before") {
+            await updateBookcaseState(book.id, "BEFORE");
+          }
+          await deleteBookFromBookcase(book.id);
+          setBooksAndCache((prev) => ({
+            before: (prev.before || []).filter((b) => b.id !== book.id),
+            reading: (prev.reading || []).filter((b) => b.id !== book.id),
+            after: (prev.after || []).filter((b) => b.id !== book.id),
+          }));
+          return;
+        } catch (retryErr) {
+          console.error(
+            "책 삭제 재시도 실패:",
+            retryErr.response?.status,
+            retryErr.response?.data || retryErr.message,
+          );
+        }
+      } else {
+        console.error(
+          "책 삭제 실패:",
+          e.response?.status,
+          e.response?.data || e.message,
+        );
+      }
     } finally {
       setDeleteTargetId(null);
       setConfirmTarget(null);
@@ -646,10 +677,11 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                                   <View style={styles.bookWrap}>
                                     <TouchableOpacity
                                       activeOpacity={0.9}
-                                      onLongPress={() => (
-                                        Vibration.vibrate(5),
-                                        setDeleteTargetId(book.id)
-                                      )}
+                                      onLongPress={() => {
+                                        if (tab === "after") return;
+                                        Vibration.vibrate(5);
+                                        setDeleteTargetId(book.id);
+                                      }}
                                       onPress={() => {
                                         if (deleteTargetId) {
                                           if (deleteTargetId === book.id) {
