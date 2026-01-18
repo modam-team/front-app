@@ -134,6 +134,147 @@ export const reportMonthlyApiMockThisMonthHasDataNoCharacter = {
   },
 };
 
+// 재은이 mock 데이터
+export const reportMonthlyApiMockParkHaru = {
+  success: true,
+  error: null,
+  responseDto: {
+    character: {
+      manyPlace: "empty_data",
+      readingTendency: "empty_data",
+    },
+    userRegisterDate: "2026-01-01T00:00:00",
+    characterNum: 0,
+    userTotalNum: 0,
+    data: {
+      code: "OK",
+      data: {
+        2026: {
+          1: [
+            {
+              finishAt: "2026-01-13T00:00:00",
+              category: "소설/문학",
+              hashtags: ["스릴 있는", "어려운", "비유적인"],
+            },
+            {
+              finishAt: "2026-01-09T07:14:54",
+              category: "엔터테인먼트/문화",
+              hashtags: ["여운이 남는", "다시 읽고 싶은", "한 번에 읽은"],
+            },
+          ],
+        },
+        2025: {
+          12: [
+            {
+              finishAt: "2025-12-14T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "잘 읽히는", "속도감 있는 전개"],
+            },
+            {
+              finishAt: "2025-12-09T00:00:00",
+              category: "소설/문학",
+              hashtags: ["무거운", "어려운", "사실적인"],
+            },
+            {
+              finishAt: "2025-12-26T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "잘 읽히는", "속도감 있는 전개"],
+            },
+            {
+              finishAt: "2025-12-11T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "다시 읽고 싶은", "간결한"],
+            },
+            {
+              finishAt: "2025-12-01T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "한 번에 읽은", "속도감 있는 전개"],
+            },
+            {
+              finishAt: "2025-12-19T00:00:00",
+              category: "소설/문학",
+              hashtags: ["스릴 있는", "어려운", "비유적인"],
+            },
+          ],
+          9: [
+            {
+              finishAt: "2025-09-16T00:00:00",
+              category: "과학/기술/공학",
+              hashtags: ["무거운", "어려운", "집중이 필요한"],
+            },
+            {
+              finishAt: "2025-09-21T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "생각하게 되는", "다시 읽고 싶은"],
+            },
+          ],
+          10: [
+            {
+              finishAt: "2025-10-05T00:00:00",
+              category: "엔터테인먼트/문화",
+              hashtags: ["출퇴근길에 딱", "한 번에 읽은", "간결한"],
+            },
+          ],
+        },
+      },
+    },
+    logData: {
+      code: "OK",
+      data: {
+        2026: {
+          1: [
+            {
+              readAt: "2026-01-09T09:58:52",
+              category: "소설/문학",
+              place: "LIBRARY",
+            },
+            {
+              readAt: "2026-01-14T12:58:56",
+              category: "소설/문학",
+              place: "HOME",
+            },
+            {
+              readAt: "2026-01-14T13:00:05",
+              category: "소설/문학",
+              place: "CAFE",
+            },
+            {
+              readAt: "2026-01-16T15:50:35",
+              category: "소설/문학",
+              place: "LIBRARY",
+            },
+            {
+              readAt: "2026-01-09T06:43:05",
+              category: "소설/문학",
+              place: "MOVING",
+            },
+            {
+              readAt: "2026-01-09T06:43:19",
+              category: "소설/문학",
+              place: "HOME",
+            },
+            {
+              readAt: "2026-01-10T01:23:43",
+              category: "소설/문학",
+              place: "MOVING",
+            },
+            {
+              readAt: "2026-01-09T06:42:54",
+              category: "엔터테인먼트/문화",
+              place: "CAFE",
+            },
+            {
+              readAt: "2026-01-09T06:43:24",
+              category: "엔터테인먼트/문화",
+              place: "CAFE",
+            },
+          ],
+        },
+      },
+    },
+  },
+};
+
 // 정상 리포트 mock 데이터
 export const reportMonthlyApiMock = {
   success: true,
@@ -526,7 +667,7 @@ export async function fetchMonthlyReport({ year, month }) {
     // 캐릭터는 안 나왔지만 이번달에 가입해서 독서한 기록은 있는 유저 테스트는 reportMonthlyApiMockThisMonthHasDataNoCharacter
     // 캐릭터도 나온 기존 유저면 reportMonthlyApiMock
     const body = USE_REPORT_MOCK
-      ? reportMonthlyApiMock
+      ? reportMonthlyApiMockParkHaru
       : (await client.get("/api/report/monthly")).data;
 
     // 404 & RR404일 땐 빈 리포트, 그 외 에러는 진짜 에러
