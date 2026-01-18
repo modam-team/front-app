@@ -11,7 +11,8 @@
     "lint": "eslint . --ext .js,.jsx",
     "lint:fix": "eslint . --ext .js,.jsx --fix",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "test": "jest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -52,6 +53,7 @@
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.3.3",
     "@trivago/prettier-plugin-sort-imports": "^6.0.0",
+    "axios-mock-adapter": "^2.1.0",
     "babel-plugin-module-resolver": "^5.0.2",
     "babel-preset-expo": "^54.0.6",
     "eslint": "^9.39.1",
