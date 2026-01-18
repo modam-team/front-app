@@ -1,17 +1,19 @@
-import BottomTabs from "./src/navigation/BottomTabs";
-import AddEntryScreen from "./src/screens/AddEntryScreen";
-import AuthGateScreen from "./src/screens/AuthGateScreen";
-import BookDetailScreen from "./src/screens/BookDetailScreen";
-import EditNameScreen from "./src/screens/EditNameScreen";
-import FriendCalendarScreen from "./src/screens/FriendCalendarScreen";
-import FriendListScreen from "./src/screens/FriendListScreen";
+import { setOnAuthFail } from "@apis/clientApi";
 import ProgressBarImg from "@assets/progress-bar-img.png";
 import {
   REPORT_BACKGROUND_MAP,
   REPORT_BACKGROUND_MAP_PAST,
 } from "@constants/reportBackgroundMap";
+import BottomTabs from "@navigation/BottomTabs";
+import { navigationRef, resetToLogin } from "@navigation/navigationRef";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import AddEntryScreen from "@screens/AddEntryScreen";
+import AuthGateScreen from "@screens/AuthGateScreen";
+import BookDetailScreen from "@screens/BookDetailScreen";
+import EditNameScreen from "@screens/EditNameScreen";
+import FriendCalendarScreen from "@screens/FriendCalendarScreen";
+import FriendListScreen from "@screens/FriendListScreen";
 import GoalResultScreen from "@screens/GoalResultScreen";
 import OnboardingFlowScreen from "@screens/OnboardingFlowScreen";
 import OnboardingIntroScreen from "@screens/OnboardingIntroScreen";
@@ -19,6 +21,7 @@ import OnboardingLoginScreen from "@screens/OnboardingLoginScreen";
 import ProfileScreen from "@screens/ProfileScreen";
 import SettingsScreen from "@screens/SettingsScreen";
 import { colors } from "@theme/colors";
+import { clearAuth } from "@utils/auth";
 import { Asset } from "expo-asset";
 import React, { useEffect } from "react";
 import "react-native-gesture-handler";
@@ -34,6 +37,13 @@ const navTheme = {
 
 export default function App() {
   useEffect(() => {
+    // 토큰 재발급 실패시 전역 처리
+    setOnAuthFail(async (err) => {
+      console.warn("[Auth] 토큰 재발급 실패 -> 로그인 화면으로 이동", err);
+      await clearAuth();
+      resetToLogin();
+    });
+
     Asset.loadAsync([
       ...Object.values(REPORT_BACKGROUND_MAP),
       ...Object.values(REPORT_BACKGROUND_MAP_PAST),
@@ -43,7 +53,10 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={navTheme}
+      >
         <Stack.Navigator initialRouteName="OnboardingIntro">
           <Stack.Screen
             name="OnboardingIntro"
