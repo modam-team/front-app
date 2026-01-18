@@ -6,20 +6,20 @@ export function normalizeGenreKey(g) {
   return (g ?? "").trim();
 }
 
-function personaFromGenre(genre) {
+export function personaFromGenre(genre) {
   const key = normalizeGenreKey(genre);
   return GENRE_TO_PERSONA[key] ?? null;
 }
 
 // 시간대 구분 (12시 전까진 아침, 18시 전까진 오후, 나머진 저녁)
-function slotFromHour(h) {
+export function slotFromHour(h) {
   if (h < 12) return "morning";
   if (h < 18) return "afternoon";
   return "evening";
 }
 
 // 받침 있는지 확인
-function hasFinalConsonant(word = "") {
+export function hasFinalConsonant(word = "") {
   if (!word) return false;
   const last = word[word.length - 1];
   const code = last.charCodeAt(0);
@@ -28,36 +28,36 @@ function hasFinalConsonant(word = "") {
 }
 
 // 받침이 있으면 을 / 없으면 를 선택하기
-function objParticle(word = "") {
+export function objParticle(word = "") {
   return hasFinalConsonant(word) ? "을" : "를";
 }
 
 // 에 or 에서 선택하기
-function locParticle(placeLabel = "") {
+export function locParticle(placeLabel = "") {
   if (placeLabel === "이동중") return "에";
   return "에서";
 }
 
 // 안전하게 yearMap/monthList 꺼내기
-function getMonthList(map, year, month) {
+export function getMonthList(map, year, month) {
   const y = map?.[String(year)] ?? map?.[year] ?? {};
   return y?.[String(month)] ?? y?.[month] ?? [];
 }
 
 // (완독) responseDto.data.data 평탄화
-function normalizeFinishMap(finishDataRoot) {
+export function normalizeFinishMap(finishDataRoot) {
   // finishDataRoot = body.responseDto.data?.data
   return finishDataRoot ?? {};
 }
 
 // (로그) responseDto.logData.data 평탄화
-function normalizeLogMap(logDataRoot) {
+export function normalizeLogMap(logDataRoot) {
   // logDataRoot = body.responseDto.logData?.data
   return logDataRoot ?? {};
 }
 
 // 가장 최신 월의 기록 찾기
-function findLatestRecords(data, { excludeYear, excludeMonth } = {}) {
+export function findLatestRecords(data, { excludeYear, excludeMonth } = {}) {
   if (!data) return null;
 
   // 연도 내림차순
@@ -90,7 +90,7 @@ function findLatestRecords(data, { excludeYear, excludeMonth } = {}) {
 }
 
 // 가장 이른 월의 기록 찾기 (연/월 오름차순)
-function findEarliestRecords(data) {
+export function findEarliestRecords(data) {
   if (!data) return null;
 
   const years = Object.keys(data)
@@ -116,7 +116,7 @@ function findEarliestRecords(data) {
 }
 
 // 장르 분포 계산
-function buildGenreDistribution(records) {
+export function buildGenreDistribution(records) {
   const total = Array.isArray(records) ? records.length : 0;
   const categoryCount = new Map();
 
@@ -137,7 +137,7 @@ function buildGenreDistribution(records) {
 }
 
 // RR404면 빈 리포트 보여주기
-function makeEmptyReport({ year, month }) {
+export function makeEmptyReport({ year, month }) {
   return {
     summary: {
       year,
