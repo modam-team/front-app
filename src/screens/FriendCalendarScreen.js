@@ -846,7 +846,9 @@ export default function FriendCalendarScreen({
                 </>
               )}
               {!noteLoading && !noteData && (
-                <Text style={styles.noteMeta}>독서노트를 불러오지 못했어요.</Text>
+                <Text style={styles.noteMeta}>
+                  독서노트를 불러오지 못했어요.
+                </Text>
               )}
             </Pressable>
           </Pressable>
