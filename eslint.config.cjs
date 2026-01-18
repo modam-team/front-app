@@ -89,9 +89,9 @@ module.exports = [
       globals: {
         ...globals.jest,
       },
-      rules: {
-        "no-console": "off", // 테스트 환경에서는 log도 허용
-      },
+    },
+    rules: {
+      "no-console": "off", // 테스트 환경에서는 log도 허용
     },
   },
 ];
