@@ -1,3 +1,4 @@
+import { client } from "@apis/clientApi";
 import {
   buildMonthlyStatus,
   buildReadingCountsByWeekday,
@@ -6,18 +7,17 @@ import {
   buildSummary,
   computeEarliestRecordYM,
   hasAnyReportRecord,
-} from "./report.builders";
-import { reportMonthlyApiMockParkHaru } from "./report.mocks";
+} from "@apis/report/report.builders";
+import { reportMonthlyApiMockParkHaru } from "@apis/report/report.mocks";
 import {
   buildGenreDistribution,
   getMonthList,
   makeEmptyReport,
   normalizeFinishMap,
   normalizeLogMap,
-} from "./report.utils";
-import { client } from "@apis/clientApi";
+} from "@apis/report/report.utils";
 
-// mock 리포트 사용할지 여부 (env에서 바꾸면 돼요)
+// mock 리포트 사용할지 여부 (사용 할거면 true, 안 하면 false)
 const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
 
 // 월간 리포트 조회 메인 함수
