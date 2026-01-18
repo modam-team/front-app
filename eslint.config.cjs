@@ -82,4 +82,16 @@ module.exports = [
     },
     rules: {},
   },
+  {
+    // 테스트 파일에서 jest, describe, it, expect 전역 허용
+    files: ["**/__tests__/**/*.{js,jsx}", "**/*.{test,spec}.{js,jsx}"],
+    languageOptions: {
+      globals: {
+        ...globals.jest,
+      },
+    },
+    rules: {
+      "no-console": "off", // 테스트 환경에서는 log도 허용
+    },
+  },
 ];
