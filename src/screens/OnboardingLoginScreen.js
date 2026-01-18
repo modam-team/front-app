@@ -1,4 +1,5 @@
 import { kakaoLogin } from "@apis/authApi";
+import { resetAuthFailFlag } from "@apis/clientApi";
 import { fetchOnboardingStatus } from "@apis/userApi";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
@@ -86,6 +87,9 @@ export default function OnboardingLoginScreen({ navigation }) {
 
         // 카카오 로그인 해서 토큰 저장
         await kakaoLogin(code);
+
+        // reset
+        resetAuthFailFlag();
 
         // 받은 토큰으로 온보딩 상태 조회
         const status = await fetchOnboardingStatus();
