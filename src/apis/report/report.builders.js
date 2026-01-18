@@ -184,3 +184,22 @@ export function buildSummary({
     latestMonth: latest?.month ?? month,
   };
 }
+
+// 기록이 하나라도 있는지 체크
+export function hasAnyReportRecord({ finishMap, logMap, dataCode, logCode }) {
+  const emptyByCode = dataCode === "EMPTY_FINISH" || logCode === "EMPTY_LOG";
+
+  const hasAny =
+    Object.values(finishMap ?? {}).some((yearMap) =>
+      Object.values(yearMap ?? {}).some(
+        (monthList) => Array.isArray(monthList) && monthList.length > 0,
+      ),
+    ) ||
+    Object.values(logMap ?? {}).some((yearMap) =>
+      Object.values(yearMap ?? {}).some(
+        (monthList) => Array.isArray(monthList) && monthList.length > 0,
+      ),
+    );
+
+  return !(emptyByCode || !hasAny);
+}

@@ -5,6 +5,7 @@ import {
   buildReviewKeywords,
   buildSummary,
   computeEarliestRecordYM,
+  hasAnyReportRecord,
 } from "./report.builders";
 import { reportMonthlyApiMockParkHaru } from "./report.mocks";
 import {
@@ -47,22 +48,14 @@ export async function fetchMonthlyReport({ year, month }) {
     const logRecords = getMonthList(logMap, year, month); // 로그 월 리스트
 
     // 전체 기록이 하나라도 있는지 확인
-    const emptyByCode =
-      data?.code === "EMPTY_FINISH" || logData?.code === "EMPTY_LOG";
-
-    const hasAnyRecord =
-      Object.values(finishMap ?? {}).some((yearMap) =>
-        Object.values(yearMap ?? {}).some(
-          (monthList) => Array.isArray(monthList) && monthList.length > 0,
-        ),
-      ) ||
-      Object.values(logMap ?? {}).some((yearMap) =>
-        Object.values(yearMap ?? {}).some(
-          (monthList) => Array.isArray(monthList) && monthList.length > 0,
-        ),
-      );
-
-    if (emptyByCode || !hasAnyRecord) {
+    if (
+      !hasAnyReportRecord({
+        finishMap,
+        logMap,
+        dataCode: data?.code,
+        logCode: logData?.code,
+      })
+    ) {
       return makeEmptyReport({ year, month });
     }
 
@@ -117,6 +110,7 @@ export async function fetchMonthlyReport({ year, month }) {
 
     // 진짜 에러만 로그
     console.error("리포트 조회 실패:", status, e?.response?.data, e);
+    return makeEmptyReport({ year, month });
   }
 }
 
