@@ -275,6 +275,33 @@ export default function ReportScreen() {
   const openPicker = () => setPickerVisible(true);
   const closePicker = () => setPickerVisible(false);
 
+  const pickerMinDate = useMemo(() => {
+    if (!userCreatedAt) return undefined;
+
+    // 가입월 1일 기준으로 정규화
+    const joinMonthStart = new Date(
+      userCreatedAt.getFullYear(),
+      userCreatedAt.getMonth(),
+      1,
+    );
+
+    // 기본: 가입월 - 1개월
+    const joinMinusOne = new Date(joinMonthStart);
+    joinMinusOne.setMonth(joinMinusOne.getMonth() - 1);
+
+    // 리포트 데이터에서 가장 이른 기록 월(있으면)
+    const ym = data?.meta?.earliestRecordYM;
+    if (ym?.year && ym?.month) {
+      const earliest = new Date(ym.year, ym.month - 1, 1);
+
+      // 가입일보다 더 과거 기록이 있으면 그 달부터 오픈
+      if (earliest < joinMonthStart) return earliest;
+    }
+
+    // 과거 기록 없으면 기존처럼 (가입 -1개월부터)
+    return joinMinusOne;
+  }, [userCreatedAt, data]);
+
   /* ========= 개발할 때 테스트 용으로 이번 달 방문 기록 초기화 ========= */
   const resetReportVisitDebug = async () => {
     try {
@@ -442,7 +469,7 @@ export default function ReportScreen() {
             selectedMonth={month}
             onSelectYear={setYear}
             onSelectMonth={setMonth}
-            minDate={userCreatedAt ?? undefined}
+            minDate={pickerMinDate}
           />
         </View>
       </ScrollView>

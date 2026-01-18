@@ -1,7 +1,42 @@
 import { client } from "@apis/clientApi";
+import { GENRE_TO_PERSONA } from "@constants/genreToPersonaMap";
 import { PLACE_MOOD_MAP } from "@constants/placeMoodMap";
-import { READING_TENDENCY_MAP } from "@constants/readingTendencyMap";
 import { getToken } from "@utils/secureStore";
+
+function normalizeGenreKey(g) {
+  return (g ?? "").trim();
+}
+
+function personaFromGenre(genre) {
+  const key = normalizeGenreKey(genre);
+  return GENRE_TO_PERSONA[key] ?? null;
+}
+
+// 가장 이른 월의 기록 찾기 (연/월 오름차순)
+function findEarliestRecords(data) {
+  if (!data) return null;
+
+  const years = Object.keys(data)
+    .map(Number)
+    .filter((n) => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+
+  for (const y of years) {
+    const yearMap = data[String(y)] ?? {};
+    const months = Object.keys(yearMap)
+      .map(Number)
+      .filter((n) => !Number.isNaN(n))
+      .sort((a, b) => a - b);
+
+    for (const m of months) {
+      const list = yearMap[String(m)];
+      if (Array.isArray(list) && list.length > 0) {
+        return { year: y, month: m, records: list };
+      }
+    }
+  }
+  return null;
+}
 
 // mock 리포트 사용할지 여부 (env에서 바꾸면 돼요)
 const USE_REPORT_MOCK = process.env.EXPO_PUBLIC_USE_REPORT_MOCK === "true";
@@ -99,6 +134,147 @@ export const reportMonthlyApiMockThisMonthHasDataNoCharacter = {
   },
 };
 
+// 재은이 mock 데이터
+export const reportMonthlyApiMockParkHaru = {
+  success: true,
+  error: null,
+  responseDto: {
+    character: {
+      manyPlace: "empty_data",
+      readingTendency: "empty_data",
+    },
+    userRegisterDate: "2026-01-01T00:00:00",
+    characterNum: 0,
+    userTotalNum: 0,
+    data: {
+      code: "OK",
+      data: {
+        2026: {
+          1: [
+            {
+              finishAt: "2026-01-13T00:00:00",
+              category: "소설/문학",
+              hashtags: ["스릴 있는", "어려운", "비유적인"],
+            },
+            {
+              finishAt: "2026-01-09T07:14:54",
+              category: "엔터테인먼트/문화",
+              hashtags: ["여운이 남는", "다시 읽고 싶은", "한 번에 읽은"],
+            },
+          ],
+        },
+        2025: {
+          12: [
+            {
+              finishAt: "2025-12-14T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "잘 읽히는", "속도감 있는 전개"],
+            },
+            {
+              finishAt: "2025-12-09T00:00:00",
+              category: "소설/문학",
+              hashtags: ["무거운", "어려운", "사실적인"],
+            },
+            {
+              finishAt: "2025-12-26T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "잘 읽히는", "속도감 있는 전개"],
+            },
+            {
+              finishAt: "2025-12-11T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "다시 읽고 싶은", "간결한"],
+            },
+            {
+              finishAt: "2025-12-01T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "한 번에 읽은", "속도감 있는 전개"],
+            },
+            {
+              finishAt: "2025-12-19T00:00:00",
+              category: "소설/문학",
+              hashtags: ["스릴 있는", "어려운", "비유적인"],
+            },
+          ],
+          9: [
+            {
+              finishAt: "2025-09-16T00:00:00",
+              category: "과학/기술/공학",
+              hashtags: ["무거운", "어려운", "집중이 필요한"],
+            },
+            {
+              finishAt: "2025-09-21T00:00:00",
+              category: "소설/문학",
+              hashtags: ["여운이 남는", "생각하게 되는", "다시 읽고 싶은"],
+            },
+          ],
+          10: [
+            {
+              finishAt: "2025-10-05T00:00:00",
+              category: "엔터테인먼트/문화",
+              hashtags: ["출퇴근길에 딱", "한 번에 읽은", "간결한"],
+            },
+          ],
+        },
+      },
+    },
+    logData: {
+      code: "OK",
+      data: {
+        2026: {
+          1: [
+            {
+              readAt: "2026-01-09T09:58:52",
+              category: "소설/문학",
+              place: "LIBRARY",
+            },
+            {
+              readAt: "2026-01-14T12:58:56",
+              category: "소설/문학",
+              place: "HOME",
+            },
+            {
+              readAt: "2026-01-14T13:00:05",
+              category: "소설/문학",
+              place: "CAFE",
+            },
+            {
+              readAt: "2026-01-16T15:50:35",
+              category: "소설/문학",
+              place: "LIBRARY",
+            },
+            {
+              readAt: "2026-01-09T06:43:05",
+              category: "소설/문학",
+              place: "MOVING",
+            },
+            {
+              readAt: "2026-01-09T06:43:19",
+              category: "소설/문학",
+              place: "HOME",
+            },
+            {
+              readAt: "2026-01-10T01:23:43",
+              category: "소설/문학",
+              place: "MOVING",
+            },
+            {
+              readAt: "2026-01-09T06:42:54",
+              category: "엔터테인먼트/문화",
+              place: "CAFE",
+            },
+            {
+              readAt: "2026-01-09T06:43:24",
+              category: "엔터테인먼트/문화",
+              place: "CAFE",
+            },
+          ],
+        },
+      },
+    },
+  },
+};
+
 // 정상 리포트 mock 데이터
 export const reportMonthlyApiMock = {
   success: true,
@@ -106,7 +282,7 @@ export const reportMonthlyApiMock = {
   responseDto: {
     character: {
       manyPlace: "MOVING", // 가장 많이 읽은 장소
-      readingTendency: "성취·발전형", // 독서 성향(캐릭터 성향)
+      readingTendency: "경제/경영", // 장르
     },
     userTotalNum: 100, // 전체 유저 수
     characterNum: 15, // 해당 캐릭터 유저 수3
@@ -124,7 +300,7 @@ export const reportMonthlyApiMock = {
             },
             {
               finishAt: "2024-11-18T22:10:00",
-              category: "에세이",
+              category: "에세이/전기",
               hashtags: ["공감", "힐링"],
             },
           ],
@@ -141,7 +317,7 @@ export const reportMonthlyApiMock = {
           1: [
             {
               finishAt: "2025-01-05T08:40:00",
-              category: "자기계발",
+              category: "심리/명상",
               hashtags: ["동기부여", "정리"],
             },
             {
@@ -169,7 +345,7 @@ export const reportMonthlyApiMock = {
             },
             {
               finishAt: "2025-06-28T23:10:00",
-              category: "에세이",
+              category: "에세이/전기",
               hashtags: ["위로"],
             },
           ],
@@ -187,7 +363,7 @@ export const reportMonthlyApiMock = {
             },
             {
               finishAt: "2025-12-22T10:05:00",
-              category: "자기계발",
+              category: "심리/명상",
               hashtags: ["정리", "성장"],
             },
             {
@@ -197,22 +373,22 @@ export const reportMonthlyApiMock = {
             },
             {
               finishAt: "2025-12-05T23:20:00",
-              category: "과학/기술",
+              category: "과학/기술/공학",
               hashtags: ["신기함", "호기심", "설렘"],
             },
             {
               finishAt: "2025-12-07T12:40:00",
-              category: "예술/대중문화",
+              category: "예술/디자인/건축",
               hashtags: ["감성", "영감"],
             },
             {
               finishAt: "2025-12-15T17:35:00",
-              category: "건강/취미",
+              category: "의학/건강",
               hashtags: ["루틴", "힐링"],
             },
             {
               finishAt: "2025-12-15T18:35:00",
-              category: "건강/취미",
+              category: "의학/건강",
               hashtags: ["루틴", "힐링"],
             },
             {
@@ -238,7 +414,7 @@ export const reportMonthlyApiMock = {
             },
             {
               readAt: "2024-11-18T22:10:00",
-              category: "에세이",
+              category: "에세이/전기",
               place: "CAFE",
             },
           ],
@@ -255,7 +431,7 @@ export const reportMonthlyApiMock = {
           1: [
             {
               readAt: "2025-01-05T08:40:00",
-              category: "자기계발",
+              category: "심리/명상",
               place: "HOME",
             },
             {
@@ -283,7 +459,7 @@ export const reportMonthlyApiMock = {
             },
             {
               readAt: "2025-06-28T23:10:00",
-              category: "에세이",
+              category: "에세이/전기",
               place: "HOME",
             },
           ],
@@ -301,7 +477,7 @@ export const reportMonthlyApiMock = {
             },
             {
               readAt: "2025-12-22T10:05:00",
-              category: "자기계발",
+              category: "심리/명상",
               place: "CAFE",
             },
             {
@@ -311,22 +487,22 @@ export const reportMonthlyApiMock = {
             },
             {
               readAt: "2025-12-05T23:20:00",
-              category: "과학/기술",
+              category: "과학/기술/공학",
               place: "CAFE",
             },
             {
               readAt: "2025-12-07T12:40:00",
-              category: "예술/대중문화",
+              category: "예술/디자인/건축",
               place: "LIBRARY",
             },
             {
               readAt: "2025-12-15T17:35:00",
-              category: "건강/취미",
+              category: "의학/건강",
               place: "MOVING",
             },
             {
               readAt: "2025-12-15T18:35:00",
-              category: "건강/취미",
+              category: "의학/건강",
               place: "MOVING",
             },
             {
@@ -491,7 +667,7 @@ export async function fetchMonthlyReport({ year, month }) {
     // 캐릭터는 안 나왔지만 이번달에 가입해서 독서한 기록은 있는 유저 테스트는 reportMonthlyApiMockThisMonthHasDataNoCharacter
     // 캐릭터도 나온 기존 유저면 reportMonthlyApiMock
     const body = USE_REPORT_MOCK
-      ? reportMonthlyApiMock
+      ? reportMonthlyApiMockParkHaru
       : (await client.get("/api/report/monthly")).data;
 
     // 404 & RR404일 땐 빈 리포트, 그 외 에러는 진짜 에러
@@ -504,7 +680,9 @@ export async function fetchMonthlyReport({ year, month }) {
       body.responseDto;
 
     const manyPlace = character?.manyPlace ?? null;
-    const readingTendency = character?.readingTendency ?? null;
+
+    const tendencyGenre = normalizeGenreKey(character?.readingTendency); // 서버가 준 장르
+    const persona = personaFromGenre(tendencyGenre); // 여기서 persona 확정
 
     // 캐릭터 비율 계산
     const percent =
@@ -524,6 +702,23 @@ export async function fetchMonthlyReport({ year, month }) {
 
     const finishRecords = getMonthList(finishMap, year, month); // 완독 월 리스트
     const logRecords = getMonthList(logMap, year, month); // 로그 월 리스트
+
+    const earliestFinish = findEarliestRecords(finishMap);
+    const earliestLog = findEarliestRecords(logMap);
+
+    const earliest = !earliestFinish
+      ? earliestLog
+      : !earliestLog
+        ? earliestFinish
+        : earliestFinish.year < earliestLog.year ||
+            (earliestFinish.year === earliestLog.year &&
+              earliestFinish.month <= earliestLog.month)
+          ? earliestFinish
+          : earliestLog;
+
+    const earliestRecordYM = earliest
+      ? { year: earliest.year, month: earliest.month }
+      : null;
 
     // 전체 기록이 하나라도 있는지 확인
     const emptyByCode =
@@ -637,7 +832,7 @@ export async function fetchMonthlyReport({ year, month }) {
     // 6) Summary 구성
     // 캐릭터가 없으면(이번달 가입 등) Summary는 빈 캐릭터 문구로 고정
     const hasCharacter =
-      hasSummarySource && !!character && !!manyPlace && !!readingTendency;
+      hasSummarySource && !!character && !!manyPlace && !!persona;
 
     if (!hasCharacter) {
       return {
@@ -667,35 +862,19 @@ export async function fetchMonthlyReport({ year, month }) {
 
     const placeLabel = PLACE_LABEL[manyPlace] ?? manyPlace;
 
-    // 캐릭터 이름
-    const rawTendency = readingTendency;
-    const characterName = READING_TENDENCY_MAP[rawTendency];
-
     // 장소 분위기
     const moods = PLACE_MOOD_MAP[manyPlace] ?? [];
     const mood = moods[0] ?? ""; // 일단은 첫 번째만 사용
 
-    const latestGenreDistribution = buildGenreDistribution(latestRecords);
-    const latestTopGenre = latestGenreDistribution[0]?.name;
+    const title = `${mood} ${persona}`;
 
-    // 최종 타이틀
-    const latestTotal = Array.isArray(latestRecords) ? latestRecords.length : 0;
+    const description = `${title}형은 주로 ${placeLabel}${locParticle(
+      placeLabel,
+    )} ${tendencyGenre}${objParticle(tendencyGenre)} 읽는 사람이에요.`;
 
-    const isEmpty = latestTotal === 0;
-
-    const title =
-      latestTotal === 0 ? "아직 측정되지 않았어요" : `${mood} ${characterName}`;
-
-    const description =
-      latestTotal === 0
-        ? "어떤 캐릭터가 나오실 지 궁금해요!"
-        : `${title}형은 주로 ${placeLabel}${locParticle(placeLabel)} ${latestTopGenre}${objParticle(
-            latestTopGenre,
-          )} 읽는 사람이에요.`;
-    const characterKey =
-      latestTotal === 0
-        ? "empty"
-        : (characterName || "default").replace(/\s+/g, "_").toLowerCase();
+    const characterKey = (persona || "default")
+      .replace(/\s+/g, "_")
+      .toLowerCase();
 
     return {
       summary: {
@@ -703,8 +882,7 @@ export async function fetchMonthlyReport({ year, month }) {
         month: latestMonth,
         title,
         description,
-        percent: isEmpty ? null : percent,
-        isEmpty,
+        percent: percent,
         characterKey,
         placeKey: manyPlace,
       },
@@ -713,8 +891,11 @@ export async function fetchMonthlyReport({ year, month }) {
       genreDistribution,
       readingCountsByWeekday,
       readingPlaces,
-      readingTendency: rawTendency,
-      persona: characterName,
+      persona,
+
+      meta: {
+        earliestRecordYM,
+      },
     };
   } catch (e) {
     const status = e?.response?.status;

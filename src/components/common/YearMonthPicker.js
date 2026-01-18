@@ -63,9 +63,8 @@ export default function YearMonthPicker({
   }, [minDate]);
 
   const years = useMemo(
-    //() => buildYearsFrom2010(baseDate, minDate),
-    () => buildYearsFrom2010(baseDate, minSelectableDate), // 임시 사항 !!!!!
-    [baseDate, minSelectableDate], // 원랜 의존성 배열에 minSelectableDate 대신 minDate가 들어감
+    () => buildYearsFrom2010(baseDate, minDate),
+    [baseDate, minDate],
   );
   const months = useMemo(
     () =>
@@ -86,9 +85,6 @@ export default function YearMonthPicker({
     return false;
   };
 
-  const isMonthDisabled = (m) => isBeforeMinSelectable(selectedYear, m);
-
-  /* 원래 코드
   // 가입일 이전인 월은 disabled로 정하는 함수
   const isMonthDisabled = (m) => {
     if (!minDate) return false;
@@ -103,9 +99,7 @@ export default function YearMonthPicker({
     if (selectedYear === minY && m < minM) return true;
 
     return false;
-    
   };
-  */
 
   // 테마별 색상 세트
   const themeColors = useMemo(() => {
