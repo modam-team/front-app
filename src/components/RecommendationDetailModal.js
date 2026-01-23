@@ -55,7 +55,7 @@ function Rating({ value = 0, color = starGray, inactiveColor = starGray }) {
  * - book: recoDetail 객체
  * - onClose: () => void
  */
-function RecommendationDetailModal({ visible, book, onClose }) {
+function RecommendationDetailModal({ visible, book, onClose, onPressDetail }) {
   // 키워드 3개
   const detailTags = useMemo(() => {
     if (!book) return [];
@@ -103,17 +103,22 @@ function RecommendationDetailModal({ visible, book, onClose }) {
             <View style={styles.card}>
               {/* 상단: 왼쪽 커버 / 오른쪽 메타 */}
               <View style={styles.topRow}>
-                <BookCover
-                  uri={book?.cover}
-                  title={book?.title}
-                  width={120}
-                  height={177}
-                  radius={7}
-                  backgroundColor={colors.mono[150]}
-                  textColor={colors.mono[950]}
-                  fallbackFontSize={18}
-                  containerStyle={styles.cover}
-                />
+                <Pressable
+                  onPress={onPressDetail}
+                  disabled={!onPressDetail}
+                >
+                  <BookCover
+                    uri={book?.cover}
+                    title={book?.title}
+                    width={120}
+                    height={177}
+                    radius={7}
+                    backgroundColor={colors.mono[150]}
+                    textColor={colors.mono[950]}
+                    fallbackFontSize={18}
+                    containerStyle={styles.cover}
+                  />
+                </Pressable>
 
                 {/* 오른쪽: 표지와 높이 같은 래퍼 */}
                 <View style={styles.metaWrapper}>
@@ -140,7 +145,11 @@ function RecommendationDetailModal({ visible, book, onClose }) {
                     </Pressable>
                   </View>
 
-                  <View style={styles.infoBlock}>
+                  <Pressable
+                    onPress={onPressDetail}
+                    disabled={!onPressDetail}
+                    style={styles.infoBlock}
+                  >
                     {/* 제목/저자 */}
                     <View style={styles.metaTop}>
                       <Text
@@ -168,7 +177,7 @@ function RecommendationDetailModal({ visible, book, onClose }) {
                         ({book?.totalReview || 0})
                       </Text>
                     </View>
-                  </View>
+                  </Pressable>
                 </View>
               </View>
 

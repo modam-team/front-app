@@ -1,4 +1,4 @@
-import { fetchReviewListByBookId } from "@apis/bookcaseApi";
+import { fetchOtherReview } from "@apis/bookcaseApi";
 import { fetchFriends } from "@apis/friendApi";
 import { fetchReadingLogs } from "@apis/report/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
@@ -37,6 +37,22 @@ const placeLabelMap = {
   MOVING: "이동중",
 };
 
+const isProbablyUrl = (value) =>
+  typeof value === "string" && /^https?:\/\//i.test(value.trim());
+
+const pickCoverUrl = (item) => {
+  const raw =
+    item?.cover ||
+    item?.coverImage ||
+    item?.coverUrl ||
+    item?.thumbnail ||
+    item?.imageUrl ||
+    item?.imgUrl ||
+    null;
+  if (!raw || typeof raw !== "string") return null;
+  if (raw.startsWith("http://")) return `https://${raw.slice(7)}`;
+  return raw;
+};
 const normalizeHexColor = (value) => {
   if (!value || typeof value !== "string") return null;
   const raw = value.trim();
@@ -282,14 +298,18 @@ export default function FriendCalendarScreen({
           includeTheme: true,
         });
         const list = Array.isArray(result) ? result : result?.list || [];
+        const readingList = Array.isArray(result?.readingList)
+          ? result.readingList
+          : list;
+        const historyList = Array.isArray(result?.historyList)
+          ? result.historyList
+          : [];
         if (!Array.isArray(result) && result?.theme) {
           setFriendTheme(result.theme);
         }
         if (cancelled) return;
-        const filteredList = list || [];
         const grouped = {};
-        const uniqMap = new Map();
-        (filteredList || []).forEach((item) => {
+        (readingList || []).forEach((item) => {
           const dt = parseReadAt(item.readAt);
           if (Number.isNaN(dt.getTime())) return;
           const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(
@@ -304,19 +324,10 @@ export default function FriendCalendarScreen({
               (Array.isArray(item.authors) ? item.authors.join(", ") : "") ||
               item.publisher ||
               "작가 미상",
-            cover: item.cover || null,
+            cover: pickCoverUrl(item),
             rating: 0,
-            avgRate:
-              item.avgRate ||
-              item.avgRating ||
-              item.averageRating ||
-              item.reviewAvg ||
-              item.reviewAverage ||
-              item.totalRate ||
-              item.bookRate ||
-              item.rate ||
-              null,
-            totalReview: item.totalReview || item.reviewCount || 0,
+            avgRate: null,
+            totalReview: 0,
             time: `${String(dt.getHours()).padStart(2, "0")}:${String(
               dt.getMinutes(),
             ).padStart(2, "0")}`,
@@ -326,24 +337,48 @@ export default function FriendCalendarScreen({
               item.bookId || item.bookID || item.book?.id || item.id || null,
           };
           grouped[key] = grouped[key] ? [...grouped[key], log] : [log];
-          const uniqKey = String(
-            log.bookId || item.isbn || item.isbn13 || log.title || log.id,
-          );
-          if (!uniqMap.has(uniqKey)) {
-            uniqMap.set(uniqKey, {
-              ...log,
-              dayKey: key,
-              sortDate: dt.getTime(),
-            });
-          }
         });
         setReadingLogs(grouped);
         // 최근 기록 카드용 플랫 리스트
-        const uniqueHistory = Array.from(uniqMap.values()).sort(
-          (a, b) => b.sortDate - a.sortDate,
-        );
-        setHistory(uniqueHistory);
+        const historyMap = new Map();
+        (historyList || []).forEach((item, index) => {
+          const authorCandidate =
+            item.author ||
+            (Array.isArray(item.authors) ? item.authors.join(", ") : "") ||
+            item.publisher ||
+            "작가 미상";
+          const coverCandidate = item.cover;
+          let coverUrl = pickCoverUrl(item);
+          let authorName = authorCandidate;
+          if (isProbablyUrl(authorCandidate) && coverCandidate) {
+            coverUrl = authorCandidate;
+            authorName = coverCandidate;
+          } else if (!coverUrl && isProbablyUrl(authorCandidate)) {
+            coverUrl = authorCandidate;
+            authorName = "작가 미상";
+          }
+          const log = {
+            id: `${item.bookId || item.title || "book"}-${index}`,
+            title: item.title || "제목 없음",
+            author: authorName || "작가 미상",
+            cover: coverUrl,
+            rating: 0,
+            avgRate: null,
+            totalReview: 0,
+            bookId:
+              item.bookId || item.bookID || item.book?.id || item.id || null,
+          };
+          const uniqKey = String(log.bookId || log.title || log.id);
+          if (!historyMap.has(uniqKey)) historyMap.set(uniqKey, log);
+        });
+        setHistory(Array.from(historyMap.values()));
       } catch (e) {
+        if (e?.code === "F403") {
+          Alert.alert(
+            "공개되지 않은 캘린더",
+            e.message || "친구 관계가 아니면 볼 수 없습니다.",
+          );
+        }
         console.warn("친구 독서 기록 불러오기 실패:", e.response?.data || e);
         setReadingLogs({});
         setHistory([]);
@@ -367,10 +402,9 @@ export default function FriendCalendarScreen({
     setNoteLoading(true);
     setNoteVisible(true);
     try {
-      const reviews = await fetchReviewListByBookId(bookId);
-      const match = (reviews || []).find((r) => {
-        const uid = r.userId || r.user?.userId || r.user?.id;
-        return uid != null && friendIdKey && String(uid) === friendIdKey;
+      const match = await fetchOtherReview({
+        bookId,
+        otherId: friendId,
       });
       if (!match) {
         setNoteData({
@@ -385,8 +419,8 @@ export default function FriendCalendarScreen({
       setNoteData({
         title: log?.title,
         cover: log?.cover,
-        rating: match.rating ?? match.rate ?? 0,
-        comment: match.comment ?? match.content ?? match.review ?? "",
+        rating: match.rating ?? 0,
+        comment: match.comment ?? "",
         hashtag: normalizeHashtags(
           match.hashtag ||
             match.hashTag ||
@@ -396,28 +430,6 @@ export default function FriendCalendarScreen({
             match.hashtags,
         ),
       });
-      if (Number.isFinite(Number(log?.bookId))) {
-        const ratingValue =
-          Number(
-            match.averageRating ?? match.avgRating ?? match.avgRate ?? 0,
-          ) ||
-          Number(match.totalRate ?? match.bookRate ?? 0) ||
-          Number(match.rating ?? match.rate ?? 0) ||
-          0;
-        const totalValue =
-          Number(match.totalReview ?? match.reviewCount ?? 0) || 0;
-        setHistory((prev) =>
-          prev.map((h) =>
-            h.bookId === log.bookId
-              ? {
-                  ...h,
-                  avgRate: ratingValue || h.avgRate || h.rate,
-                  totalReview: totalValue || h.totalReview,
-                }
-              : h,
-          ),
-        );
-      }
     } catch (e) {
       console.warn("친구 독서록 조회 실패:", e.response?.data || e.message);
       setNoteData(null);
@@ -426,6 +438,79 @@ export default function FriendCalendarScreen({
     }
   };
 
+  const noteOwnerName = friend?.nickname || friend?.name || "친구";
+  const renderNoteContent = () => {
+    const noteText = (noteData?.comment || "").trim();
+    const noteRating = Number(noteData?.rating ?? 0) || 0;
+    const noteTags = Array.isArray(noteData?.hashtag) ? noteData.hashtag : [];
+
+    return (
+      <>
+        <View style={styles.noteHeaderRow}>
+          <Text style={styles.noteTitle}>
+            {noteOwnerName}의 독서노트
+          </Text>
+        </View>
+        {noteTags.length > 0 && (
+          <View style={styles.noteTagRow}>
+            {noteTags.slice(0, 3).map((tag) => (
+              <View
+                key={tag}
+                style={styles.noteTagChip}
+              >
+                <Text style={styles.noteTagText}>#{tag}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+        <View
+          style={[
+            styles.reviewModalStarsRow,
+            { marginTop: 8, justifyContent: "center" },
+          ]}
+        >
+          {[1, 2, 3, 4, 5].map((i) => {
+            const full = i;
+            const half = i - 0.5;
+            const isFull = noteRating >= full;
+            const isHalf = !isFull && noteRating >= half;
+            return (
+              <View
+                key={i}
+                style={{ opacity: 1 }}
+              >
+                <StarIcon
+                  size={44}
+                  variant={isFull ? "full" : isHalf ? "half" : "empty"}
+                  color="#426B1F"
+                />
+              </View>
+            );
+          })}
+        </View>
+        <View style={styles.noteTextareaWrap}>
+          <View style={styles.noteHeaderRow}>
+          </View>
+          <View style={styles.noteTextarea}>
+            {noteLoading ? (
+              <Text style={styles.noteMeta}>불러오는 중...</Text>
+            ) : noteData ? (
+              <ScrollView
+                style={styles.noteTextareaScroll}
+                showsVerticalScrollIndicator
+              >
+                <Text style={styles.noteTextareaText}>
+                  {noteText || "아직 공개된 독서노트가 없어요."}
+                </Text>
+              </ScrollView>
+            ) : (
+              <Text style={styles.noteMeta}>독서노트를 불러오지 못했어요.</Text>
+            )}
+          </View>
+        </View>
+      </>
+    );
+  };
   const content = (
     <>
       {!hideHeader && (
@@ -678,17 +763,6 @@ export default function FriendCalendarScreen({
           contentContainerStyle={styles.historyRow}
         >
           {history.map((item) => {
-            const rating =
-              Number(
-                item.avgRate ??
-                  item.avgRating ??
-                  item.totalRate ??
-                  item.bookRate ??
-                  item.rate ??
-                  0,
-              ) || 0;
-            const totalCount =
-              Number(item.totalReview ?? item.reviewCount ?? 0) || 0;
             const author =
               item.author ||
               (Array.isArray(item.authors)
@@ -699,26 +773,7 @@ export default function FriendCalendarScreen({
               <Pressable
                 key={`${item.id}-${item.dayKey}`}
                 style={styles.bookCard}
-                onPress={() => {
-                  if (!item.bookId) {
-                    nav?.navigate?.("AddEntry", {
-                      prefillQuery: item.title || "",
-                    });
-                    return;
-                  }
-                  nav?.navigate?.("AddEntry", {
-                    prefillBook: {
-                      bookId: item.bookId,
-                      id: item.bookId,
-                      title: item.title,
-                      author: author,
-                      cover: item.cover,
-                      coverImage: item.cover,
-                      thumbnail: item.cover,
-                      categoryName: item.categoryName || item.category || null,
-                    },
-                  });
-                }}
+                onPress={() => openFriendNote(item)}
               >
                 <View style={styles.bookCover}>
                   {item.cover ? (
@@ -752,24 +807,6 @@ export default function FriendCalendarScreen({
                   >
                     {author}
                   </Text>
-                </View>
-                <View style={styles.starRow}>
-                  {[1, 2, 3, 4, 5].map((i) => {
-                    const full = i;
-                    const half = i - 0.5;
-                    const isFull = rating >= full;
-                    const isHalf = !isFull && rating >= half;
-                    return (
-                      <StarIcon
-                        key={i}
-                        size={16}
-                        variant={isFull ? "full" : isHalf ? "half" : "empty"}
-                        color="#C6C6C6"
-                        emptyColor="#C6C6C6"
-                      />
-                    );
-                  })}
-                  <Text style={styles.starCount}>({totalCount})</Text>
                 </View>
               </Pressable>
             );
@@ -816,40 +853,7 @@ export default function FriendCalendarScreen({
               style={styles.noteCard}
               onPress={() => {}}
             >
-              <Text style={styles.noteTitle}>독서노트</Text>
-              {noteLoading && (
-                <Text style={styles.noteMeta}>불러오는 중...</Text>
-              )}
-              {!noteLoading && noteData && (
-                <>
-                  <Text style={styles.noteBookTitle}>{noteData.title}</Text>
-                  {noteData.comment ? (
-                    <Text style={styles.noteComment}>{noteData.comment}</Text>
-                  ) : (
-                    <Text style={styles.noteMeta}>
-                      아직 공개된 독서노트가 없어요.
-                    </Text>
-                  )}
-                  {Array.isArray(noteData.hashtag) &&
-                    noteData.hashtag.length > 0 && (
-                      <View style={styles.noteTagRow}>
-                        {noteData.hashtag.slice(0, 3).map((tag) => (
-                          <View
-                            key={tag}
-                            style={styles.noteTagChip}
-                          >
-                            <Text style={styles.noteTagText}>#{tag}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                </>
-              )}
-              {!noteLoading && !noteData && (
-                <Text style={styles.noteMeta}>
-                  독서노트를 불러오지 못했어요.
-                </Text>
-              )}
+              {renderNoteContent()}
             </Pressable>
           </Pressable>
         </Modal>
@@ -899,36 +903,7 @@ export default function FriendCalendarScreen({
             style={styles.noteCard}
             onPress={() => {}}
           >
-            <Text style={styles.noteTitle}>독서노트</Text>
-            {noteLoading && <Text style={styles.noteMeta}>불러오는 중...</Text>}
-            {!noteLoading && noteData && (
-              <>
-                <Text style={styles.noteBookTitle}>{noteData.title}</Text>
-                {noteData.comment ? (
-                  <Text style={styles.noteComment}>{noteData.comment}</Text>
-                ) : (
-                  <Text style={styles.noteMeta}>
-                    아직 공개된 독서노트가 없어요.
-                  </Text>
-                )}
-                {Array.isArray(noteData.hashtag) &&
-                  noteData.hashtag.length > 0 && (
-                    <View style={styles.noteTagRow}>
-                      {noteData.hashtag.slice(0, 3).map((tag) => (
-                        <View
-                          key={tag}
-                          style={styles.noteTagChip}
-                        >
-                          <Text style={styles.noteTagText}>#{tag}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-              </>
-            )}
-            {!noteLoading && !noteData && (
-              <Text style={styles.noteMeta}>독서노트를 불러오지 못했어요.</Text>
-            )}
+            {renderNoteContent()}
           </Pressable>
         </Pressable>
       </Modal>
@@ -1119,20 +1094,30 @@ const styles = StyleSheet.create({
   noteCard: {
     width: "100%",
     maxWidth: 360,
+    minHeight: 520,
     backgroundColor: "#FFF",
-    borderRadius: 14,
-    padding: 18,
-    gap: 10,
+    borderRadius: 18,
+    padding: 20,
+    gap: 12,
   },
-  noteTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
-  noteBookTitle: { fontSize: 15, fontWeight: "600", color: "#111" },
-  noteComment: { fontSize: 14, color: "#333", lineHeight: 20 },
-  noteMeta: { fontSize: 13, color: "#777" },
+  noteHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noteTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#000",
+    textAlign: "center",
+  },
+  noteMeta: { fontSize: 13, color: "#777", textAlign: "center" },
   noteTagRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-    marginTop: 4,
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
   },
   noteTagChip: {
     paddingHorizontal: 10,
@@ -1143,15 +1128,39 @@ const styles = StyleSheet.create({
     borderColor: "#7E9F61",
   },
   noteTagText: { fontSize: 12, color: "#426B1F" },
+  reviewModalStarsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  noteTextareaWrap: {
+    width: "100%",
+    gap: 6,
+  },
+  noteTextareaLabel: {
+    fontSize: 14,
+    color: "#888",
+  },
+  noteTextarea: {
+    minHeight: 260,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingTop: 2,
+    paddingBottom: 12,
+    backgroundColor: "#FFF",
+  },
+  noteTextareaScroll: {
+    maxHeight: 220,
+  },
+  noteTextareaText: {
+    fontSize: 14,
+    color: "#5C3D2E",
+    lineHeight: 28,
+    marginTop: -8,
+  },
   bookTextBlock: { alignItems: "center", gap: 2 },
   bookTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
   bookMeta: { fontSize: 10, color: "#000" },
-  starRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  starCount: { fontSize: 12, color: "#c6c6c6" },
   stripRow: {
     marginTop: 16,
     paddingVertical: 4,

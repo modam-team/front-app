@@ -155,14 +155,35 @@ export async function fetchReadingLogs({
         params: { otherId: target, year, month },
       });
       const dto = res?.data?.responseDto ?? null;
-      const list = dto?.readingLogResponse ?? dto ?? res?.data ?? [];
+      const readingLogs = Array.isArray(dto?.readingLogResponse)
+        ? dto.readingLogResponse
+        : [];
+      const historyLogs = Array.isArray(dto?.historyLogResponse)
+        ? dto.historyLogResponse
+        : [];
+      const list = [...readingLogs, ...historyLogs];
       if (Array.isArray(list)) {
         if (includeTheme) {
-          return { list, theme: dto?.theme ?? null };
+          return {
+            list,
+            readingList: readingLogs,
+            historyList: historyLogs,
+            theme: dto?.theme ?? null,
+          };
         }
         return list;
       }
     } catch (e) {
+      const status = e?.response?.status;
+      const code = e?.response?.data?.error?.code;
+      if (status === 403 || code === "F403") {
+        const err = new Error(
+          e?.response?.data?.error?.message ||
+            "비공개 계정이거나 친구가 아닙니다.",
+        );
+        err.code = code || "F403";
+        throw err;
+      }
       // fallback
     }
   }

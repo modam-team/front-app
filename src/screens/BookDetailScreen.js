@@ -320,15 +320,22 @@ export default function BookDetailScreen({ navigation, route }) {
     }
   }, [status, reviewDone]);
 
-  const submit = async ({ ratingOverride, commentOverride } = {}) => {
+  const submit = async ({
+    ratingOverride,
+    commentOverride,
+    statusOverride,
+    bypassReviewModalCheck = false,
+    focusTabOverride,
+  } = {}) => {
     const bookKey = book.id || book.bookId;
     if (!bookKey) {
       navigation.goBack();
       return;
     }
     if (reviewLoading) return;
-    if (showReviewModal) return;
-    if (status === "after" && !reviewDone) {
+    if (showReviewModal && !bypassReviewModalCheck) return;
+    const nextStatus = statusOverride || status;
+    if (nextStatus === "after" && !reviewDone && !bypassReviewModalCheck) {
       setShowReviewModal(true);
       setPendingAfter(true);
       return;
@@ -341,16 +348,16 @@ export default function BookDetailScreen({ navigation, route }) {
       let reviewCreated = false;
       const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
       const isTransitionToAfter =
-        status === "after" && committedStatus !== "after";
+        nextStatus === "after" && committedStatus !== "after";
       const patchDates = isTransitionToAfter
         ? { startDate: todayStr, endDate: todayStr }
         : {};
 
       let updateRes = null;
-      const shouldUpdateState = status !== committedStatus;
+      const shouldUpdateState = nextStatus !== committedStatus;
       if (shouldUpdateState) {
         // 1) 먼저 상태를 서버에 반영 (서버가 전->중->후 순서를 요구할 수 있으므로 중간 상태 보강)
-        if (status === "after" && committedStatus === "before") {
+        if (nextStatus === "after" && committedStatus === "before") {
           try {
             await updateBookcaseState(bookKey, "READING");
           } catch (e) {
@@ -363,13 +370,13 @@ export default function BookDetailScreen({ navigation, route }) {
         try {
           updateRes = await updateBookcaseState(
             bookKey,
-            status.toUpperCase(),
+            nextStatus.toUpperCase(),
             patchDates,
           );
         } catch (e) {
           // 상태 전환 제한(예: 4091) 시 한 단계씩 재시도
           const code = e.response?.data?.error?.code || e.response?.data?.code;
-          if (status === "after" && code === "4091") {
+          if (nextStatus === "after" && code === "4091") {
             try {
               await updateBookcaseState(bookKey, "READING");
               updateRes = await updateBookcaseState(
@@ -394,7 +401,7 @@ export default function BookDetailScreen({ navigation, route }) {
       if (!shouldUpdateState) {
         serverState = committedStatus;
       }
-      if (status === "after") {
+      if (nextStatus === "after") {
         if (!serverState) {
           const latest = await fetchBookcase();
           const found =
@@ -412,7 +419,8 @@ export default function BookDetailScreen({ navigation, route }) {
           return;
         }
       } else {
-        isAfterOnServer = (serverState || status).toLowerCase() === "after";
+        isAfterOnServer =
+          (serverState || nextStatus).toLowerCase() === "after";
       }
 
       // 2) 리뷰 생성 (완독 + 리뷰 완료 시, 서버 상태 AFTER 일 때만)
@@ -566,7 +574,7 @@ export default function BookDetailScreen({ navigation, route }) {
 
       const updatedBook = {
         ...book,
-        status,
+        status: nextStatus,
         userRate: isAfterOnServer
           ? Number(ratingOverride ?? rating)
           : book.userRate,
@@ -579,12 +587,12 @@ export default function BookDetailScreen({ navigation, route }) {
           : book.finishedAt,
       };
 
-      setCommittedStatus(isAfterOnServer ? "after" : status);
+      setCommittedStatus(isAfterOnServer ? "after" : nextStatus);
       navigation.navigate("Root", {
         screen: "책장",
         params: {
           refreshKey: Date.now(),
-          focusTab: status,
+          focusTab: focusTabOverride || nextStatus,
           updatedBook,
         },
       });
@@ -955,7 +963,11 @@ export default function BookDetailScreen({ navigation, route }) {
                 />
               </TouchableOpacity>
             </View>
-            <View style={styles.reviewModalContent}>
+            <ScrollView
+              style={styles.reviewModalContent}
+              contentContainerStyle={styles.reviewModalContentInner}
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.reviewModalTitle}>리뷰 작성</Text>
               <Text style={styles.reviewModalSubtitle}>
                 완독한 책의 별점을 남기고{"\n"}해시태그를 작성해주세요
@@ -1093,7 +1105,7 @@ export default function BookDetailScreen({ navigation, route }) {
                   </View>
                 )}
               </View>
-            </View>
+            </ScrollView>
 
             <View style={styles.reviewModalCTAWrapper}>
               <TouchableOpacity
@@ -1109,10 +1121,11 @@ export default function BookDetailScreen({ navigation, route }) {
                   setStatus("after");
                   setPendingAfter(false);
                   setShowReviewModal(false);
-                  // 상태 반영 + 리뷰 저장까지 바로 진행
-                  setTimeout(() => {
-                    submit();
-                  }, 0);
+                  submit({
+                    statusOverride: "after",
+                    bypassReviewModalCheck: true,
+                    focusTabOverride: "after",
+                  });
                 }}
               >
                 <Text style={styles.reviewModalCTAText}>리뷰 작성 완료</Text>
@@ -1393,9 +1406,12 @@ const styles = StyleSheet.create({
   reviewModalContent: {
     flex: 1,
     width: "100%",
+  },
+  reviewModalContentInner: {
     alignItems: "center",
     gap: 16,
     paddingHorizontal: 4,
+    paddingBottom: 8,
   },
   reviewModalTitle: {
     fontSize: 22,

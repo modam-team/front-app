@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // 1:1 문의를 받을 운영자 이메일
-const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
+const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL || "ssj8081@naver.com";
 
 export default function InquiryScreen({ navigation }) {
   // 기본 앱을 열고 수신자, 제목, 본문을 미리 채워줌 (사용자는 전송 버튼만 누르면 됨 !!)

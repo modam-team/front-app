@@ -199,6 +199,6 @@ const styles = StyleSheet.create({
   // 회원 탈퇴 텍스트
   withdraw: {
     ...typography["body-1-regular"],
-    color: colors.mono[400],
+    color: colors.warning.strong,
   },
 });

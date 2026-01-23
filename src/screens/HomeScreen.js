@@ -929,112 +929,117 @@ export default function HomeScreen({ navigation }) {
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
         contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + spacing.l }}
       >
-        <ModamLogoText
-          style={styles.header}
-          onPress={() => navigation.navigate("홈")}
-          onLongPress={DEV ? resetGoalModalDebug : undefined} // 목표 설정 테스트 용으로, 길게 누르면 목표 권수 설정하는 거 뜨게 함
-        />
+        <View style={styles.topSection}>
+          <ModamLogoText
+            style={styles.header}
+            onPress={() => navigation.navigate("홈")}
+            onLongPress={DEV ? resetGoalModalDebug : undefined} // 목표 설정 테스트 용으로, 길게 누르면 목표 권수 설정하는 거 뜨게 함
+          />
 
-        <View style={styles.friendsStripWrap}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ overflow: "visible" }}
-            contentContainerStyle={styles.friendsStripRow}
-          >
-            {friendsStrip.map((f, idx) => (
-              <Pressable
-                key={`${f.id || f.userId || f.name || f.nickname || "friend"}-${idx}`}
-                style={styles.friendItem}
-                hitSlop={6}
-                onPress={() => {
-                  // 첫 번째(내 프로필)는 홈 상태로 복귀
-                  if (idx === 0 || f.isSelf) {
-                    setViewingFriend(null);
-                    setBubbleActive("self");
-                    return;
-                  }
-                  setBubbleActive(null);
-                  setViewingFriend({
-                    userId: f.id || f.userId,
-                    nickname: f.name || f.nickname,
-                    avatar: f.avatar,
-                    themeColor: f.themeColor,
-                    goalScore: f.goalScore,
-                  });
-                }}
-              >
-                {(() => {
-                  const fid = f.id ?? f.userId ?? null;
-                  const idKey = fid != null ? String(fid) : null;
-                  const vid =
-                    viewingFriend?.userId ?? viewingFriend?.id ?? null;
-                  const activeKey =
-                    vid != null
-                      ? String(vid)
-                      : bubbleActive === "self"
-                        ? "self"
-                        : null;
-                  const isSelf = idx === 0 || f.isSelf;
-                  const isActive =
-                    isSelf && bubbleActive === "self"
-                      ? true
-                      : idKey != null &&
-                        activeKey != null &&
-                        idKey === activeKey;
-                  const scale = getBubbleScale(isSelf ? "self" : fid);
-                  const gap = getBubbleGap(isSelf ? "self" : fid);
-                  const transform = scale ? [{ scale }] : [];
-                  return (
-                    <Animated.View
-                      style={[
-                        transform.length > 0 ? { transform } : null,
-                        gap ? { marginHorizontal: gap } : null,
-                      ]}
-                    >
-                      <Avatar
-                        uri={
-                          f.avatar ||
-                          f.profileImageUrl ||
-                          f.profileUrl ||
-                          f.image ||
-                          null
-                        }
-                        size={49}
-                        style={[
-                          styles.avatarImage,
-                          isActive && styles.avatarActive,
-                        ]}
-                      />
-                    </Animated.View>
-                  );
-                })()}
-                <Text
-                  style={[
-                    styles.avatarName,
-                    idx === 0 && styles.avatarNameBold,
-                    bubbleActive &&
-                      (bubbleActive === "self"
-                        ? idx === 0 || f.isSelf
-                        : (f.id ?? f.userId) != null &&
-                          String(f.id ?? f.userId) ===
-                            String(bubbleActive)) && { marginTop: 10 },
-                  ]}
-                >
-                  {f.name || f.nickname}
-                </Text>
-              </Pressable>
-            ))}
-            <Pressable
-              style={styles.addCircle}
-              hitSlop={6}
-              onPress={() => navigation?.navigate("FriendList")}
+          <View style={styles.friendsStripWrap}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ overflow: "visible" }}
+              contentContainerStyle={styles.friendsStripRow}
             >
-              <Text style={styles.addPlus}>＋</Text>
-            </Pressable>
-          </ScrollView>
+              {friendsStrip.map((f, idx) => (
+                <Pressable
+                  key={`${f.id || f.userId || f.name || f.nickname || "friend"}-${idx}`}
+                  style={styles.friendItem}
+                  hitSlop={6}
+                  onPress={() => {
+                    // 첫 번째(내 프로필)는 홈 상태로 복귀
+                    if (idx === 0 || f.isSelf) {
+                      setViewingFriend(null);
+                      setBubbleActive("self");
+                      return;
+                    }
+                    setBubbleActive(null);
+                    setViewingFriend({
+                      userId: f.id || f.userId,
+                      nickname: f.name || f.nickname,
+                      avatar: f.avatar,
+                      themeColor: f.themeColor,
+                      goalScore: f.goalScore,
+                    });
+                  }}
+                >
+                  {(() => {
+                    const fid = f.id ?? f.userId ?? null;
+                    const idKey = fid != null ? String(fid) : null;
+                    const vid =
+                      viewingFriend?.userId ?? viewingFriend?.id ?? null;
+                    const activeKey =
+                      vid != null
+                        ? String(vid)
+                        : bubbleActive === "self"
+                          ? "self"
+                          : null;
+                    const isSelf = idx === 0 || f.isSelf;
+                    const isActive =
+                      isSelf && bubbleActive === "self"
+                        ? true
+                        : idKey != null &&
+                          activeKey != null &&
+                          idKey === activeKey;
+                    const scale = getBubbleScale(isSelf ? "self" : fid);
+                    const gap = getBubbleGap(isSelf ? "self" : fid);
+                    const transform = scale ? [{ scale }] : [];
+                    return (
+                      <Animated.View
+                        style={[
+                          transform.length > 0 ? { transform } : null,
+                          gap ? { marginHorizontal: gap } : null,
+                        ]}
+                      >
+                        <Avatar
+                          uri={
+                            f.avatar ||
+                            f.profileImageUrl ||
+                            f.profileUrl ||
+                            f.image ||
+                            null
+                          }
+                          size={49}
+                          style={[
+                            styles.avatarImage,
+                            isActive && styles.avatarActive,
+                          ]}
+                        />
+                      </Animated.View>
+                    );
+                  })()}
+                  <Text
+                    style={[
+                      styles.avatarName,
+                      idx === 0 && styles.avatarNameBold,
+                      bubbleActive &&
+                        (bubbleActive === "self"
+                          ? idx === 0 || f.isSelf
+                          : (f.id ?? f.userId) != null &&
+                            String(f.id ?? f.userId) ===
+                              String(bubbleActive)) && { marginTop: 10 },
+                    ]}
+                  >
+                    {f.name || f.nickname}
+                  </Text>
+                </Pressable>
+              ))}
+              <Pressable
+                style={styles.addCircle}
+                hitSlop={6}
+                onPress={() => navigation?.navigate("FriendList")}
+              >
+                <Text style={styles.addPlus}>＋</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
         </View>
 
         {viewingFriend ? (
@@ -1273,6 +1278,11 @@ export default function HomeScreen({ navigation }) {
         visible={!!recoDetail}
         book={recoDetail}
         onClose={() => setRecoDetail(null)}
+        onPressDetail={() => {
+          if (!recoDetail) return;
+          setRecoDetail(null);
+          navigation.navigate("BookDetail", { book: recoDetail });
+        }}
       />
 
       {toast.visible && (
@@ -1312,18 +1322,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background.DEFAULT },
 
   header: {
-    paddingTop: 12,
+    paddingTop: 20,
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingBottom: 14,
     alignItems: "flex-start",
   },
   logo: { color: "#608540", fontSize: 16, fontWeight: "600" },
+  topSection: {
+    backgroundColor: colors.background.DEFAULT,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
+  },
   friendsStripWrap: {
     flexDirection: "row",
     alignItems: "flex-start",
+    marginHorizontal: 0,
     paddingHorizontal: 16,
-    paddingBottom: 10,
-    paddingTop: 2,
+    paddingBottom: 12,
+    paddingTop: 8,
     overflow: "visible",
   },
   friendsStripRow: {

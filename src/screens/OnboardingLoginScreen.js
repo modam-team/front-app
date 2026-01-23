@@ -1,4 +1,4 @@
-import { kakaoLogin } from "@apis/authApi";
+import { appleLogin, kakaoLogin } from "@apis/authApi";
 import { resetAuthFailFlag } from "@apis/clientApi";
 import { fetchOnboardingStatus } from "@apis/userApi";
 import { colors } from "@theme/colors";
@@ -21,12 +21,17 @@ import { WebView } from "react-native-webview";
 
 const KAKAO_REST_API_KEY = process.env.EXPO_PUBLIC_KAKAO_REST_API_KEY;
 const KAKAO_REDIRECT_URI = process.env.EXPO_PUBLIC_KAKAO_REDIRECT_URI;
+const APPLE_CLIENT_ID = process.env.EXPO_PUBLIC_APPLE_CLIENT_ID;
+const APPLE_REDIRECT_URI = process.env.EXPO_PUBLIC_APPLE_REDIRECT_URI;
 const AUTH_BYPASS =
   (process.env.EXPO_PUBLIC_AUTH_BYPASS || "").toLowerCase() === "true";
 
 const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_REST_API_KEY}&redirect_uri=${encodeURIComponent(
   KAKAO_REDIRECT_URI,
 )}&response_type=code`;
+const APPLE_AUTH_URL = `https://appleid.apple.com/auth/authorize?client_id=${APPLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(
+  APPLE_REDIRECT_URI || "",
+)}&response_type=code&response_mode=query`;
 
 export default function OnboardingLoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -34,6 +39,8 @@ export default function OnboardingLoginScreen({ navigation }) {
   // Kakao OAuth 요청 설정
   const [showWebView, setShowWebView] = useState(false);
   const webViewRef = useRef(null);
+  const [showAppleWebView, setShowAppleWebView] = useState(false);
+  const appleWebViewRef = useRef(null);
 
   // 화면 상단 짤림
   const insets = useSafeAreaInsets();
@@ -44,6 +51,21 @@ export default function OnboardingLoginScreen({ navigation }) {
       return;
     }
     setShowWebView(true);
+  };
+
+  const handleAppleLogin = () => {
+    if (AUTH_BYPASS) {
+      navigation.replace("OnboardingFlow");
+      return;
+    }
+    if (!APPLE_CLIENT_ID || !APPLE_REDIRECT_URI) {
+      Alert.alert(
+        "애플 로그인 설정 필요",
+        "APPLE_CLIENT_ID / APPLE_REDIRECT_URI 환경변수를 확인해주세요.",
+      );
+      return;
+    }
+    setShowAppleWebView(true);
   };
 
   // URL에서 code= 찾기
@@ -109,6 +131,42 @@ export default function OnboardingLoginScreen({ navigation }) {
     }
   };
 
+  const handleAppleNavigationChange = async (navState) => {
+    const { url } = navState;
+
+    if (APPLE_REDIRECT_URI && url.startsWith(APPLE_REDIRECT_URI)) {
+      const code = extractCodeFromUrl(url);
+
+      if (!code) {
+        setShowAppleWebView(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        if (appleWebViewRef.current) {
+          appleWebViewRef.current.stopLoading();
+        }
+
+        await appleLogin(code);
+
+        resetAuthFailFlag();
+
+        await fetchOnboardingStatus();
+
+        setShowAppleWebView(false);
+
+        navigation.replace("AuthGate");
+      } catch (err) {
+        console.error("애플 로그인 실패:", err);
+        setShowAppleWebView(false);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.content}>
@@ -131,6 +189,14 @@ export default function OnboardingLoginScreen({ navigation }) {
             onPress={handleKakaoLogin}
           >
             <Text style={styles.kakaoLabel}>KaKao</Text>
+          </TouchableOpacity>
+          {/* 애플 로그인 버튼 */}
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.appleButton}
+            onPress={handleAppleLogin}
+          >
+            <Text style={styles.appleLabel}>Apple</Text>
           </TouchableOpacity>
           {AUTH_BYPASS && (
             <TouchableOpacity
@@ -193,6 +259,53 @@ export default function OnboardingLoginScreen({ navigation }) {
           />
         </SafeAreaView>
       </Modal>
+
+      {/* 애플 로그인 WebView 모달 */}
+      <Modal
+        visible={showAppleWebView}
+        animationType="slide"
+        onRequestClose={() => setShowAppleWebView(false)}
+      >
+        <SafeAreaView style={{ flex: 1 }}>
+          <View
+            style={{
+              height: insets.top + 48,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: spacing.l,
+              paddingTop: insets.top,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              justifyContent: "space-between",
+            }}
+          >
+            <Text style={{ ...typography["body-1-bold"] }}>애플 로그인</Text>
+            <TouchableOpacity onPress={() => setShowAppleWebView(false)}>
+              <Text
+                style={{
+                  ...typography["body-2-regular"],
+                  color: colors.warning.strong,
+                }}
+              >
+                닫기
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <WebView
+            ref={appleWebViewRef}
+            style={{ flex: 1 }}
+            source={{ uri: APPLE_AUTH_URL }}
+            startInLoadingState
+            originWhitelist={["*"]}
+            javaScriptEnabled
+            domStorageEnabled
+            onShouldStartLoadWithRequest={(request) => {
+              return true;
+            }}
+            onNavigationStateChange={handleAppleNavigationChange}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -251,6 +364,20 @@ const styles = StyleSheet.create({
   kakaoLabel: {
     ...typography["body-1-bold"],
     color: colors.mono[1000],
+  },
+  appleButton: {
+    height: 47,
+    width: 361,
+    borderRadius: 23.5,
+    marginTop: spacing.s,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: colors.mono[950],
+  },
+  appleLabel: {
+    ...typography["body-1-bold"],
+    color: colors.mono[0],
   },
   devBypassButton: {
     height: 47,
