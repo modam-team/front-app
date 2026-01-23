@@ -234,14 +234,13 @@ export default function HomeScreen({ navigation }) {
 
     const joinMonthKey = getMonthKeyFromISO(joinIso);
 
-    // 가입일 못 받아오면 그냥 기존 로직대로 보여주기(원하면 false로 바꿔도 됨)
+    // 가입일 못 받아오면 그냥 기존 로직대로 보여주기
     if (!joinMonthKey) return true;
 
-    // 가입월이 prevMonthKey보다 "늦으면" (=지난달에는 계정이 없었음) -> 스킵
+    // 가입월이 prevMonthKey보다 늦으면 (=지난달에는 계정이 없었음) -> 스킵
     return joinMonthKey <= prevMonthKey;
   };
 
-  // getMonthKeyFromISO는 getMonthKey 선언 아래에 있어야 안전함!
   const getMonthKeyFromISO = (iso) => {
     if (!iso) return null;
     const d = new Date(iso);
