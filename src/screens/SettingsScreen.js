@@ -82,6 +82,7 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               await withdrawUser(); // 서버 탈퇴
+              await AsyncStorage.clear();
               await clearAuth(); // 토큰 완전 삭제
               await AsyncStorage.removeItem(PREF_GENRES_KEY); // 선호 장르 기반 문구 추천하던거도 지움
 
