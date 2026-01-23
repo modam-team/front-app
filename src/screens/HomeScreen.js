@@ -223,6 +223,31 @@ export default function HomeScreen({ navigation }) {
     return getMonthKey(d);
   };
 
+  const shouldShowGoalResultByJoinDate = async (prevMonthKey) => {
+    const profile = await fetchUserProfile().catch(() => null);
+
+    const joinIso =
+      profile?.userRegisterDate ||
+      profile?.userRegisterAt ||
+      profile?.createdAt ||
+      null;
+
+    const joinMonthKey = getMonthKeyFromISO(joinIso);
+
+    // 가입일 못 받아오면 그냥 기존 로직대로 보여주기
+    if (!joinMonthKey) return true;
+
+    // 가입월이 prevMonthKey보다 늦으면 (=지난달에는 계정이 없었음) -> 스킵
+    return joinMonthKey <= prevMonthKey;
+  };
+
+  const getMonthKeyFromISO = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return getMonthKey(d); // "YYYY-MM"
+  };
+
   const formatDateKey = useCallback((dateObj) => {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -759,6 +784,12 @@ export default function HomeScreen({ navigation }) {
 
         if (cancelled) return;
 
+        const canShow = await shouldShowGoalResultByJoinDate(prevMonthKey);
+        if (!canShow) {
+          await AsyncStorage.removeItem("pendingResultForMonthKey");
+          await AsyncStorage.setItem("lastSeenMonthKey", thisMonthKey);
+          return;
+        }
         navigation.navigate("GoalResult", {
           achieved,
           summary: report?.summary ?? null,
@@ -804,6 +835,13 @@ export default function HomeScreen({ navigation }) {
         const achieved = prevGoal > 0 && prevRead >= prevGoal;
 
         if (cancelled) return;
+
+        const canShow = await shouldShowGoalResultByJoinDate(prevMonthKey);
+        if (!canShow) {
+          await AsyncStorage.removeItem("pendingResultForMonthKey");
+          await AsyncStorage.setItem("lastSeenMonthKey", thisMonthKey);
+          return;
+        }
 
         navigation.navigate("GoalResult", {
           achieved,
