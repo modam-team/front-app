@@ -419,8 +419,7 @@ export default function BookDetailScreen({ navigation, route }) {
           return;
         }
       } else {
-        isAfterOnServer =
-          (serverState || nextStatus).toLowerCase() === "after";
+        isAfterOnServer = (serverState || nextStatus).toLowerCase() === "after";
       }
 
       // 2) 리뷰 생성 (완독 + 리뷰 완료 시, 서버 상태 AFTER 일 때만)

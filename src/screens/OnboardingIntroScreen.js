@@ -1,10 +1,10 @@
+import ModamLogo from "../img/icons.png";
 import { ONBOARDING_QUOTES } from "@constants/onboardingQuotes";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors } from "@theme/colors";
 import { typography } from "@theme/typography";
 import { pickOnboardingQuote } from "@utils/pickOnboardingQuotes";
 import { splitToLines } from "@utils/textSplit";
-import ModamLogo from "../img/icons.png";
 import React, { useEffect, useMemo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 

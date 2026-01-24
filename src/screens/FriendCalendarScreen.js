@@ -447,9 +447,7 @@ export default function FriendCalendarScreen({
     return (
       <>
         <View style={styles.noteHeaderRow}>
-          <Text style={styles.noteTitle}>
-            {noteOwnerName}의 독서노트
-          </Text>
+          <Text style={styles.noteTitle}>{noteOwnerName}의 독서노트</Text>
         </View>
         {noteTags.length > 0 && (
           <View style={styles.noteTagRow}>
@@ -489,8 +487,7 @@ export default function FriendCalendarScreen({
           })}
         </View>
         <View style={styles.noteTextareaWrap}>
-          <View style={styles.noteHeaderRow}>
-          </View>
+          <View style={styles.noteHeaderRow}></View>
           <View style={styles.noteTextarea}>
             {noteLoading ? (
               <Text style={styles.noteMeta}>불러오는 중...</Text>
