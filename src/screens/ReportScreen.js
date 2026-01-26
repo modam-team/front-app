@@ -321,17 +321,17 @@ export default function ReportScreen() {
   };
 
   return (
-    <ImageBackground
-      source={bgSource}
-      resizeMode="cover"
-      style={styles.bg}
+    <ScrollView
+      ref={scrollRef}
+      style={styles.container}
+      contentContainerStyle={styles.scrollContainer}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
     >
-      <ScrollView
-        ref={scrollRef}
-        style={styles.container}
-        contentContainerStyle={styles.scrollContainer}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
+      <ImageBackground
+        source={bgSource}
+        resizeMode="cover"
+        style={styles.bg}
       >
         <ReportTopHeader
           variant={headerVariant}
@@ -474,8 +474,8 @@ export default function ReportScreen() {
             minDate={pickerMinDate}
           />
         </View>
-      </ScrollView>
-    </ImageBackground>
+      </ImageBackground>
+    </ScrollView>
   );
 }
 
