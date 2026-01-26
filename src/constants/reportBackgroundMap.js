@@ -2,6 +2,7 @@ import bgAchiever2 from "@assets/report/bg_achiever2.png";
 import bgAchiever from "@assets/report/bg_achiever.png";
 import bgAdventurer2 from "@assets/report/bg_adventurer2.png";
 import bgAdventurer from "@assets/report/bg_adventurer.png";
+import bgBasic from "@assets/report/bg_basic.png";
 import bgCreator2 from "@assets/report/bg_creator2.png";
 import bgCreator from "@assets/report/bg_creator.png";
 import bgExplorer2 from "@assets/report/bg_explorer2.png";
@@ -12,6 +13,8 @@ import bgOverImmersed2 from "@assets/report/bg_over_immersed2.png";
 import bgOverImmersed from "@assets/report/bg_over_immersed.png";
 import bgRomantic2 from "@assets/report/bg_romantic2.png";
 import bgRomantic from "@assets/report/bg_romantic.png";
+
+export const REPORT_BACKGROUND_BASIC = bgBasic;
 
 export const REPORT_BACKGROUND_MAP = {
   과몰입러: bgOverImmersed,
