@@ -12,6 +12,7 @@ import ReportTopHeader from "@components/report/ReportTopHeader";
 import Summary from "@components/report/Summary";
 import TimeHabits from "@components/report/TimeHabits";
 import {
+  REPORT_BACKGROUND_BASIC,
   REPORT_BACKGROUND_MAP,
   REPORT_BACKGROUND_MAP_PAST,
 } from "@constants/reportBackgroundMap";
@@ -268,7 +269,8 @@ export default function ReportScreen() {
     styleVariant === "current"
       ? REPORT_BACKGROUND_MAP
       : REPORT_BACKGROUND_MAP_PAST;
-  const bgSource = !isEmpty && personaKey ? map[personaKey] : null;
+  const bgSource =
+    !isEmpty && personaKey ? map[personaKey] : REPORT_BACKGROUND_BASIC;
 
   /* ========= 연도랑 월 선택 관리 ========= */
   const [pickerVisible, setPickerVisible] = useState(false);
