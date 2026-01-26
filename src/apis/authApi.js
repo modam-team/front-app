@@ -20,9 +20,13 @@ export async function kakaoLogin(code) {
 
     // 토큰 및 유저 정보 저장
     await Promise.all([
-      saveToken("accessToken", accessToken),
-      saveToken("refreshToken", refreshToken ?? ""),
-      saveToken("expiresIn", String(expiresIn ?? "")),
+      accessToken ? saveToken("accessToken", accessToken) : Promise.resolve(),
+      refreshToken
+        ? saveToken("refreshToken", refreshToken)
+        : Promise.resolve(),
+      expiresIn != null
+        ? saveToken("expiresIn", String(expiresIn))
+        : Promise.resolve(),
     ]);
 
     return data.responseDto;
@@ -58,9 +62,13 @@ export async function appleLogin(code) {
     const { accessToken, refreshToken, expiresIn } = data.responseDto;
 
     await Promise.all([
-      saveToken("accessToken", accessToken),
-      saveToken("refreshToken", refreshToken ?? ""),
-      saveToken("expiresIn", String(expiresIn ?? "")),
+      accessToken ? saveToken("accessToken", accessToken) : Promise.resolve(),
+      refreshToken
+        ? saveToken("refreshToken", refreshToken)
+        : Promise.resolve(),
+      expiresIn != null
+        ? saveToken("expiresIn", String(expiresIn))
+        : Promise.resolve(),
     ]);
 
     return data.responseDto;
