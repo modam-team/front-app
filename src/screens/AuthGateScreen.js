@@ -4,7 +4,6 @@
   registerPushTokenToServer,
 } from "@apis/notificationApi";*/
 import { fetchOnboardingStatus, fetchUserProfile } from "@apis/userApi";
-import { activateUser } from "@apis/userApi";
 import { colors } from "@theme/colors";
 import { clearAuth } from "@utils/auth";
 import { getToken } from "@utils/secureStore";
@@ -54,65 +53,6 @@ export default function AuthGateScreen({ navigation }) {
           console.warn("푸시 토큰 등록 실패(무시 가능):", e?.message || e);
         }
           */
-
-        // 탈퇴 유예 상태 체크
-        if (profile.status === "WITHDRAWAL_PENDING") {
-          Alert.alert(
-            "탈퇴 처리 중인 계정이에요",
-            "아직 14일이 지나지 않아\n계정을 복구할 수 있어요.\n다시 돌아오시겠어요?",
-            [
-              {
-                text: "아니요",
-                style: "cancel",
-                onPress: async () => {
-                  await clearAuth();
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "OnboardingIntro" }],
-                  });
-                },
-              },
-              {
-                text: "네, 돌아올게요",
-                onPress: async () => {
-                  try {
-                    await activateUser(); // 상태를 ACTIVE로 변경
-
-                    // 기존의 온보딩 상태에 따라 분기
-                    const onboarding = await fetchOnboardingStatus();
-                    navigation.reset({
-                      index: 0,
-                      routes: [
-                        {
-                          name: onboarding.onboardingCompleted
-                            ? "Root"
-                            : "OnboardingFlow",
-                        },
-                      ],
-                    });
-                  } catch (e) {
-                    console.error(
-                      "계정 복구 실패",
-                      e?.response?.status,
-                      e?.response?.data,
-                      e,
-                    );
-                    Alert.alert(
-                      "복구 실패",
-                      "계정 복구에 실패했어요.\n다시 로그인해 주세요.",
-                    );
-                    await clearAuth();
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: "OnboardingLogin" }],
-                    });
-                  }
-                },
-              },
-            ],
-          );
-          return;
-        }
 
         // 온보딩 여부 체크
         const onboarding = await fetchOnboardingStatus();
