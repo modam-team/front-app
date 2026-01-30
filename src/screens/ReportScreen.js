@@ -10,12 +10,14 @@ import ReportSectionHeader from "@components/report/ReportSectionHeader";
 import ReportToggle from "@components/report/ReportToggle";
 import ReportTopHeader from "@components/report/ReportTopHeader";
 import Summary from "@components/report/Summary";
+import TutorialOverlay from "@components/TutorialOverlay";
 import TimeHabits from "@components/report/TimeHabits";
 import {
   REPORT_BACKGROUND_BASIC,
   REPORT_BACKGROUND_MAP,
   REPORT_BACKGROUND_MAP_PAST,
 } from "@constants/reportBackgroundMap";
+import { TUTORIAL_STEP_KEY } from "@constants/tutorial";
 import useReportSectionAnimations from "@hooks/useReportSectionAnimations";
 import { useTabBarTheme } from "@navigation/TabBarThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,14 +26,16 @@ import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   ImageBackground,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // 리포트 화면
 export default function ReportScreen() {
@@ -39,6 +43,17 @@ export default function ReportScreen() {
   const isFocused = useIsFocused();
 
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const [tutorialStep, setTutorialStep] = useState(null);
+  const [reportHighlightRect, setReportHighlightRect] = useState(null);
+  const [reportLayouts, setReportLayouts] = useState({});
+  const screenWidth = Dimensions.get("window").width;
+  const screenHeight = Dimensions.get("window").height;
+  const profileRef = useRef(null);
+  const summaryRef = useRef(null);
+  const statsRef = useRef(null);
+  const prefRef = useRef(null);
+  const habitRef = useRef(null);
 
   // 탭바 테마 제어
   const { setTheme } = useTabBarTheme();
@@ -90,6 +105,97 @@ export default function ReportScreen() {
   const [error, setError] = useState(null);
 
   const isEmpty = !!data?.summary?.isEmpty;
+
+  useEffect(() => {
+    if (!isFocused) return;
+    let alive = true;
+    AsyncStorage.getItem(TUTORIAL_STEP_KEY).then((step) => {
+      if (alive) setTutorialStep(step);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isFocused]);
+
+  const reportSteps = useMemo(
+    () => [
+      {
+        key: "profile",
+        title: "캐릭터",
+        description: "내 독서 캐릭터를 확인할 수 있어요.",
+        ref: summaryRef,
+      },
+      {
+        key: "stats",
+        title: "독서 통계",
+        description: "월별 독서량과 통계를 확인해요.",
+        ref: statsRef,
+      },
+      {
+        key: "preference",
+        title: "취향 분석",
+        description: "별점 기반의 취향 분석을 볼 수 있어요.",
+        ref: prefRef,
+      },
+      {
+        key: "habit",
+        title: "습관 분석",
+        description: "시간/장소 습관을 확인해요.",
+        ref: habitRef,
+      },
+    ],
+    [],
+  );
+
+  const reportStepIndex = useMemo(() => {
+    if (!tutorialStep) return null;
+    if (tutorialStep === "report") return 0;
+    if (tutorialStep.startsWith("report:")) {
+      const idx = Number(tutorialStep.split(":")[1]);
+      return Number.isFinite(idx) ? idx : null;
+    }
+    return null;
+  }, [tutorialStep]);
+
+  const updateLayout = useCallback(
+    (key) => (e) => {
+      const { x, y, width, height } = e.nativeEvent.layout || {};
+      setReportLayouts((prev) => ({
+        ...prev,
+        [key]: { x, y, width, height },
+      }));
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (reportStepIndex == null) {
+      setReportHighlightRect(null);
+      return;
+    }
+    const step = reportSteps[reportStepIndex];
+    if (!step) return;
+    const layout = reportLayouts[step.key];
+    if (layout?.y != null && scrollRef.current) {
+      const targetY = Math.max(0, layout.y - 140);
+      scrollRef.current.scrollTo({ y: targetY, animated: true });
+    }
+    const runMeasure = () => {
+      const ref = step.ref?.current;
+      if (!ref?.measureInWindow) return;
+      ref.measureInWindow((x, y, width, height) => {
+        if (width && height) {
+          setReportHighlightRect({ x, y, width, height });
+        }
+      });
+    };
+    const t1 = setTimeout(runMeasure, 50);
+    const t2 = setTimeout(runMeasure, 320);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [reportLayouts, reportStepIndex, reportSteps]);
 
   /* ========= Section Animation 관련 ========= */
   const {
@@ -349,30 +455,48 @@ export default function ReportScreen() {
           ) : (
             <>
               {/* 항상 보이는 프로필 영역 */}
-              <ReportProfileHeader
-                profileImageUrl={profileImageUrl}
-                onPressProfile={() => navigation.navigate("ProfileScreen")}
-                onPressEditProfile={() => navigation.navigate("ProfileScreen")}
-              />
-
-              {/* Summary는 이번 달을 조회할 때만 보여줌 */}
-              {isCurrentMonth ? (
-                <Summary
-                  summary={data.summary}
-                  userName={userName}
-                  year={year}
-                  month={month}
+              <View
+                ref={profileRef}
+                onLayout={updateLayout("profile")}
+              >
+                <ReportProfileHeader
+                  profileImageUrl={profileImageUrl}
                   onPressProfile={() => navigation.navigate("ProfileScreen")}
                   onPressEditProfile={() =>
                     navigation.navigate("ProfileScreen")
                   }
-                  profileImageUrl={profileImageUrl}
-                  isCurrentUI={isCurrentUI}
                 />
+              </View>
+
+              {/* Summary는 이번 달을 조회할 때만 보여줌 */}
+              {isCurrentMonth ? (
+                <View
+                  ref={summaryRef}
+                  onLayout={updateLayout("profile")}
+                >
+                  <Summary
+                    summary={data.summary}
+                    userName={userName}
+                    year={year}
+                    month={month}
+                    onPressProfile={() => navigation.navigate("ProfileScreen")}
+                    onPressEditProfile={() =>
+                      navigation.navigate("ProfileScreen")
+                    }
+                    profileImageUrl={profileImageUrl}
+                    isCurrentUI={isCurrentUI}
+                  />
+                </View>
               ) : null}
 
               {/* 월별 통계 섹션 */}
-              <View onLayout={statsAnim.onLayout}>
+              <View
+                ref={statsRef}
+                onLayout={(e) => {
+                  statsAnim.onLayout?.(e);
+                  updateLayout("stats")(e);
+                }}
+              >
                 <MonthlyStats
                   year={year}
                   month={month}
@@ -389,7 +513,13 @@ export default function ReportScreen() {
 
               {/* 취향 분석 스와이프 페이저 섹션 */}
               {isSelectedMonthEmpty ? (
-                <View onLayout={prefAnim.onLayout}>
+                <View
+                  ref={prefRef}
+                  onLayout={(e) => {
+                    prefAnim.onLayout?.(e);
+                    updateLayout("preference")(e);
+                  }}
+                >
                   <ReportSectionHeader
                     month={month}
                     title="취향 분석"
@@ -403,23 +533,35 @@ export default function ReportScreen() {
                   />
                 </View>
               ) : (
-                <PreferencePagerSection
-                  year={year}
-                  month={month}
-                  variant={styleVariant}
-                  isCurrentMonth={isCurrentUI}
-                  genreDistribution={data.genreDistribution}
-                  reviewKeywords={data.reviewKeywords}
-                  resetKey={resetKeys.pref}
-                  onLayout={prefAnim.onLayout}
-                  animateKey={prefAnim.animateKey}
-                />
+                <View
+                  ref={prefRef}
+                  onLayout={(e) => {
+                    prefAnim.onLayout?.(e);
+                    updateLayout("preference")(e);
+                  }}
+                >
+                  <PreferencePagerSection
+                    year={year}
+                    month={month}
+                    variant={styleVariant}
+                    isCurrentMonth={isCurrentUI}
+                    genreDistribution={data.genreDistribution}
+                    reviewKeywords={data.reviewKeywords}
+                    resetKey={resetKeys.pref}
+                    onLayout={prefAnim.onLayout}
+                    animateKey={prefAnim.animateKey}
+                  />
+                </View>
               )}
 
               {/* 습관 분석 섹션 */}
               <View
+                ref={habitRef}
                 style={{ marginTop: 30 }}
-                onLayout={habitAnim.onLayout}
+                onLayout={(e) => {
+                  habitAnim.onLayout?.(e);
+                  updateLayout("habit")(e);
+                }}
               >
                 {/* 섹션 헤더*/}
                 <ReportSectionHeader
@@ -476,6 +618,34 @@ export default function ReportScreen() {
         </View>
       </ImageBackground>
     </ScrollView>
+
+    <TutorialOverlay
+      visible={reportStepIndex != null}
+      highlightRect={reportHighlightRect}
+      title={reportSteps[reportStepIndex]?.title}
+      description={reportSteps[reportStepIndex]?.description}
+      nextLabel={
+        reportStepIndex != null &&
+        reportStepIndex === reportSteps.length - 1
+          ? "완료"
+          : "다음"
+      }
+      onNext={async () => {
+        if (reportStepIndex == null) return;
+        const nextIndex = reportStepIndex + 1;
+        if (nextIndex < reportSteps.length) {
+          await AsyncStorage.setItem(TUTORIAL_STEP_KEY, `report:${nextIndex}`);
+          setTutorialStep(`report:${nextIndex}`);
+          return;
+        }
+        await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "done");
+        setTutorialStep("done");
+      }}
+      onSkip={async () => {
+        await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "done");
+        setTutorialStep("done");
+      }}
+    />
   );
 }
 

@@ -64,7 +64,16 @@ export async function fetchReview(bookId) {
     // 리뷰가 없거나 서버에서 null로 응답해도 앱이 깨지지 않도록 무시
     const status = e?.response?.status;
     const code = e?.response?.data?.error?.code;
+    const msg = e?.response?.data?.error?.message || e?.response?.data?.message;
     if (status === 404 || code === "RR404") return null;
+    if (
+      status === 500 &&
+      typeof msg === "string" &&
+      /review/i.test(msg) &&
+      /null/i.test(msg)
+    ) {
+      return null;
+    }
     console.warn("리뷰 조회 실패:", e?.response?.data || e.message);
     return null;
   }
@@ -126,7 +135,12 @@ export async function createReview({
   const safeTags = Array.isArray(hashtag)
     ? hashtag.filter((t) => typeof t === "string" && t.trim().length > 0)
     : [];
-  const payload = { bookId, rating, hashtag: safeTags, comment };
+  const payload = {
+    bookId,
+    rating: Number.isFinite(Number(rating)) ? Number(rating) : 0,
+    comment: comment ?? "",
+    ...(safeTags.length ? { hashtag: safeTags } : {}),
+  };
   const res = await client.post("/api/review", payload);
   return res.data?.responseDto;
 }

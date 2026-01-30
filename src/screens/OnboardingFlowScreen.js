@@ -10,6 +10,7 @@ import { useOnboardingStore } from "@store/onboardingStore";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
+import { TUTORIAL_STEP_KEY } from "@constants/tutorial";
 import React, { useState } from "react";
 import {
   Keyboard,
@@ -130,7 +131,7 @@ export default function OnboardingFlowScreen({ navigation, route }) {
 
         // 선호 장르를 캐시에 저장
         await AsyncStorage.setItem(PREF_GENRES_KEY, JSON.stringify(categories));
-
+        await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "home");
         navigation.replace("Root");
       } catch (e) {
         console.error("온보딩 실패:", e.response?.status, e.response?.data);

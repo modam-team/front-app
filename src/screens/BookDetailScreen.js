@@ -6,7 +6,6 @@ import {
   updateBookcaseState,
   updateReview,
 } from "@apis/bookcaseApi";
-import StarIcon from "@components/StarIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { colors } from "@theme/colors";
@@ -32,6 +31,7 @@ import {
   UIManager,
   View,
 } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 if (
@@ -62,7 +62,21 @@ export default function BookDetailScreen({ navigation, route }) {
   const [isNoteBack, setIsNoteBack] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [noteRating, setNoteRating] = useState(book.userRate || 0);
-  const NOTE_MAX = 1000;
+const NOTE_MAX = 1000;
+
+const FlowerStar = ({ size = 24, color = "#355619" }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 38 38"
+    fill="none"
+  >
+    <Path
+      d="M31.7802 24.3023C34.7362 29.7674 34.4818 33.6772 30.6793 36.4151C29.3458 37.3754 27.4348 37.8155 25.7636 37.8861C22.8173 38.0103 20.7414 36.1316 19.134 33.6978C15.8439 38.0915 11.5788 39.1767 7.85231 36.6911C4.02236 34.1368 3.52026 29.7886 6.43061 24.3698C1.14001 21.9934 -0.908558 18.8353 0.368295 14.4111C0.818663 12.8501 1.85999 11.2786 3.04007 10.1691C5.4678 7.88828 8.44631 8.0731 11.4005 9.24629C11.8466 3.17804 14.3108 0.0961572 18.6015 0.00312618C23.7059 -0.107387 26.3496 2.70852 27.0763 9.03088C32.8599 7.90701 36.7081 9.52475 37.7634 13.9153C38.184 15.6648 38.013 17.7608 37.4938 19.5059C36.688 22.2163 34.3625 23.5406 31.7802 24.3023Z"
+      fill={color}
+    />
+  </Svg>
+);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState(null);
   const [fetchedReview, setFetchedReview] = useState(null);
@@ -196,8 +210,8 @@ export default function BookDetailScreen({ navigation, route }) {
   }
 
   const statusOptions = [
-    { label: "읽기 전", value: "before" },
-    { label: "읽는 중", value: "reading" },
+    { label: "읽기전", value: "before" },
+    { label: "읽는중", value: "reading" },
     { label: "완독한", value: "after" },
   ];
 
@@ -275,21 +289,24 @@ export default function BookDetailScreen({ navigation, route }) {
     const d = String(dt.getDate()).padStart(2, "0");
     return `${y}/${m}/${d}`;
   }, []);
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayText = useMemo(() => formatDate(todayStr), [formatDate, todayStr]);
+  const startDateRaw = book.startedAt || book.startDate || book.enrollAt;
   const startDateText = useMemo(
-    () => formatDate(book.startedAt || book.startDate || book.enrollAt),
-    [book.startedAt, book.startDate, book.enrollAt, formatDate],
+    () => formatDate(startDateRaw),
+    [startDateRaw, formatDate],
   );
   const endDateText = useMemo(
     () => formatDate(book.finishedAt || book.finishedAtTime || book.endDate),
     [book.finishedAt, book.finishedAtTime, book.endDate, formatDate],
   );
   const dateRangeText = useMemo(() => {
-    if (startDateText && endDateText)
-      return `${startDateText} ~ ${endDateText}`;
-    if (startDateText) return `${startDateText} ~`;
+    const startText = startDateText || (status === "reading" ? todayText : null);
+    if (startText && endDateText) return `${startText} ~ ${endDateText}`;
+    if (startText) return `${startText} ~`;
     if (endDateText) return endDateText;
     return null;
-  }, [startDateText, endDateText]);
+  }, [startDateText, endDateText, status, todayText]);
   const userRating = useMemo(() => {
     if (typeof fetchedReview?.rating === "number") return fetchedReview.rating;
     if (typeof rating === "number") return rating;
@@ -345,13 +362,21 @@ export default function BookDetailScreen({ navigation, route }) {
       const sanitizedTags = (selectedTags || []).filter((t) =>
         allowedTagsSet.has(t),
       );
+      console.log("[review-flow] start", {
+        bookKey,
+        committedStatus,
+        nextStatus,
+        reviewDone,
+        reviewBlocked,
+      });
       let reviewCreated = false;
-      const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
       const isTransitionToAfter =
         nextStatus === "after" && committedStatus !== "after";
       const patchDates = isTransitionToAfter
-        ? { startDate: todayStr, endDate: todayStr }
-        : {};
+        ? { startDate: startDateRaw || todayStr, endDate: todayStr }
+        : nextStatus === "reading" && !startDateRaw
+          ? { startDate: todayStr }
+          : {};
 
       let updateRes = null;
       const shouldUpdateState = nextStatus !== committedStatus;
@@ -373,7 +398,19 @@ export default function BookDetailScreen({ navigation, route }) {
             nextStatus.toUpperCase(),
             patchDates,
           );
+          console.log("[review-flow] updateBookcaseState ok", {
+            nextStatus,
+            patchDates,
+            updateRes,
+          });
         } catch (e) {
+          console.log("[review-flow] updateBookcaseState fail", {
+            nextStatus,
+            patchDates,
+            status: e?.response?.status,
+            data: e?.response?.data,
+            message: e?.message,
+          });
           // 상태 전환 제한(예: 4091) 시 한 단계씩 재시도
           const code = e.response?.data?.error?.code || e.response?.data?.code;
           if (nextStatus === "after" && code === "4091") {
@@ -384,7 +421,16 @@ export default function BookDetailScreen({ navigation, route }) {
                 "AFTER",
                 patchDates,
               );
+              console.log("[review-flow] retry updateBookcaseState ok", {
+                patchDates,
+                updateRes,
+              });
             } catch (err) {
+              console.log("[review-flow] retry updateBookcaseState fail", {
+                status: err?.response?.status,
+                data: err?.response?.data,
+                message: err?.message,
+              });
               console.error("책 상태 재시도 실패", err);
               throw err;
             }
@@ -411,6 +457,10 @@ export default function BookDetailScreen({ navigation, route }) {
         }
         isAfterOnServer = (serverState || "").toLowerCase() === "after";
         if (!isAfterOnServer) {
+          console.log("[review-flow] after-state not reflected", {
+            serverState,
+            updateRes,
+          });
           Alert.alert(
             "완독 상태 반영 실패",
             "서버에 완독 상태가 반영되지 않아 리뷰를 저장할 수 없습니다. 다시 시도해 주세요.",
@@ -424,6 +474,13 @@ export default function BookDetailScreen({ navigation, route }) {
 
       // 2) 리뷰 생성 (완독 + 리뷰 완료 시, 서버 상태 AFTER 일 때만)
       if (isAfterOnServer && reviewDone && !reviewBlocked) {
+        console.log("[review-flow] create/update review start", {
+          bookKey,
+          ratingOverride,
+          rating,
+          selectedTags: sanitizedTags,
+          noteTextLen: (noteText || "").length,
+        });
         try {
           const trimmedComment = ((commentOverride ?? noteText) || "").trim();
           const finalRating = Number.isFinite(Number(ratingOverride ?? rating))
@@ -440,6 +497,7 @@ export default function BookDetailScreen({ navigation, route }) {
                 bookId: bookKey,
                 comment: trimmedComment,
               });
+              console.log("[review-flow] updateReview ok (comment only)");
               appliedRating =
                 fetchedReview?.rating ||
                 book.userRate ||
@@ -459,6 +517,7 @@ export default function BookDetailScreen({ navigation, route }) {
                   hashtag: sanitizedTags,
                   comment: trimmedComment,
                 });
+                console.log("[review-flow] createReview ok (fallback)");
                 appliedRating = finalRating;
                 reviewCreated = true;
               } else {
@@ -474,6 +533,7 @@ export default function BookDetailScreen({ navigation, route }) {
                 hashtag: sanitizedTags,
                 comment: trimmedComment,
               });
+              console.log("[review-flow] createReview ok");
               reviewCreated = true;
             } catch (err) {
               const status = err.response?.status;
@@ -490,6 +550,7 @@ export default function BookDetailScreen({ navigation, route }) {
                   hashtag: [],
                   comment: trimmedComment,
                 });
+                console.log("[review-flow] createReview ok (tags cleared)");
                 reviewCreated = true;
                 setSelectedTags([]);
               } else if (
@@ -503,6 +564,7 @@ export default function BookDetailScreen({ navigation, route }) {
                   bookId: bookKey,
                   comment: trimmedComment,
                 });
+                console.log("[review-flow] updateReview ok (already review)");
                 appliedRating =
                   fetchedReview?.rating ||
                   book.userRate ||
@@ -553,6 +615,32 @@ export default function BookDetailScreen({ navigation, route }) {
             e.response?.data?.error?.message ||
             e.response?.data?.message ||
             e.message;
+          if (code === "4039") {
+            // 태그가 서버에서 허용되지 않으면 태그 없이라도 리뷰 저장 시도
+            try {
+              const fallbackComment = ((commentOverride ?? noteText) || "").trim();
+              const fallbackRating = Number.isFinite(
+                Number(ratingOverride ?? rating),
+              )
+                ? Number(ratingOverride ?? rating)
+                : 0;
+              await createReview({
+                bookId: bookKey,
+                rating: fallbackRating,
+                hashtag: [],
+                comment: fallbackComment,
+              });
+              setSelectedTags([]);
+              setReviewPosted(true);
+              await loadReview();
+              return;
+            } catch (retryErr) {
+              console.error(
+                "리뷰 재시도 실패(태그 제거):",
+                retryErr.response?.data || retryErr.message,
+              );
+            }
+          }
           if (
             status === 409 ||
             code === "409" ||
@@ -672,7 +760,12 @@ export default function BookDetailScreen({ navigation, route }) {
                     onPress={() => setShowStatusMenu((v) => !v)}
                     activeOpacity={0.9}
                   >
-                    <Text style={styles.statusText}>{statusLabel}</Text>
+                    <Text
+                      style={styles.statusText}
+                      numberOfLines={1}
+                    >
+                      {statusLabel}
+                    </Text>
                     <Ionicons
                       name="chevron-down-outline"
                       size={14}
@@ -716,6 +809,7 @@ export default function BookDetailScreen({ navigation, route }) {
                             activeOpacity={0.9}
                           >
                             <Text
+                              numberOfLines={1}
                               style={[
                                 styles.statusMenuText,
                                 opt.value === status &&
@@ -757,6 +851,11 @@ export default function BookDetailScreen({ navigation, route }) {
                   const isFull = averageRating >= full;
                   const isHalf = !isFull && averageRating >= half;
                   const canRate = false;
+                  const color = isFull
+                    ? "#355619"
+                    : isHalf
+                      ? "#9FB37B"
+                      : "#C6C6C6";
                   return (
                     <TouchableOpacity
                       key={i}
@@ -765,9 +864,9 @@ export default function BookDetailScreen({ navigation, route }) {
                         if (!canRate) return;
                       }}
                     >
-                      <StarIcon
-                        size={24}
-                        variant={isFull ? "full" : isHalf ? "half" : "empty"}
+                      <FlowerStar
+                        size={20}
+                        color={color}
                       />
                     </TouchableOpacity>
                   );
@@ -783,31 +882,16 @@ export default function BookDetailScreen({ navigation, route }) {
                       <View style={styles.dateDivider} />
                     </View>
                   )}
-                  {status === "after" && (
-                    <View style={styles.reviewMetaRow}>
-                      <View style={styles.reviewMetaBlock}>
-                        <Text style={styles.reviewMetaLabel}>나의 별점</Text>
-                        <Text style={styles.reviewMetaValue}>
-                          {userRating > 0 ? `${userRating} / 5` : "-"}
-                        </Text>
-                      </View>
-                      <View style={styles.reviewMetaBlock}>
-                        <Text style={styles.reviewMetaLabel}>해시태그</Text>
-                        {displayTags.length ? (
-                          <View style={styles.tagList}>
-                            {displayTags.map((t, idx) => (
-                              <Text
-                                key={`${t}-${idx}`}
-                                style={styles.tagItem}
-                              >
-                                #{t}
-                              </Text>
-                            ))}
-                          </View>
-                        ) : (
-                          <Text style={styles.reviewMetaValue}>-</Text>
-                        )}
-                      </View>
+                  {displayTags.length > 0 && (
+                    <View style={styles.reviewTagRow}>
+                      {displayTags.slice(0, 3).map((t, idx) => (
+                        <View
+                          key={`${t}-${idx}`}
+                          style={styles.reviewTagChip}
+                        >
+                          <Text style={styles.reviewTagText}>{t}</Text>
+                        </View>
+                      ))}
                     </View>
                   )}
                 </View>
@@ -822,8 +906,7 @@ export default function BookDetailScreen({ navigation, route }) {
               {
                 position: "absolute",
                 top: 0,
-                left: 0,
-                right: 0,
+                alignSelf: "center",
                 backfaceVisibility: "hidden",
                 transform: [
                   {
@@ -837,11 +920,11 @@ export default function BookDetailScreen({ navigation, route }) {
             ]}
             pointerEvents={isNoteBack ? "auto" : "none"}
           >
-            <View style={styles.noteHeaderRow}>
+            <View style={styles.noteTitleRow}>
               <Text style={styles.noteTitle}>나의 독서 노트</Text>
             </View>
             <Text style={styles.noteSubtitle}>
-              별점은 변경할 수 없어요.{"\n"}직접 독서 노트를 기록해보세요!
+              별점을 수정하고{"\n"}직접 독서 노트를 기록할 수 있어요!
             </Text>
             {selectedTags.length > 0 && (
               <View style={styles.noteTagRow}>
@@ -864,20 +947,26 @@ export default function BookDetailScreen({ navigation, route }) {
             >
               {[1, 2, 3, 4, 5].map((i) => {
                 const full = i;
-                const half = i - 0.5;
                 const isFull = noteRating >= full;
-                const isHalf = !isFull && noteRating >= half;
                 return (
                   <TouchableOpacity
                     key={i}
                     activeOpacity={1}
                     disabled
                   >
-                    <StarIcon
-                      size={60}
-                      variant={isFull ? "full" : isHalf ? "half" : "empty"}
-                      color="#426B1F"
-                    />
+                    <View style={styles.noteStarBox}>
+                      <Svg
+                        width={38}
+                        height={38}
+                        viewBox="0 0 38 38"
+                        fill="none"
+                      >
+                        <Path
+                          d="M31.7802 24.3023C34.7362 29.7674 34.4818 33.6772 30.6793 36.4151C29.3458 37.3754 27.4348 37.8155 25.7636 37.8861C22.8173 38.0103 20.7414 36.1316 19.134 33.6978C15.8439 38.0915 11.5788 39.1767 7.85231 36.6911C4.02236 34.1368 3.52026 29.7886 6.43061 24.3698C1.14001 21.9934 -0.908558 18.8353 0.368295 14.4111C0.818663 12.8501 1.85999 11.2786 3.04007 10.1691C5.4678 7.88828 8.44631 8.0731 11.4005 9.24629C11.8466 3.17804 14.3108 0.0961572 18.6015 0.00312618C23.7059 -0.107387 26.3496 2.70852 27.0763 9.03088C32.8599 7.90701 36.7081 9.52475 37.7634 13.9153C38.184 15.6648 38.013 17.7608 37.4938 19.5059C36.688 22.2163 34.3625 23.5406 31.7802 24.3023Z"
+                          fill={isFull ? "#355619" : "#C6C6C6"}
+                        />
+                      </Svg>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -986,6 +1075,11 @@ export default function BookDetailScreen({ navigation, route }) {
                   const half = i - 0.5;
                   const isFull = rating >= full;
                   const isHalf = !isFull && rating >= half;
+                  const color = isFull
+                    ? "#355619"
+                    : isHalf
+                      ? "#9FB37B"
+                      : "#C6C6C6";
 
                   return (
                     <TouchableOpacity
@@ -1002,10 +1096,9 @@ export default function BookDetailScreen({ navigation, route }) {
                         }
                       }}
                     >
-                      <StarIcon
+                      <FlowerStar
                         size={44}
-                        variant={isFull ? "full" : isHalf ? "half" : "empty"}
-                        color="#426B1F"
+                        color={color}
                       />
                     </TouchableOpacity>
                   );
@@ -1155,64 +1248,79 @@ const styles = StyleSheet.create({
     backgroundColor: "#EDEDED",
   },
   content: {
-    padding: 16,
-    paddingBottom: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
+    paddingHorizontal: 0,
+    alignItems: "center",
+    width: "100%",
   },
   card: {
     backgroundColor: "#F6F6F6",
     borderRadius: 16,
-    padding: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     elevation: 4,
     alignItems: "center",
-    gap: 12,
-    width: "100%",
-    minHeight: 590,
+    gap: 16,
+    width: 326,
+    minHeight: 604,
+    alignSelf: "center",
   },
   backCard: {
     alignItems: "stretch",
-    padding: 16,
-    minHeight: 590,
+    paddingHorizontal: 16,
+    paddingVertical: 36,
+    backgroundColor: "#FFF",
   },
   flipContainer: {
     width: "100%",
     alignItems: "center",
     perspective: 1000,
-    minHeight: 590,
+  },
+  noteTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
   },
   noteHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     justifyContent: "space-between",
+    width: "100%",
   },
   coverWrap: {
     width: 264,
     height: 390,
-    borderRadius: 10,
+    maxWidth: "100%",
+    borderRadius: 7,
     overflow: "hidden",
     backgroundColor: "#E0E0E0",
+    alignSelf: "center",
+    padding: 8,
   },
   cover: {
     width: "100%",
     height: "100%",
+    borderRadius: 7,
   },
   info: {
     width: "100%",
-    gap: 14,
+    gap: 12,
   },
   topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   tag: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#888",
@@ -1222,10 +1330,11 @@ const styles = StyleSheet.create({
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    height: 18,
+    borderRadius: 12,
     backgroundColor: "#B9D4A3",
   },
   statusText: { fontSize: 12, color: "#333" },
@@ -1236,6 +1345,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 40,
     right: 0,
+    minWidth: 70,
     backgroundColor: "#FFF",
     borderRadius: 10,
     borderWidth: 1,
@@ -1249,25 +1359,26 @@ const styles = StyleSheet.create({
   },
   statusMenuItem: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   statusMenuItemActive: {
     backgroundColor: "#F1F6EC",
   },
-  statusMenuText: { fontSize: 14, color: "#333" },
+  statusMenuText: { fontSize: 14, color: "#333", textAlign: "left" },
   statusMenuTextActive: { fontWeight: "700", color: "#426B1F" },
   titleWrap: {
     gap: 4,
     width: "100%",
+    maxWidth: 190,
     flexWrap: "wrap",
   },
   title: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "700",
     color: "#000",
     flexShrink: 1,
     flexWrap: "wrap",
-    lineHeight: 24,
+    lineHeight: 20,
     width: "100%",
   },
   author: {
@@ -1278,32 +1389,50 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     width: "100%",
   },
-  starsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  starsRowSpacer: { height: 8 },
-  voteText: { fontSize: 12, color: "#C6C6C6", marginLeft: 6 },
+  starsRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  starsRowSpacer: { height: 0 },
+  voteText: { fontSize: 14, color: "#C6C6C6", marginLeft: 6 },
   // spacing fix when title wraps
   titleSpacer: { height: 4 },
   reviewMetaCard: {
     width: "100%",
-    marginTop: 6,
-    paddingTop: 10,
+    marginTop: 0,
+    paddingTop: 4,
     borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
-    gap: 12,
+    borderTopColor: "#C6C6C6",
+    gap: 8,
   },
   dateRow: {
     width: "100%",
+    alignItems: "flex-start",
+    paddingVertical: 4,
   },
   dateText: {
     fontSize: 14,
     color: "#426B1F",
     fontWeight: "700",
+    textAlign: "left",
   },
   reviewMetaRow: {
     flexDirection: "row",
     justifyContent: "flex-start",
     alignItems: "flex-start",
     gap: 8,
+  },
+  reviewTagRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  reviewTagChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+    backgroundColor: "#7E9F61",
+  },
+  reviewTagText: {
+    fontSize: 12,
+    color: "#FFF",
   },
   reviewMetaBlock: {
     flex: 1,
@@ -1341,6 +1470,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#426B1F",
     alignItems: "center",
     justifyContent: "center",
+    width: 326,
+    alignSelf: "center",
   },
   ctaText: {
     fontSize: 16,
@@ -1349,12 +1480,13 @@ const styles = StyleSheet.create({
   },
   noteBtn: {
     marginTop: 0,
-    height: 48,
+    height: 40,
     borderRadius: 12,
     backgroundColor: "#426B1F",
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
+    width: 326,
+    alignSelf: "center",
   },
   noteBtnText: {
     fontSize: 16,
@@ -1362,9 +1494,10 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
   footerBtnWrap: {
-    width: "100%",
-    marginTop: 36,
-    marginBottom: 0,
+    width: 326,
+    alignSelf: "center",
+    marginTop: 12,
+    marginBottom: 8,
   },
   reviewOverlay: {
     flex: 1,
@@ -1452,23 +1585,27 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
   noteTitle: {
+    width: 300,
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: "500",
     color: "#000",
     textAlign: "center",
+    alignSelf: "center",
   },
   noteSubtitle: {
-    fontSize: 14,
-    color: "#666",
+    width: 300,
+    fontSize: 16,
+    color: "#888",
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 22,
+    alignSelf: "center",
   },
   noteTagRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     gap: 8,
-    marginTop: 8,
+    marginTop: 6,
   },
   noteTagChip: {
     paddingHorizontal: 10,
@@ -1510,7 +1647,7 @@ const styles = StyleSheet.create({
   },
   noteTextareaWrap: {
     width: "100%",
-    gap: 6,
+    gap: 4,
   },
   noteTextareaLabel: {
     fontSize: 14,
@@ -1521,14 +1658,21 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   noteTextarea: {
-    minHeight: 320,
+    minHeight: 200,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#B1B1B1",
+    borderColor: "#D7EEC4",
     padding: 12,
     backgroundColor: "#FFF",
     fontSize: 14,
     color: "#000",
+  },
+  noteStarBox: {
+    width: 54,
+    height: 54,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
   },
   reviewModalTags: {
     width: "100%",

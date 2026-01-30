@@ -7,12 +7,16 @@ import {
   updateBookcaseState,
 } from "@apis/bookcaseApi";
 import BookShelfTabs from "@components/BookshelfTabs";
+import TutorialOverlay from "@components/TutorialOverlay";
 import StarIcon from "@components/StarIcon";
 import ModamLogoText from "@components/common/ModamLogoText";
+import { TUTORIAL_STEP_KEY } from "@constants/tutorial";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { LinearGradient } from "expo-linear-gradient";
+import { spacing } from "@theme/spacing";
 import React, {
   useCallback,
   useEffect,
@@ -142,6 +146,8 @@ const getCompletionKey = (book) => {
 
 export default function BookshelfScreen({ route, navigation: navProp }) {
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
+  const tabBarHeight = 52;
   const [tab, setTab] = useState("before");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("latest"); // latest | rating
@@ -164,7 +170,15 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
   const [afterMonthKey, setAfterMonthKey] = useState(null);
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const screenWidth = Dimensions.get("window").width;
+  const screenHeight = Dimensions.get("window").height;
   const translateX = useRef(new Animated.Value(0)).current;
+  const [tutorialStep, setTutorialStep] = useState(null);
+  const [shelfHighlightRect, setShelfHighlightRect] = useState(null);
+  const searchRef = useRef(null);
+  const addButtonRef = useRef(null);
+  const tabsRef = useRef(null);
+  const bookRef = useRef(null);
+  const shelfAreaRef = useRef(null);
 
   const tabOrder = useMemo(() => tabs.map((t) => t.value), []);
   const currentIndex = tabOrder.indexOf(tab);
@@ -231,6 +245,104 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
   }, [books, tab, search, sortBy, afterMonthKey]);
   const navigationFromHook = useNavigation();
   const navigation = navProp ?? navigationFromHook;
+
+  useEffect(() => {
+    if (!isFocused) return;
+    let alive = true;
+    AsyncStorage.getItem(TUTORIAL_STEP_KEY).then((step) => {
+      if (alive) setTutorialStep(step);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isFocused]);
+
+  const shelfSteps = useMemo(
+    () => [
+      {
+        key: "search",
+        title: "검색 / 추가",
+        description: "책장을 검색하거나 책을 추가할 수 있어요.",
+        type: "combined",
+      },
+      {
+        key: "tabs",
+        title: "탭",
+        description: "상태별로 책장을 나눠서 볼 수 있어요.",
+        type: "single",
+      },
+      {
+        key: "book",
+        title: "책 카드",
+        description: "책을 눌러 상세 정보를 볼 수 있어요.",
+        type: "book",
+      },
+    ],
+    [],
+  );
+
+  const shelfStepIndex = useMemo(() => {
+    if (!tutorialStep) return null;
+    if (tutorialStep === "bookshelf") return 0;
+    if (tutorialStep.startsWith("bookshelf:")) {
+      const idx = Number(tutorialStep.split(":")[1]);
+      return Number.isFinite(idx) ? idx : null;
+    }
+    return null;
+  }, [tutorialStep]);
+
+  useEffect(() => {
+    if (shelfStepIndex == null) {
+      setShelfHighlightRect(null);
+      return;
+    }
+    const step = shelfSteps[shelfStepIndex];
+    if (!step) return;
+    const measureCombined = () => {
+      const addBtn = addButtonRef.current;
+      if (!addBtn?.measureInWindow) return;
+      addBtn.measureInWindow((ax, ay, aw, ah) => {
+        setShelfHighlightRect({
+          x: ax,
+          y: ay,
+          width: aw,
+          height: ah,
+        });
+      });
+    };
+    const measureSingle = (ref) => {
+      if (!ref?.measureInWindow) return;
+      ref.measureInWindow((x, y, width, height) => {
+        if (width && height) {
+          setShelfHighlightRect({ x, y, width, height });
+        }
+      });
+    };
+    const runMeasure = () => {
+      if (step.type === "combined") {
+        measureCombined();
+        return;
+      }
+      if (step.type === "book") {
+        if (bookRef.current?.measureInWindow) {
+          measureSingle(bookRef.current);
+        } else if (shelfAreaRef.current?.measureInWindow) {
+          measureSingle(shelfAreaRef.current);
+        }
+        return;
+      }
+      if (step.type === "single") {
+        measureSingle(tabsRef.current);
+      }
+    };
+    const t1 = setTimeout(runMeasure, 50);
+    const t2 = setTimeout(runMeasure, 320);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [shelfStepIndex, shelfSteps]);
+
 
   const setBooksAndCache = (updater) => {
     setBooks((prev) => {
@@ -520,6 +632,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
           to="홈"
         />
         <TouchableOpacity
+          ref={addButtonRef}
           style={styles.addButton}
           activeOpacity={0.85}
           onPress={() => navigation.navigate("AddEntry")}
@@ -533,14 +646,19 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
       </View>
 
       {/* 탭 */}
-      <BookShelfTabs
-        tabs={tabs}
-        activeTab={tab}
-        onPressTab={(value) => switchTab(tabOrder.indexOf(value))}
-      />
+      <View ref={tabsRef}>
+        <BookShelfTabs
+          tabs={tabs}
+          activeTab={tab}
+          onPressTab={(value) => switchTab(tabOrder.indexOf(value))}
+        />
+      </View>
 
       {/* 검색 */}
-      <View style={styles.searchWrap}>
+      <View
+        ref={searchRef}
+        style={styles.searchWrap}
+      >
         <View style={styles.searchBox}>
           <Ionicons
             name="search-outline"
@@ -663,6 +781,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                     <View
                       key={`${tab}-${rowIdx}`}
                       style={styles.shelfArea}
+                      ref={rowIdx === 0 ? shelfAreaRef : undefined}
                     >
                       <View style={[styles.shelfGroup, styles.shelfSpacing]}>
                         <View style={styles.bookRow}>
@@ -677,6 +796,11 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
                                   <View style={styles.bookWrap}>
                                     <TouchableOpacity
                                       activeOpacity={0.9}
+                                      ref={
+                                        rowIdx === 0 && i === 0
+                                          ? bookRef
+                                          : undefined
+                                      }
                                       onLongPress={() => {
                                         if (tab === "after") return;
                                         Vibration.vibrate(5);
@@ -881,6 +1005,39 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
           </View>
         </View>
       </Modal>
+
+      <TutorialOverlay
+        visible={shelfStepIndex != null}
+        highlightRect={shelfHighlightRect}
+        title={shelfSteps[shelfStepIndex]?.title}
+        description={shelfSteps[shelfStepIndex]?.description}
+        nextLabel={
+          shelfStepIndex != null &&
+          shelfStepIndex === shelfSteps.length - 1
+            ? "리포트로"
+            : "다음"
+        }
+        onNext={async () => {
+          if (shelfStepIndex == null) return;
+          const nextIndex = shelfStepIndex + 1;
+          if (nextIndex < shelfSteps.length) {
+            await AsyncStorage.setItem(
+              TUTORIAL_STEP_KEY,
+              `bookshelf:${nextIndex}`,
+            );
+            setTutorialStep(`bookshelf:${nextIndex}`);
+            return;
+          }
+          await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "report");
+          setTutorialStep("report");
+          navigation.navigate("리포트");
+        }}
+        onSkip={async () => {
+          await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "done");
+          setTutorialStep("done");
+        }}
+      />
+
     </SafeAreaView>
   );
 }

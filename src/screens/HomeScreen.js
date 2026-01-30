@@ -22,11 +22,13 @@ import ReadingProgressBar from "@components/ReadingProgressBar";
 import ReadingStartModal from "@components/ReadingStartModal";
 import RecommendationDetailModal from "@components/RecommendationDetailModal";
 import RecommendationSectionCard from "@components/RecommendationSectionCard";
+import TutorialOverlay from "@components/TutorialOverlay";
 import Avatar from "@components/common/Avatar";
 import Button from "@components/common/Button";
 import ModamLogoText from "@components/common/ModamLogoText";
 import YearMonthPicker from "@components/common/YearMonthPicker";
 import { pickDefaultCharacterByTendency } from "@constants/defaultCharacterMap";
+import { TUTORIAL_STEP_KEY } from "@constants/tutorial";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
@@ -44,6 +46,7 @@ import React, {
 } from "react";
 import {
   Animated,
+  Dimensions,
   DeviceEventEmitter,
   Image,
   Pressable,
@@ -79,11 +82,12 @@ const placeKeyMap = {
 };
 
 const now = new Date();
-const TAB_BAR_HEIGHT = 52;
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
 export default function HomeScreen({ navigation }) {
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = 52;
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
@@ -107,6 +111,15 @@ export default function HomeScreen({ navigation }) {
   const bubbleScaleMapRef = useRef(new Map());
 
   const [readingStartOpen, setReadingStartOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(null);
+  const [homeHighlightRect, setHomeHighlightRect] = useState(null);
+  const [homeLayouts, setHomeLayouts] = useState({});
+  const scrollRef = useRef(null);
+  const friendsRef = useRef(null);
+  const progressRef = useRef(null);
+  const calendarRef = useRef(null);
+  const recoRef = useRef(null);
+  const fabRef = useRef(null);
 
   const [themeColor, setThemeColor] = useState(null);
 
@@ -382,6 +395,103 @@ export default function HomeScreen({ navigation }) {
   const [recs, setRecs] = useState([]);
   const [nickname, setNickname] = useState("");
   const isFocused = useIsFocused();
+
+  useEffect(() => {
+    if (!isFocused) return;
+    let alive = true;
+    AsyncStorage.getItem(TUTORIAL_STEP_KEY).then((step) => {
+      if (alive) setTutorialStep(step);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isFocused]);
+
+  const homeSteps = useMemo(
+    () => [
+      {
+        key: "calendar",
+        title: "달력",
+        description: "독서 기록을 날짜별로 확인해요.",
+        ref: calendarRef,
+      },
+      {
+        key: "fab",
+        title: "독서 기록",
+        description: "읽은 내용을 기록할 수 있어요.",
+        ref: fabRef,
+      },
+      {
+        key: "progress",
+        title: "진행바",
+        description: "이번 달 목표와 진행률이에요.",
+        ref: progressRef,
+      },
+      {
+        key: "friends",
+        title: "친구",
+        description: "친구들의 기록을 볼 수 있어요.",
+        ref: friendsRef,
+      },
+      {
+        key: "reco",
+        title: "추천 도서",
+        description: "오늘의 추천 책을 확인해요.",
+        ref: recoRef,
+      },
+    ],
+    [],
+  );
+
+  const homeStepIndex = useMemo(() => {
+    if (!tutorialStep) return null;
+    if (tutorialStep === "home") return 0;
+    if (tutorialStep.startsWith("home:")) {
+      const idx = Number(tutorialStep.split(":")[1]);
+      return Number.isFinite(idx) ? idx : null;
+    }
+    return null;
+  }, [tutorialStep]);
+
+  const updateLayout = useCallback(
+    (key) => (e) => {
+      const { x, y, width, height } = e.nativeEvent.layout || {};
+      setHomeLayouts((prev) => ({
+        ...prev,
+        [key]: { x, y, width, height },
+      }));
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (homeStepIndex == null) {
+      setHomeHighlightRect(null);
+      return;
+    }
+    const step = homeSteps[homeStepIndex];
+    if (!step) return;
+    const layout = homeLayouts[step.key];
+    if (layout?.y != null && scrollRef.current) {
+      const targetY = Math.max(0, layout.y - 140);
+      scrollRef.current.scrollTo({ y: targetY, animated: true });
+    }
+    const runMeasure = () => {
+      const ref = step.ref?.current;
+      if (!ref?.measureInWindow) return;
+      ref.measureInWindow((x, y, width, height) => {
+        if (width && height) {
+          setHomeHighlightRect({ x, y, width, height });
+        }
+      });
+    };
+    const t1 = setTimeout(runMeasure, 50);
+    const t2 = setTimeout(runMeasure, 320);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [homeStepIndex, homeSteps, homeLayouts]);
   const [friendRefreshKey, setFriendRefreshKey] = useState(0);
   const [recoLoading, setRecoLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
@@ -928,11 +1038,12 @@ export default function HomeScreen({ navigation }) {
       edges={["top", "left", "right"]}
     >
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         bounces={false}
         alwaysBounceVertical={false}
         overScrollMode="never"
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + spacing.l }}
+        contentContainerStyle={{ paddingBottom: tabBarHeight + spacing.l }}
       >
         <View style={styles.topSection}>
           <ModamLogoText
@@ -941,7 +1052,11 @@ export default function HomeScreen({ navigation }) {
             onLongPress={DEV ? resetGoalModalDebug : undefined} // 목표 설정 테스트 용으로, 길게 누르면 목표 권수 설정하는 거 뜨게 함
           />
 
-          <View style={styles.friendsStripWrap}>
+          <View
+            ref={friendsRef}
+            onLayout={updateLayout("friends")}
+            style={styles.friendsStripWrap}
+          >
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -1057,42 +1172,61 @@ export default function HomeScreen({ navigation }) {
             {/* 진행바 렌더링 */}
             {isEditingGoal ? (
               // 목표 편집 모드면 슬라이더 보여준 후, 저장하면 goalCount 업데이트
-              <GoalCountSlider
-                value={goalCandidate}
-                onChange={setGoalCandidate}
-                onSave={async () => {
-                  await saveGoal();
-                  setIsEditingGoal(false); // 완료하면 다시 진행바로
-                }}
-                max={maxGoal}
-              />
+              <View
+                ref={progressRef}
+                onLayout={updateLayout("progress")}
+              >
+                <GoalCountSlider
+                  value={goalCandidate}
+                  onChange={setGoalCandidate}
+                  onSave={async () => {
+                    await saveGoal();
+                    setIsEditingGoal(false); // 완료하면 다시 진행바로
+                  }}
+                  max={maxGoal}
+                />
+              </View>
             ) : (
               // 일반 모드면 진행바 보여줌
-              <ReadingProgressBar
-                goalCount={goalCount}
-                readCount={readCount}
-                CharacterComponent={ProgressCharacter}
-                characterPersona={progressPersona}
-                animateKey={progressAnimateKey}
-                animate={true}
-                duration={700}
-              />
+              <View
+                ref={progressRef}
+                onLayout={updateLayout("progress")}
+              >
+                <ReadingProgressBar
+                  goalCount={goalCount}
+                  readCount={readCount}
+                  CharacterComponent={ProgressCharacter}
+                  characterPersona={progressPersona}
+                  animateKey={progressAnimateKey}
+                  animate={true}
+                  duration={700}
+                />
+              </View>
             )}
 
-            <MonthlyCalendar
-              year={year}
-              month={month}
-              onPrev={prev}
-              onNext={next}
-              markedDates={markedDates} // 여기에 포함된 날짜만 꽃이 렌더링 됨
-              dateCounts={dateCounts} // 해당 날짜의 count로 꽃 레벨 결정
-              themeColor={themeColor}
-              selectedDayKey={dayModalKey}
-              onDayPress={handleDayPress}
-              onYearChange={handleYearChange}
-            />
+            <View
+              ref={calendarRef}
+              onLayout={updateLayout("calendar")}
+            >
+              <MonthlyCalendar
+                year={year}
+                month={month}
+                onPrev={prev}
+                onNext={next}
+                markedDates={markedDates} // 여기에 포함된 날짜만 꽃이 렌더링 됨
+                dateCounts={dateCounts} // 해당 날짜의 count로 꽃 레벨 결정
+                themeColor={themeColor}
+                selectedDayKey={dayModalKey}
+                onDayPress={handleDayPress}
+                onYearChange={handleYearChange}
+              />
+            </View>
 
-            <View style={styles.section}>
+            <View
+              ref={recoRef}
+              onLayout={updateLayout("reco")}
+              style={styles.section}
+            >
               <Animated.View style={[styles.recList, { opacity: recoOpacity }]}>
                 <RecommendationSectionCard
                   nickname={nickname || ""}
@@ -1188,12 +1322,13 @@ export default function HomeScreen({ navigation }) {
             style={[styles.fab, { bottom: spacing.m }]}
             onPress={() => setReadingStartOpen(true)}
             hitSlop={6}
+            ref={fabRef}
+            onLayout={updateLayout("fab")}
           >
-            <Ionicons
-              name="add"
-              size={24}
-              color="#fff"
-            />
+            <View style={styles.fabIcon}>
+              <View style={styles.fabIconLineH} />
+              <View style={styles.fabIconLineV} />
+            </View>
           </Pressable>
 
           <ReadingStartModal
@@ -1314,6 +1449,39 @@ export default function HomeScreen({ navigation }) {
           />
         </Animated.View>
       )}
+
+      <TutorialOverlay
+        visible={homeStepIndex != null}
+        highlightRect={homeHighlightRect}
+        title={homeSteps[homeStepIndex]?.title}
+        description={homeSteps[homeStepIndex]?.description}
+        nextLabel={
+          homeStepIndex != null &&
+          homeStepIndex === homeSteps.length - 1
+            ? "책장으로"
+            : "다음"
+        }
+        onNext={async () => {
+          if (homeStepIndex == null) return;
+          const nextIndex = homeStepIndex + 1;
+          if (nextIndex < homeSteps.length) {
+            await AsyncStorage.setItem(
+              TUTORIAL_STEP_KEY,
+              `home:${nextIndex}`,
+            );
+            setTutorialStep(`home:${nextIndex}`);
+            return;
+          }
+          await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "bookshelf");
+          setTutorialStep("bookshelf");
+          navigation.navigate("책장");
+        }}
+        onSkip={async () => {
+          await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "done");
+          setTutorialStep("done");
+        }}
+      />
+
     </SafeAreaView>
   );
 }
@@ -1390,9 +1558,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 24,
     bottom: 28,
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
     backgroundColor: "#426b1f",
     alignItems: "center",
     justifyContent: "center",
@@ -1401,6 +1569,26 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
+  },
+  fabIcon: {
+    width: 27,
+    height: 27,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fabIconLineH: {
+    position: "absolute",
+    width: 27,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#fff",
+  },
+  fabIconLineV: {
+    position: "absolute",
+    width: 4,
+    height: 27,
+    borderRadius: 2,
+    backgroundColor: "#fff",
   },
 
   toast: {
