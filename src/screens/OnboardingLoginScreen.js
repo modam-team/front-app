@@ -1,6 +1,6 @@
 import { appleLogin, kakaoLogin } from "@apis/authApi";
 import { resetAuthFailFlag } from "@apis/clientApi";
-import { fetchOnboardingStatus } from "@apis/userApi";
+import { login } from "@react-native-seoul/kakao-login";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
@@ -19,16 +19,11 @@ import {
 } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
-const KAKAO_REST_API_KEY = process.env.EXPO_PUBLIC_KAKAO_REST_API_KEY;
-const KAKAO_REDIRECT_URI = process.env.EXPO_PUBLIC_KAKAO_REDIRECT_URI;
 const APPLE_CLIENT_ID = process.env.EXPO_PUBLIC_APPLE_CLIENT_ID;
 const APPLE_REDIRECT_URI = process.env.EXPO_PUBLIC_APPLE_REDIRECT_URI;
 const AUTH_BYPASS =
   (process.env.EXPO_PUBLIC_AUTH_BYPASS || "").toLowerCase() === "true";
 
-const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_REST_API_KEY}&redirect_uri=${encodeURIComponent(
-  KAKAO_REDIRECT_URI,
-)}&response_type=code`;
 const APPLE_AUTH_URL = `https://appleid.apple.com/auth/authorize?client_id=${APPLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(
   APPLE_REDIRECT_URI || "",
 )}&response_type=code&response_mode=query`;
@@ -37,20 +32,34 @@ export default function OnboardingLoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   // Kakao OAuth 요청 설정
-  const [showWebView, setShowWebView] = useState(false);
-  const webViewRef = useRef(null);
   const [showAppleWebView, setShowAppleWebView] = useState(false);
   const appleWebViewRef = useRef(null);
 
   // 화면 상단 짤림
   const insets = useSafeAreaInsets();
 
-  const handleKakaoLogin = () => {
+  const handleKakaoLogin = async () => {
     if (AUTH_BYPASS) {
       navigation.replace("OnboardingFlow");
       return;
     }
-    setShowWebView(true);
+    try {
+      setLoading(true);
+      // 네이티브 SDK로 로그인 -> 액세스 토큰 획득
+      const token = await login();
+      const accessToken = token.accessToken;
+
+      // 백엔드 API 호출 -> accessToken 전달
+      await kakaoLogin(accessToken);
+
+      resetAuthFailFlag();
+
+      navigation.replace("AuthGate");
+    } catch (err) {
+      console.error("카카오 로그인 실패:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAppleLogin = () => {
@@ -86,51 +95,6 @@ export default function OnboardingLoginScreen({ navigation }) {
     }
   };
 
-  // WebView에서 URL 바뀔 때마다 호출
-  const handleNavigationChange = async (navState) => {
-    const { url } = navState;
-
-    // 카카오가 redirect_uri?code=... 로 돌려보낼 때
-    if (url.startsWith(KAKAO_REDIRECT_URI)) {
-      const code = extractCodeFromUrl(url);
-
-      if (!code) {
-        setShowWebView(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-
-        // 더 이상 WebView 로딩하지 않게 중단
-        if (webViewRef.current) {
-          webViewRef.current.stopLoading();
-        }
-
-        // 카카오 로그인 해서 토큰 저장
-        await kakaoLogin(code);
-
-        // reset
-        resetAuthFailFlag();
-
-        // 받은 토큰으로 온보딩 상태 조회
-        const status = await fetchOnboardingStatus();
-        const completed = status.onboardingCompleted;
-
-        setShowWebView(false);
-
-        navigation.replace("AuthGate");
-
-        setShowWebView(false);
-      } catch (err) {
-        console.error("카카오 로그인 실패:", err);
-        setShowWebView(false);
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
   const handleAppleNavigationChange = async (navState) => {
     const { url } = navState;
 
@@ -152,8 +116,6 @@ export default function OnboardingLoginScreen({ navigation }) {
         await appleLogin(code);
 
         resetAuthFailFlag();
-
-        await fetchOnboardingStatus();
 
         setShowAppleWebView(false);
 
@@ -211,54 +173,6 @@ export default function OnboardingLoginScreen({ navigation }) {
           )}
         </View>
       </View>
-
-      {/* 카카오 로그인 WebView 모달 */}
-      <Modal
-        visible={showWebView}
-        animationType="slide"
-        onRequestClose={() => setShowWebView(false)}
-      >
-        <SafeAreaView style={{ flex: 1 }}>
-          <View
-            style={{
-              height: insets.top + 48,
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: spacing.l,
-              paddingTop: insets.top,
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              justifyContent: "space-between",
-            }}
-          >
-            <Text style={{ ...typography["body-1-bold"] }}>카카오 로그인</Text>
-            <TouchableOpacity onPress={() => setShowWebView(false)}>
-              <Text
-                style={{
-                  ...typography["body-2-regular"],
-                  color: colors.warning.strong,
-                }}
-              >
-                닫기
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <WebView
-            ref={webViewRef}
-            style={{ flex: 1 }}
-            source={{ uri: KAKAO_AUTH_URL }}
-            startInLoadingState
-            originWhitelist={["*"]}
-            javaScriptEnabled
-            domStorageEnabled
-            onShouldStartLoadWithRequest={(request) => {
-              return true;
-            }}
-            // redirect 처리
-            onNavigationStateChange={handleNavigationChange}
-          />
-        </SafeAreaView>
-      </Modal>
 
       {/* 애플 로그인 WebView 모달 */}
       <Modal

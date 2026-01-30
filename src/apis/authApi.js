@@ -1,11 +1,11 @@
 import { client } from "@apis/clientApi";
 import { getToken, saveToken } from "@utils/secureStore";
 
-// 카카오 인증코드로 JWT 발급 요청
-export async function kakaoLogin(code) {
+// 카카오 액세스 토큰으로 JWT 발급 요청
+export async function kakaoLogin(accessToken) {
   try {
-    const res = await client.post("/api/v1/auth/kakao/login", null, {
-      params: { code },
+    const res = await client.post("/api/v1/auth/kakao/login/app", null, {
+      params: { accessToken },
       skipAuth: true,
     });
 
