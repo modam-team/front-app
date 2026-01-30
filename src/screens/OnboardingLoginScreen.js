@@ -4,7 +4,7 @@ import { login } from "@react-native-seoul/kakao-login";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Alert,
   Modal,
@@ -29,9 +29,7 @@ const APPLE_AUTH_URL = `https://appleid.apple.com/auth/authorize?client_id=${APP
 )}&response_type=code&response_mode=query`;
 
 export default function OnboardingLoginScreen({ navigation }) {
-  const [loading, setLoading] = useState(false);
-
-  // Kakao OAuth 요청 설정
+  // Apple OAuth 요청 설정
   const [showAppleWebView, setShowAppleWebView] = useState(false);
   const appleWebViewRef = useRef(null);
 
@@ -44,7 +42,6 @@ export default function OnboardingLoginScreen({ navigation }) {
       return;
     }
     try {
-      setLoading(true);
       // 네이티브 SDK로 로그인 -> 액세스 토큰 획득
       const token = await login();
       const accessToken = token.accessToken;
@@ -57,8 +54,6 @@ export default function OnboardingLoginScreen({ navigation }) {
       navigation.replace("AuthGate");
     } catch (err) {
       console.error("카카오 로그인 실패:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -107,8 +102,6 @@ export default function OnboardingLoginScreen({ navigation }) {
       }
 
       try {
-        setLoading(true);
-
         if (appleWebViewRef.current) {
           appleWebViewRef.current.stopLoading();
         }
@@ -123,8 +116,6 @@ export default function OnboardingLoginScreen({ navigation }) {
       } catch (err) {
         console.error("애플 로그인 실패:", err);
         setShowAppleWebView(false);
-      } finally {
-        setLoading(false);
       }
     }
   };
