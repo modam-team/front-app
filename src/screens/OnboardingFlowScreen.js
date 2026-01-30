@@ -5,12 +5,12 @@ import Button from "@components/common/Button";
 import Chip from "@components/common/Chip";
 import TextField from "@components/common/TextField";
 import { GENRES } from "@constants/genres";
+import { TUTORIAL_STEP_KEY } from "@constants/tutorial";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useOnboardingStore } from "@store/onboardingStore";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import { TUTORIAL_STEP_KEY } from "@constants/tutorial";
 import React, { useState } from "react";
 import {
   Keyboard,

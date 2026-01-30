@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
 
   // 설정 한 줄에 해당하는 스타일
   row: {
-    paddingBottom: 14,
+    paddingBottom: spacing.xl,
   },
 
   // row 터치 중 상태 (투명도 조절)

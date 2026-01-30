@@ -7,16 +7,20 @@ import {
   updateBookcaseState,
 } from "@apis/bookcaseApi";
 import BookShelfTabs from "@components/BookshelfTabs";
-import TutorialOverlay from "@components/TutorialOverlay";
 import StarIcon from "@components/StarIcon";
+import TutorialOverlay from "@components/TutorialOverlay";
 import ModamLogoText from "@components/common/ModamLogoText";
 import { TUTORIAL_STEP_KEY } from "@constants/tutorial";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useIsFocused,
+  useNavigation,
+} from "@react-navigation/native";
 import { colors } from "@theme/colors";
-import { LinearGradient } from "expo-linear-gradient";
 import { spacing } from "@theme/spacing";
+import { LinearGradient } from "expo-linear-gradient";
 import React, {
   useCallback,
   useEffect,
@@ -342,7 +346,6 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
       clearTimeout(t2);
     };
   }, [shelfStepIndex, shelfSteps]);
-
 
   const setBooksAndCache = (updater) => {
     setBooks((prev) => {
@@ -1012,8 +1015,7 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
         title={shelfSteps[shelfStepIndex]?.title}
         description={shelfSteps[shelfStepIndex]?.description}
         nextLabel={
-          shelfStepIndex != null &&
-          shelfStepIndex === shelfSteps.length - 1
+          shelfStepIndex != null && shelfStepIndex === shelfSteps.length - 1
             ? "리포트로"
             : "다음"
         }
@@ -1037,7 +1039,6 @@ export default function BookshelfScreen({ route, navigation: navProp }) {
           setTutorialStep("done");
         }}
       />
-
     </SafeAreaView>
   );
 }

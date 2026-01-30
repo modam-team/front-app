@@ -1,5 +1,6 @@
 import { fetchMonthlyReport } from "@apis/report/reportApi";
 import { fetchUserProfile } from "@apis/userApi";
+import TutorialOverlay from "@components/TutorialOverlay";
 import YearMonthPicker from "@components/common/YearMonthPicker";
 import MonthlyStats from "@components/report/MonthlyStats";
 import PlaceHabits from "@components/report/PlaceHabits";
@@ -10,7 +11,6 @@ import ReportSectionHeader from "@components/report/ReportSectionHeader";
 import ReportToggle from "@components/report/ReportToggle";
 import ReportTopHeader from "@components/report/ReportTopHeader";
 import Summary from "@components/report/Summary";
-import TutorialOverlay from "@components/TutorialOverlay";
 import TimeHabits from "@components/report/TimeHabits";
 import {
   REPORT_BACKGROUND_BASIC,
@@ -26,7 +26,13 @@ import { useNavigation } from "@react-navigation/native";
 import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -427,225 +433,231 @@ export default function ReportScreen() {
   };
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      style={styles.container}
-      contentContainerStyle={styles.scrollContainer}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
-    >
-      <ImageBackground
-        source={bgSource}
-        resizeMode="cover"
-        style={styles.bg}
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.container}
+        contentContainerStyle={styles.scrollContainer}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        <ReportTopHeader
-          variant={headerVariant}
-          onLongPressLogo={__DEV__ ? resetReportVisitDebug : undefined}
-          onPressSettings={() => navigation.navigate("SettingsScreen")}
-        />
-        <View style={styles.content}>
-          {loading || !data ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator
-                size="large"
-                color={colors.primary[500]}
-              />
-            </View>
-          ) : (
-            <>
-              {/* 항상 보이는 프로필 영역 */}
-              <View
-                ref={profileRef}
-                onLayout={updateLayout("profile")}
-              >
-                <ReportProfileHeader
-                  profileImageUrl={profileImageUrl}
-                  onPressProfile={() => navigation.navigate("ProfileScreen")}
-                  onPressEditProfile={() =>
-                    navigation.navigate("ProfileScreen")
-                  }
+        <ImageBackground
+          source={bgSource}
+          resizeMode="cover"
+          style={styles.bg}
+        >
+          <ReportTopHeader
+            variant={headerVariant}
+            onLongPressLogo={__DEV__ ? resetReportVisitDebug : undefined}
+            onPressSettings={() => navigation.navigate("SettingsScreen")}
+          />
+          <View style={styles.content}>
+            {loading || !data ? (
+              <View style={styles.loadingWrap}>
+                <ActivityIndicator
+                  size="large"
+                  color={colors.primary[500]}
                 />
               </View>
-
-              {/* Summary는 이번 달을 조회할 때만 보여줌 */}
-              {isCurrentMonth ? (
+            ) : (
+              <>
+                {/* 항상 보이는 프로필 영역 */}
                 <View
-                  ref={summaryRef}
+                  ref={profileRef}
                   onLayout={updateLayout("profile")}
                 >
-                  <Summary
-                    summary={data.summary}
-                    userName={userName}
-                    year={year}
-                    month={month}
+                  <ReportProfileHeader
+                    profileImageUrl={profileImageUrl}
                     onPressProfile={() => navigation.navigate("ProfileScreen")}
                     onPressEditProfile={() =>
                       navigation.navigate("ProfileScreen")
                     }
-                    profileImageUrl={profileImageUrl}
-                    isCurrentUI={isCurrentUI}
                   />
                 </View>
-              ) : null}
 
-              {/* 월별 통계 섹션 */}
-              <View
-                ref={statsRef}
-                onLayout={(e) => {
-                  statsAnim.onLayout?.(e);
-                  updateLayout("stats")(e);
-                }}
-              >
-                <MonthlyStats
-                  year={year}
-                  month={month}
-                  monthlyStatus={data.monthlyStatus}
-                  onChangeYear={setYear}
-                  onChangeMonth={setMonth}
-                  animateKey={statsAnim.animateKey}
-                  resetKey={resetKeys.stats}
-                  onOpenPicker={openPicker}
-                  isCurrentMonth={isCurrentUI}
-                  isEmpty={!hasAnyRecordInYear}
-                />
-              </View>
+                {/* Summary는 이번 달을 조회할 때만 보여줌 */}
+                {isCurrentMonth ? (
+                  <View
+                    ref={summaryRef}
+                    onLayout={updateLayout("profile")}
+                  >
+                    <Summary
+                      summary={data.summary}
+                      userName={userName}
+                      year={year}
+                      month={month}
+                      onPressProfile={() =>
+                        navigation.navigate("ProfileScreen")
+                      }
+                      onPressEditProfile={() =>
+                        navigation.navigate("ProfileScreen")
+                      }
+                      profileImageUrl={profileImageUrl}
+                      isCurrentUI={isCurrentUI}
+                    />
+                  </View>
+                ) : null}
 
-              {/* 취향 분석 스와이프 페이저 섹션 */}
-              {isSelectedMonthEmpty ? (
+                {/* 월별 통계 섹션 */}
                 <View
-                  ref={prefRef}
+                  ref={statsRef}
                   onLayout={(e) => {
-                    prefAnim.onLayout?.(e);
-                    updateLayout("preference")(e);
+                    statsAnim.onLayout?.(e);
+                    updateLayout("stats")(e);
                   }}
                 >
-                  <ReportSectionHeader
-                    month={month}
-                    title="취향 분석"
-                    caption="나의 별점을 기준으로 작성된 표예요"
-                    variant={styleVariant}
-                  />
-                  <ReportEmptyCard
-                    height={373}
-                    title={`${year}년 ${month}월은 별점을 남긴 책이 없어요`}
-                    caption="완독 후 별점을 남기면 취향 분석을 볼 수 있어요"
-                  />
-                </View>
-              ) : (
-                <View
-                  ref={prefRef}
-                  onLayout={(e) => {
-                    prefAnim.onLayout?.(e);
-                    updateLayout("preference")(e);
-                  }}
-                >
-                  <PreferencePagerSection
+                  <MonthlyStats
                     year={year}
                     month={month}
-                    variant={styleVariant}
+                    monthlyStatus={data.monthlyStatus}
+                    onChangeYear={setYear}
+                    onChangeMonth={setMonth}
+                    animateKey={statsAnim.animateKey}
+                    resetKey={resetKeys.stats}
+                    onOpenPicker={openPicker}
                     isCurrentMonth={isCurrentUI}
-                    genreDistribution={data.genreDistribution}
-                    reviewKeywords={data.reviewKeywords}
-                    resetKey={resetKeys.pref}
-                    onLayout={prefAnim.onLayout}
-                    animateKey={prefAnim.animateKey}
+                    isEmpty={!hasAnyRecordInYear}
                   />
                 </View>
-              )}
 
-              {/* 습관 분석 섹션 */}
-              <View
-                ref={habitRef}
-                style={{ marginTop: 30 }}
-                onLayout={(e) => {
-                  habitAnim.onLayout?.(e);
-                  updateLayout("habit")(e);
-                }}
-              >
-                {/* 섹션 헤더*/}
-                <ReportSectionHeader
-                  month={month}
-                  title="습관 분석"
-                  caption="독서 기록 버튼을 누른 기록으로 분석했어요"
-                  variant={styleVariant}
-                />
-
+                {/* 취향 분석 스와이프 페이저 섹션 */}
                 {isSelectedMonthEmpty ? (
-                  <ReportEmptyCard
-                    height={436}
-                    title={`${year}년 ${month}월은 독서한 기록이 없어요`}
-                    caption="독서 기록 버튼을 눌러야 습관 분석을 볼 수 있어요"
-                  />
-                ) : (
-                  <>
-                    {/* 토글 */}
-                    <ReportToggle
-                      value={habitTab}
-                      onChange={setHabitTab}
+                  <View
+                    ref={prefRef}
+                    onLayout={(e) => {
+                      prefAnim.onLayout?.(e);
+                      updateLayout("preference")(e);
+                    }}
+                  >
+                    <ReportSectionHeader
+                      month={month}
+                      title="취향 분석"
+                      caption="나의 별점을 기준으로 작성된 표예요"
+                      variant={styleVariant}
                     />
-
-                    {/* 카드 */}
-                    {habitTab === "time" ? (
-                      <TimeHabits
-                        readingCountsByWeekday={data.readingCountsByWeekday}
-                        animateKey={habitAnim.animateKey}
-                        resetKey={resetKeys.habit}
-                      />
-                    ) : (
-                      <PlaceHabits
-                        places={places}
-                        animateKey={habitAnim.animateKey}
-                        resetKey={resetKeys.habit}
-                      />
-                    )}
-                  </>
+                    <ReportEmptyCard
+                      height={373}
+                      title={`${year}년 ${month}월은 별점을 남긴 책이 없어요`}
+                      caption="완독 후 별점을 남기면 취향 분석을 볼 수 있어요"
+                    />
+                  </View>
+                ) : (
+                  <View
+                    ref={prefRef}
+                    onLayout={(e) => {
+                      prefAnim.onLayout?.(e);
+                      updateLayout("preference")(e);
+                    }}
+                  >
+                    <PreferencePagerSection
+                      year={year}
+                      month={month}
+                      variant={styleVariant}
+                      isCurrentMonth={isCurrentUI}
+                      genreDistribution={data.genreDistribution}
+                      reviewKeywords={data.reviewKeywords}
+                      resetKey={resetKeys.pref}
+                      onLayout={prefAnim.onLayout}
+                      animateKey={prefAnim.animateKey}
+                    />
+                  </View>
                 )}
-              </View>
-            </>
-          )}
 
-          {/* 공통 YearMonthPicker */}
-          <YearMonthPicker
-            visible={pickerVisible}
-            onClose={closePicker}
-            selectedYear={year}
-            selectedMonth={month}
-            onSelectYear={setYear}
-            onSelectMonth={setMonth}
-            minDate={pickerMinDate}
-          />
-        </View>
-      </ImageBackground>
-    </ScrollView>
+                {/* 습관 분석 섹션 */}
+                <View
+                  ref={habitRef}
+                  style={{ marginTop: 30 }}
+                  onLayout={(e) => {
+                    habitAnim.onLayout?.(e);
+                    updateLayout("habit")(e);
+                  }}
+                >
+                  {/* 섹션 헤더*/}
+                  <ReportSectionHeader
+                    month={month}
+                    title="습관 분석"
+                    caption="독서 기록 버튼을 누른 기록으로 분석했어요"
+                    variant={styleVariant}
+                  />
 
-    <TutorialOverlay
-      visible={reportStepIndex != null}
-      highlightRect={reportHighlightRect}
-      title={reportSteps[reportStepIndex]?.title}
-      description={reportSteps[reportStepIndex]?.description}
-      nextLabel={
-        reportStepIndex != null &&
-        reportStepIndex === reportSteps.length - 1
-          ? "완료"
-          : "다음"
-      }
-      onNext={async () => {
-        if (reportStepIndex == null) return;
-        const nextIndex = reportStepIndex + 1;
-        if (nextIndex < reportSteps.length) {
-          await AsyncStorage.setItem(TUTORIAL_STEP_KEY, `report:${nextIndex}`);
-          setTutorialStep(`report:${nextIndex}`);
-          return;
+                  {isSelectedMonthEmpty ? (
+                    <ReportEmptyCard
+                      height={436}
+                      title={`${year}년 ${month}월은 독서한 기록이 없어요`}
+                      caption="독서 기록 버튼을 눌러야 습관 분석을 볼 수 있어요"
+                    />
+                  ) : (
+                    <>
+                      {/* 토글 */}
+                      <ReportToggle
+                        value={habitTab}
+                        onChange={setHabitTab}
+                      />
+
+                      {/* 카드 */}
+                      {habitTab === "time" ? (
+                        <TimeHabits
+                          readingCountsByWeekday={data.readingCountsByWeekday}
+                          animateKey={habitAnim.animateKey}
+                          resetKey={resetKeys.habit}
+                        />
+                      ) : (
+                        <PlaceHabits
+                          places={places}
+                          animateKey={habitAnim.animateKey}
+                          resetKey={resetKeys.habit}
+                        />
+                      )}
+                    </>
+                  )}
+                </View>
+              </>
+            )}
+
+            {/* 공통 YearMonthPicker */}
+            <YearMonthPicker
+              visible={pickerVisible}
+              onClose={closePicker}
+              selectedYear={year}
+              selectedMonth={month}
+              onSelectYear={setYear}
+              onSelectMonth={setMonth}
+              minDate={pickerMinDate}
+            />
+          </View>
+        </ImageBackground>
+      </ScrollView>
+
+      <TutorialOverlay
+        visible={reportStepIndex != null}
+        highlightRect={reportHighlightRect}
+        title={reportSteps[reportStepIndex]?.title}
+        description={reportSteps[reportStepIndex]?.description}
+        nextLabel={
+          reportStepIndex != null && reportStepIndex === reportSteps.length - 1
+            ? "완료"
+            : "다음"
         }
-        await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "done");
-        setTutorialStep("done");
-      }}
-      onSkip={async () => {
-        await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "done");
-        setTutorialStep("done");
-      }}
-    />
+        onNext={async () => {
+          if (reportStepIndex == null) return;
+          const nextIndex = reportStepIndex + 1;
+          if (nextIndex < reportSteps.length) {
+            await AsyncStorage.setItem(
+              TUTORIAL_STEP_KEY,
+              `report:${nextIndex}`,
+            );
+            setTutorialStep(`report:${nextIndex}`);
+            return;
+          }
+          await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "done");
+          setTutorialStep("done");
+        }}
+        onSkip={async () => {
+          await AsyncStorage.setItem(TUTORIAL_STEP_KEY, "done");
+          setTutorialStep("done");
+        }}
+      />
+    </View>
   );
 }
 
