@@ -2,7 +2,14 @@ import { colors } from "@theme/colors";
 import { spacing } from "@theme/spacing";
 import { typography } from "@theme/typography";
 import React, { memo, useMemo } from "react";
-import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Dimensions,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Svg, { Defs, Mask, Rect } from "react-native-svg";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
@@ -54,10 +61,8 @@ function TutorialOverlay({
     const tooltipBottom = tooltipTop + (tooltipStyle.minHeight || 0);
     const highlightTop = highlightRect.y;
     const highlightBottom = highlightRect.y + highlightRect.height;
-    const lineTop =
-      tooltipTop > highlightTop ? highlightBottom : tooltipBottom;
-    const lineBottom =
-      tooltipTop > highlightTop ? tooltipTop : highlightTop;
+    const lineTop = tooltipTop > highlightTop ? highlightBottom : tooltipBottom;
+    const lineBottom = tooltipTop > highlightTop ? tooltipTop : highlightTop;
     const height = Math.max(0, lineBottom - lineTop);
     return { left: cx - 1, top: lineTop, height };
   }, [highlightRect, tooltipStyle]);
@@ -151,20 +156,20 @@ function TutorialOverlay({
               )}
             </View>
             <View style={styles.actions}>
-            {onSkip && (
+              {onSkip && (
+                <Pressable
+                  onPress={onSkip}
+                  style={styles.skipBtn}
+                >
+                  <Text style={styles.skipText}>건너뛰기</Text>
+                </Pressable>
+              )}
               <Pressable
-                onPress={onSkip}
-                style={styles.skipBtn}
+                onPress={onNext}
+                style={styles.nextBtn}
               >
-                <Text style={styles.skipText}>건너뛰기</Text>
+                <Text style={styles.nextText}>{nextLabel}</Text>
               </Pressable>
-            )}
-            <Pressable
-              onPress={onNext}
-              style={styles.nextBtn}
-            >
-              <Text style={styles.nextText}>{nextLabel}</Text>
-            </Pressable>
             </View>
           </View>
         </View>

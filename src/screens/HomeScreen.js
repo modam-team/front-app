@@ -46,8 +46,8 @@ import React, {
 } from "react";
 import {
   Animated,
-  Dimensions,
   DeviceEventEmitter,
+  Dimensions,
   Image,
   Pressable,
   ScrollView,
@@ -1456,8 +1456,7 @@ export default function HomeScreen({ navigation }) {
         title={homeSteps[homeStepIndex]?.title}
         description={homeSteps[homeStepIndex]?.description}
         nextLabel={
-          homeStepIndex != null &&
-          homeStepIndex === homeSteps.length - 1
+          homeStepIndex != null && homeStepIndex === homeSteps.length - 1
             ? "책장으로"
             : "다음"
         }
@@ -1465,10 +1464,7 @@ export default function HomeScreen({ navigation }) {
           if (homeStepIndex == null) return;
           const nextIndex = homeStepIndex + 1;
           if (nextIndex < homeSteps.length) {
-            await AsyncStorage.setItem(
-              TUTORIAL_STEP_KEY,
-              `home:${nextIndex}`,
-            );
+            await AsyncStorage.setItem(TUTORIAL_STEP_KEY, `home:${nextIndex}`);
             setTutorialStep(`home:${nextIndex}`);
             return;
           }
@@ -1481,7 +1477,6 @@ export default function HomeScreen({ navigation }) {
           setTutorialStep("done");
         }}
       />
-
     </SafeAreaView>
   );
 }

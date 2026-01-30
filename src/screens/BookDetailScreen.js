@@ -31,8 +31,8 @@ import {
   UIManager,
   View,
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 
 if (
   Platform.OS === "android" &&
@@ -62,21 +62,21 @@ export default function BookDetailScreen({ navigation, route }) {
   const [isNoteBack, setIsNoteBack] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [noteRating, setNoteRating] = useState(book.userRate || 0);
-const NOTE_MAX = 1000;
+  const NOTE_MAX = 1000;
 
-const FlowerStar = ({ size = 24, color = "#355619" }) => (
-  <Svg
-    width={size}
-    height={size}
-    viewBox="0 0 38 38"
-    fill="none"
-  >
-    <Path
-      d="M31.7802 24.3023C34.7362 29.7674 34.4818 33.6772 30.6793 36.4151C29.3458 37.3754 27.4348 37.8155 25.7636 37.8861C22.8173 38.0103 20.7414 36.1316 19.134 33.6978C15.8439 38.0915 11.5788 39.1767 7.85231 36.6911C4.02236 34.1368 3.52026 29.7886 6.43061 24.3698C1.14001 21.9934 -0.908558 18.8353 0.368295 14.4111C0.818663 12.8501 1.85999 11.2786 3.04007 10.1691C5.4678 7.88828 8.44631 8.0731 11.4005 9.24629C11.8466 3.17804 14.3108 0.0961572 18.6015 0.00312618C23.7059 -0.107387 26.3496 2.70852 27.0763 9.03088C32.8599 7.90701 36.7081 9.52475 37.7634 13.9153C38.184 15.6648 38.013 17.7608 37.4938 19.5059C36.688 22.2163 34.3625 23.5406 31.7802 24.3023Z"
-      fill={color}
-    />
-  </Svg>
-);
+  const FlowerStar = ({ size = 24, color = "#355619" }) => (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 38 38"
+      fill="none"
+    >
+      <Path
+        d="M31.7802 24.3023C34.7362 29.7674 34.4818 33.6772 30.6793 36.4151C29.3458 37.3754 27.4348 37.8155 25.7636 37.8861C22.8173 38.0103 20.7414 36.1316 19.134 33.6978C15.8439 38.0915 11.5788 39.1767 7.85231 36.6911C4.02236 34.1368 3.52026 29.7886 6.43061 24.3698C1.14001 21.9934 -0.908558 18.8353 0.368295 14.4111C0.818663 12.8501 1.85999 11.2786 3.04007 10.1691C5.4678 7.88828 8.44631 8.0731 11.4005 9.24629C11.8466 3.17804 14.3108 0.0961572 18.6015 0.00312618C23.7059 -0.107387 26.3496 2.70852 27.0763 9.03088C32.8599 7.90701 36.7081 9.52475 37.7634 13.9153C38.184 15.6648 38.013 17.7608 37.4938 19.5059C36.688 22.2163 34.3625 23.5406 31.7802 24.3023Z"
+        fill={color}
+      />
+    </Svg>
+  );
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState(null);
   const [fetchedReview, setFetchedReview] = useState(null);
@@ -301,7 +301,8 @@ const FlowerStar = ({ size = 24, color = "#355619" }) => (
     [book.finishedAt, book.finishedAtTime, book.endDate, formatDate],
   );
   const dateRangeText = useMemo(() => {
-    const startText = startDateText || (status === "reading" ? todayText : null);
+    const startText =
+      startDateText || (status === "reading" ? todayText : null);
     if (startText && endDateText) return `${startText} ~ ${endDateText}`;
     if (startText) return `${startText} ~`;
     if (endDateText) return endDateText;
@@ -618,7 +619,10 @@ const FlowerStar = ({ size = 24, color = "#355619" }) => (
           if (code === "4039") {
             // 태그가 서버에서 허용되지 않으면 태그 없이라도 리뷰 저장 시도
             try {
-              const fallbackComment = ((commentOverride ?? noteText) || "").trim();
+              const fallbackComment = (
+                (commentOverride ?? noteText) ||
+                ""
+              ).trim();
               const fallbackRating = Number.isFinite(
                 Number(ratingOverride ?? rating),
               )
